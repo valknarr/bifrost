@@ -233,13 +233,22 @@ pub async fn delete_pilot(state: State<'_, AppState>, id: String) -> Result<()> 
     // even after the visible window is closed, so terminate any
     // matching browser process for this profile first then retry the
     // delete a couple of times to give Windows time to release handles.
+    //
+    // Three escalating delays: the first attempt usually succeeds
+    // once `taskkill /F /T` has done its work; the longer waits cover
+    // the slow tail of Brave shutdown on hard-pressed machines (heavy
+    // antivirus scanners, indexing services). Total worst-case wait
+    // is 1.7 s — short enough that the delete feels responsive even
+    // on the slow path.
+    const HANDLE_RELEASE_DELAYS_MS: &[u64] = &[200, 500, 1000];
+
     let pilot_dir = PathBuf::from(&cfg.pilots_dir).join(&id);
     if pilot_dir.exists() {
         let profile_dir = pilot_dir.join("browser");
         browser::kill_browsers_for_profile(&profile_dir).await;
 
         let mut last_err: Option<std::io::Error> = None;
-        for delay_ms in [200u64, 500, 1000] {
+        for &delay_ms in HANDLE_RELEASE_DELAYS_MS {
             tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
             match std::fs::remove_dir_all(&pilot_dir) {
                 Ok(_) => {

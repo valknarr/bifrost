@@ -29,10 +29,17 @@ use std::time::Duration;
 use once_cell::sync::Lazy;
 
 /// Identifying User-Agent for every outbound request Bridge makes.
-/// GitHub rejects requests without a UA; using a recognisable
-/// identifier also helps GitHub's abuse-detection treat us as a
-/// well-behaved client.
-pub const USER_AGENT: &str = "bridge/0.0.1 (+https://github.com/) rust-reqwest";
+/// GitHub rejects requests without a UA; a recognisable identifier
+/// also helps service operators (GitHub's abuse-detection,
+/// favicon-service logs, Sui RPC) treat us as a well-behaved client.
+///
+/// Built via `concat!` so the version segment stays in lockstep with
+/// `Cargo.toml` automatically on every bump — no maintenance burden.
+pub const USER_AGENT: &str = concat!(
+    "bridge/",
+    env!("CARGO_PKG_VERSION"),
+    " (+https://github.com/valknarr/bifrost) rust-reqwest"
+);
 
 /// 120 seconds covers the EVE Vault download (a few MB), the
 /// JSON-RPC roundtrip to Sui, and the GitHub Releases API. Bigger
@@ -88,13 +95,25 @@ mod tests {
     /// Configured defaults. Pins the contract so a future refactor
     /// that drops the User-Agent header (GitHub starts 403'ing
     /// without one) or removes the timeout (a hung fetch wedges the
-    /// Settings panel forever) fails the test loudly.
+    /// Settings panel forever) fails the test loudly. Also pins the
+    /// CARGO_PKG_VERSION wiring + the actual project URL — both went
+    /// stale once before the audit caught them.
     #[test]
     fn user_agent_is_set_and_recognisable() {
-        // We can't introspect a reqwest::Client's UA directly, but
-        // we can pin the const so a contributor renaming the
-        // identifier sees the test fail.
         assert!(USER_AGENT.starts_with("bridge/"));
         assert!(USER_AGENT.contains("rust-reqwest"));
+        // The repo URL must match Cargo.toml's `repository` field;
+        // GitHub's abuse-detection uses it to identify legitimate
+        // callers when traffic spikes.
+        assert!(
+            USER_AGENT.contains("github.com/valknarr/bifrost"),
+            "UA must point at the real repo, got {USER_AGENT:?}"
+        );
+        // The version segment must track CARGO_PKG_VERSION so a bump
+        // in Cargo.toml automatically updates the UA.
+        assert!(
+            USER_AGENT.contains(env!("CARGO_PKG_VERSION")),
+            "UA must include the current crate version"
+        );
     }
 }

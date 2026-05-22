@@ -17,29 +17,26 @@ use tokio::process::Command;
 use crate::cmd::{cli_failure_msg, no_window};
 use crate::error::{BridgeError, Result};
 
-/// One Sandboxie-Plus install. Holds resolved paths to the CLI tools.
-/// `root` is retained for diagnostics / future helpers even though no
-/// caller reads it today.
+/// One Sandboxie install (Plus or Classic). Holds resolved paths to
+/// the CLI tools every other method shells out to. Fields are
+/// crate-private; callers go through the methods.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct Sandboxie {
-    pub root: PathBuf,
-    pub sbie_ini: PathBuf,
-    pub start_exe: PathBuf,
+    sbie_ini: PathBuf,
+    start_exe: PathBuf,
 }
 
 impl Sandboxie {
     /// Resolve from an install root (e.g. `C:\Program Files\Sandboxie-Plus`).
     /// Errors if the expected executables aren't present.
     pub fn at(root: impl AsRef<Path>) -> Result<Self> {
-        let root = root.as_ref().to_path_buf();
+        let root = root.as_ref();
         let sbie_ini = root.join("SbieIni.exe");
         let start_exe = root.join("Start.exe");
         if !sbie_ini.exists() || !start_exe.exists() {
             return Err(BridgeError::SandboxieMissing);
         }
         Ok(Self {
-            root,
             sbie_ini,
             start_exe,
         })
