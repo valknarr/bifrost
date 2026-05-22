@@ -1,0 +1,179 @@
+@import "tailwindcss";
+
+/* ---------- Bridge design tokens ----------
+ * Tuned against EVE Frontier's in-game UI and launcher reference shots.
+ * Deliberately uses the game's grammar (red-orange primary, yellow focus,
+ * mono everywhere) without infringing on CCP brand assets directly.
+ */
+@theme {
+  /* Surfaces — pushed darker to match the game's near-black backdrop. */
+  --color-bg: #04060a;
+  --color-bg-grad-1: #07090e;
+  --color-bg-grad-2: #020306;
+  --color-surface: #0b0e15;
+  --color-elevated: #141822;
+  --color-border: #1a1f29;
+  --color-border-hi: #262d3a;
+
+  /* Text — readable on near-black backdrop. Both muted and dim were too
+     close to the background before; bumped each ~20 lightness steps so
+     long help-text paragraphs and value-trailer chrome stay legible. */
+  --color-text: #eef0f5;
+  --color-text-muted: #b2bbd0;
+  --color-text-dim: #7a8398;
+
+  /* Accents — slightly punchier orange than EVE-Frontier's `#e54b1a`
+     so the brand reads closer to CradleOS's dashboard accent. The
+     extra red lift makes filled CTAs ("Install Plus", "Open
+     Settings") pop without losing the EVE-orange family identity. */
+  --color-accent: #ff5a25;       /* primary red-orange */
+  --color-accent-hi: #ff7a40;    /* hover */
+  --color-accent-lo: #7a2810;    /* low-energy/inactive variant */
+  --color-focus: #f5c542;        /* yellow — focused window, selected tab */
+  --color-focus-hi: #ffd967;
+
+  /* Status — `ok` is the brand orange instead of green so "active /
+     running" reads as part of the EVE Frontier palette, not a
+     traffic-light system. */
+  --color-ok: #ff6332;
+  --color-warn: #f2c94c;
+  --color-danger: #e2604a;
+
+  /* Type */
+  --font-sans:
+    Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, "SF Mono",
+    Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* No rounded corners anywhere — EVE UI is committed to sharp rectangles */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+}
+
+/* CSS stacking rule that bit us hard:
+   The painting order for the root stacking context is
+     1. html background
+     2. negative-z stacking contexts (our BackgroundField canvas)
+     3. in-flow descendants (body, which paints its own bg here)
+     4. ...
+   If `body` has an opaque background, step 3 will paint over the
+   canvas from step 2 — even though body's children (step 4) sit
+   above the canvas. So the canvas was being correctly painted, just
+   immediately covered by body's gradient one paint-step later.
+   The fix: keep the gradient on `html` only. `body` and `#app` stay
+   transparent, the canvas paints over html's gradient, and Layout's
+   translucent surface panels (`bg-surface/40`) reveal the canvas
+   through their fills. */
+html {
+  height: 100%;
+  background: radial-gradient(
+      ellipse at top,
+      var(--color-bg-grad-1) 0%,
+      var(--color-bg-grad-2) 70%,
+      var(--color-bg) 100%
+    );
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-feature-settings: "ss01", "ss02", "tnum";
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Soft scanline texture overlay — only at very low opacity, gives the
+   panels that subtle "CRT" feel without being obnoxious. */
+#app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.012) 0px,
+    rgba(255, 255, 255, 0.012) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  z-index: 1000;
+  mix-blend-mode: overlay;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-hi);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-dim);
+}
+
+/* Mono numeric utility for codes / addresses / distances */
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* In-game "data field" pattern: Label............................ Value
+   Renders a row with the label on the left, dotted leader filling the
+   gap, and the value right-aligned. */
+.field {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+.field > .label {
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+.field > .leader {
+  border-bottom: 1px dotted var(--color-border-hi);
+  transform: translateY(-3px);
+}
+.field > .value {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bracketed window title like in-game: `[#] Refinery` */
+.title-bracket::before {
+  content: "[#]";
+  color: var(--color-accent);
+  margin-right: 0.5rem;
+  letter-spacing: 0;
+}
+
+/* Section label small caps with letter-spacing */
+.section-label {
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+/* Focus ring used on the active tab / focused window */
+.focus-ring {
+  box-shadow: 0 0 0 1px var(--color-focus);
+}
