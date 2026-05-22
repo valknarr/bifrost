@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main]
 
+# Minimum-required workflow permissions. CI only reads the repo, so
+# `contents: read` is enough. The default for older repos is often
+# `write-all`, which the OpenSSF Scorecard flags as risky — this top-
+# level pin overrides that for every job below.
+permissions:
+  contents: read
+
 # Cancel superseded CI runs on the same branch — saves Actions minutes and
 # means feedback on the latest push is what matters.
 concurrency:
@@ -51,6 +58,16 @@ jobs:
       - name: cargo test
         run: cargo test --all-targets
 
+      # `cargo audit` checks the Cargo.lock against the RustSec
+      # advisory DB. `continue-on-error` keeps the run green while
+      # we establish a clean baseline — once we've triaged any
+      # findings, drop this line so a new advisory fails the build.
+      - name: cargo audit
+        continue-on-error: true
+        run: |
+          cargo install --locked cargo-audit --version 0.21.2
+          cargo audit
+
   frontend:
     name: Frontend (svelte-check)
     runs-on: windows-latest
@@ -72,3 +89,12 @@ jobs:
 
       - name: svelte-check
         run: pnpm check
+
+      # `pnpm audit` checks the lockfile against npm's advisory DB.
+      # `--prod` skips dev-only deps (vite, svelte-check, etc.) so we
+      # only block on advisories that affect what we ship. Soft-failed
+      # for the same reason as `cargo audit` above — flip to a hard
+      # fail once the baseline is clean.
+      - name: pnpm audit
+        continue-on-error: true
+        run: pnpm audit --prod

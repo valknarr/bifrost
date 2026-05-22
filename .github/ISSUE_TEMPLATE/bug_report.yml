@@ -9,7 +9,7 @@ body:
         info shorten triage from days to minutes.
 
         **Security issues:** please do NOT file them here.
-        See [SECURITY.md](https://github.com/valknarr/Bridge/blob/master/SECURITY.md)
+        See [SECURITY.md](https://github.com/valknarr/bifrost/blob/main/SECURITY.md)
         for the private channel.
 
   - type: input

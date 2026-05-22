@@ -78,4 +78,4 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   30-min in-process cache for GitHub `releases/latest` lookups so the
   Settings panel stays well under the unauthenticated rate limit.
 
-[Unreleased]: https://github.com/valknarr/Bridge/commits/master
+[Unreleased]: https://github.com/valknarr/bifrost/commits/main

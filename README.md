@@ -58,8 +58,8 @@ installer, with one Windows UAC prompt.
 ## Quick start
 
 ```sh
-git clone https://github.com/valknarr/Bridge.git
-cd Bridge
+git clone https://github.com/valknarr/bifrost.git
+cd bifrost
 pnpm install
 pnpm tauri dev
 ```
@@ -200,6 +200,55 @@ Bridge stands on the shoulders of several open-source projects:
 
 CCP Games' EVE Frontier visual language inspired the UI palette and
 typography without using any CCP brand assets directly.
+
+## Roadmap / Pre-1.0 TODO
+
+Tracked here rather than as Issues so contributors can see at a glance
+what's still rough. Each item links to (or will link to) a tracking
+issue once the repo is public.
+
+**Repo hygiene**
+
+- [ ] **Branch protection on `main`** — require PR before merging,
+      require the `Rust (fmt + clippy + test)` and `Frontend
+      (svelte-check)` status checks, require linear history, block
+      force-push. Configure in GitHub Settings → Branches → Add rule.
+
+**Release pipeline**
+
+- [ ] **Authenticode-sign the NSIS installer** (Bridge installs a
+      kernel driver — an unsigned installer + UAC is a poor first
+      impression). Gate on a `WINDOWS_CERT_PFX` repo secret so the
+      step no-ops until a code-signing cert is available. Until
+      then, document SHA-256 verification in `SECURITY.md`.
+- [ ] **Publish `SHA256SUMS.txt`** alongside the `.exe` in
+      `release.yml` so users can verify the download integrity.
+- [ ] **Drop the `continue-on-error` from `cargo audit` and
+      `pnpm audit`** in `ci.yml` once the baseline is clean — make
+      a new advisory fail the build.
+
+**Test coverage**
+
+- [ ] **Frontend tests** — currently zero. Wire up `vitest` and
+      plant at least one spec for `src/lib/error.ts` (round-trip),
+      one for a pilot-store mutation, and a smoke test for
+      `PilotCard.svelte`. Adds a meaningful signal to Dependabot
+      bumps.
+
+**Tooling**
+
+- [ ] **Add a frontend lint pass** (eslint or biome) to CI so the
+      Rust-side `clippy -D warnings` rigor extends to TS/Svelte.
+- [ ] **Pin GitHub Actions by SHA**, not by major tag, in
+      `release.yml`. Major-tag pinning is fine for CI; release is
+      higher-stakes.
+
+**Wallet UX**
+
+- [ ] Rework the EVE Vault first-launch flow. Right now opening any
+      Apps button triggers the OAuth setup as a side effect —
+      functional but unexplained. A dedicated wallet-setup state on
+      the pilot card would make it discoverable.
 
 ## Contributing
 

@@ -15,8 +15,8 @@ welcome.
 #    - WebView2 Runtime      (already on Windows 11)
 
 # 2. Clone + install JS deps
-git clone https://github.com/valknarr/Bridge.git
-cd Bridge
+git clone https://github.com/valknarr/bifrost.git
+cd bifrost
 pnpm install
 
 # 3. Run in dev mode
@@ -119,6 +119,6 @@ discussions that drift away from that.
 
 ## Questions
 
-Open a [Discussion](https://github.com/valknarr/Bridge/discussions) if
+Open a [Discussion](https://github.com/valknarr/bifrost/discussions) if
 you want to talk through an idea before writing code, or file an issue
 with the `question` label. Both are fine.
