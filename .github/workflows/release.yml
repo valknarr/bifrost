@@ -1,0 +1,84 @@
+# Release workflow.
+#
+# Triggered manually OR by pushing a `v*` tag (e.g. `v0.1.0`). Builds
+# the Windows installer via tauri-action and attaches it to a draft
+# GitHub Release. The release stays a draft until you review the
+# bundled artifacts and click Publish — that's deliberate so a
+# mistakenly-pushed tag doesn't blast a half-baked build out to users.
+#
+# Bridge is Windows-only (Sandboxie is a Windows kernel driver), so
+# this workflow only builds for `windows-latest`.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    # Manual button in the Actions tab. Useful for dry-runs and for
+    # cutting a build off `main` without bumping the tag.
+    inputs:
+      version:
+        description: "Version tag for the draft release (e.g. v0.1.0)"
+        required: true
+        default: "v0.0.1"
+
+permissions:
+  # tauri-action needs `contents: write` to create / attach to a
+  # release. Everything else stays at the default read-only.
+  contents: write
+
+jobs:
+  build:
+    name: Build Windows installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry + build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF##*/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build + draft release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ steps.tag.outputs.tag }}
+          releaseName: "Bridge ${{ steps.tag.outputs.tag }}"
+          releaseBody: |
+            See [`CHANGELOG.md`](./CHANGELOG.md) for the full list of
+            changes.
+
+            **Install:** download `Bridge_*_x64-setup.exe`, run, accept
+            the one Windows UAC prompt for the bundled Sandboxie
+            install if you don't already have it.
+          releaseDraft: true
+          prerelease: false

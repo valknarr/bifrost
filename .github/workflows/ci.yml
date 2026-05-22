@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 # Cancel superseded CI runs on the same branch — saves Actions minutes and
 # means feedback on the latest push is what matters.

@@ -1,0 +1,8 @@
+# Code owners. GitHub uses this file to auto-request reviews on PRs
+# that touch the matching paths. Right now Bridge is a solo project,
+# so everything routes to @valknarr; as contributors land we can carve
+# out per-module ownership (e.g. @valknarr-rust-team for src-tauri/).
+#
+# See: https://docs.github.com/en/repositories/managing-your-repositories-settings-and-customization/customizing-your-repository/about-code-owners
+
+* @valknarr

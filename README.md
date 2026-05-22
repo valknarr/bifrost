@@ -1,13 +1,16 @@
 # Bridge
 
+[![CI](https://github.com/valknarr/bifrost/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/valknarr/bifrost/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 **An open-source multi-pilot session manager for EVE Frontier.**
 
 One click → N isolated pilot sessions, each with its own game client,
 browser profile, and EVE Vault wallet. No keystroke broadcasting, no DLL
 injection, no TOS edge cases. Bridge wraps CCP's officially recommended
-sandboxing tool ([Sandboxie-Plus]) behind a calm UI, and bundles per-pilot
-[Brave Browser] + [EVE Vault] so each pilot has a fully isolated identity
-out of the box.
+sandboxing tool ([Sandboxie] — Plus or Classic) behind a calm UI, and
+bundles per-pilot [Brave Browser] + [EVE Vault] so each pilot has a fully
+isolated identity out of the box.
 
 > Bridge is an unofficial community tool. It is not affiliated with or
 > endorsed by CCP Games. "EVE Frontier" is a trademark of CCP hf.
@@ -181,10 +184,11 @@ pnpm check
 
 Bridge stands on the shoulders of several open-source projects:
 
-- **[Sandboxie-Plus][Sandboxie-Plus]** — the kernel-level sandboxing
-  engine that makes per-pilot isolation possible. Bridge calls
-  Sandboxie's CLI tools (`SbieIni.exe`, `Start.exe`) and ships the
-  official silent installer; we don't link `SbieDll.dll`.
+- **[Sandboxie][Sandboxie]** — the kernel-level sandboxing engine that
+  makes per-pilot isolation possible. Bridge supports both the modern
+  Plus build (default) and the Classic LTS build, calling Sandboxie's
+  CLI tools (`SbieIni.exe`, `Start.exe`) and shipping the official
+  silent installer; we don't link `SbieDll.dll`.
 - **[Brave Browser][Brave Browser]** — the Chromium fork Bridge bundles
   as its portable per-pilot browser. We picked Brave specifically
   because it ships with the full Google-identity plumbing that
@@ -211,6 +215,6 @@ issues. See [SECURITY.md](./SECURITY.md) for the private channel.
 
 MIT — see [LICENSE](./LICENSE).
 
-[Sandboxie-Plus]: https://github.com/sandboxie-plus/Sandboxie
+[Sandboxie]: https://github.com/sandboxie-plus/Sandboxie
 [Brave Browser]: https://github.com/brave/brave-browser
 [EVE Vault]: https://github.com/evefrontier/evevault
