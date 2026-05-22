@@ -1,0 +1,41 @@
+# Claude Code local settings (per-machine)
+.claude/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+**/.svelte-kit/
+
+# Rust / Tauri build output
+src-tauri/target/
+src-tauri/WixTools/
+
+# Tauri generated assets (per-build, machine-specific)
+src-tauri/gen/
+
+# NOTE: Cargo.lock is intentionally NOT ignored. Bridge is an application
+# (not a library), so we commit it so contributors and CI build against
+# the same dep graph. See:
+# https://doc.rust-lang.org/cargo/faq.html#why-have-cargolock-in-version-control
+
+# Local secrets / env overrides — never commit these
+.env
+.env.*
+!.env.example
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*~
+
+# Visual Studio cruft (pre-existing Sandboxie workspace artifact)
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

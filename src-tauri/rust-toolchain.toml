@@ -1,0 +1,5 @@
+# Pin the toolchain so every contributor and CI run uses the same
+# compiler. Bump deliberately when we want to use a new stable feature.
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]

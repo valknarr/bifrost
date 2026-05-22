@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Bridge — first-pass brand mark.
+
+  Square 1024×1024 source from which the Tauri icon set is generated.
+  Matches the in-app header logo: orange (#E54B1A) bracketed B on the
+  near-black app background (#04060A) with a 2 px-equivalent border at
+  the rendered icon size.
+
+  This is intentionally simple. Replace with proper brand artwork
+  before tagging v1.0 — see icons/README.md for the regeneration
+  command.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Background -->
+  <rect x="0" y="0" width="1024" height="1024" fill="#04060A"/>
+
+  <!-- Bracket frame: an orange outlined square with a 64 px border, leaving
+       the brand B floating in the middle. Matches the [#] motif used in
+       section titles and pilot card headers throughout the UI. -->
+  <rect x="64"
+        y="64"
+        width="896"
+        height="896"
+        fill="none"
+        stroke="#E54B1A"
+        stroke-width="48"/>
+
+  <!-- Soft inner glow so the mark reads at small sizes on bright
+       backgrounds. -->
+  <rect x="120"
+        y="120"
+        width="784"
+        height="784"
+        fill="none"
+        stroke="#E54B1A"
+        stroke-width="2"
+        opacity="0.4"/>
+
+  <!-- The B itself. JetBrains-Mono-ish weight; centred. -->
+  <text x="512"
+        y="512"
+        text-anchor="middle"
+        dominant-baseline="central"
+        font-family="JetBrains Mono, Consolas, ui-monospace, monospace"
+        font-weight="700"
+        font-size="560"
+        fill="#E54B1A">B</text>
+</svg>

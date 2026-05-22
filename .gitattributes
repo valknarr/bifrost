@@ -1,0 +1,36 @@
+# Normalise line endings across platforms so contributors on Windows
+# and Unix produce identical commits. Git stores LF; checkout converts
+# to the platform's native ending. Without this, every commit prints
+# "LF will be replaced by CRLF" warnings.
+* text=auto eol=lf
+
+# Files that are *always* LF regardless of platform
+*.rs       text eol=lf
+*.toml     text eol=lf
+*.ts       text eol=lf
+*.tsx      text eol=lf
+*.js       text eol=lf
+*.svelte   text eol=lf
+*.css      text eol=lf
+*.html     text eol=lf
+*.json     text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.md       text eol=lf
+*.sh       text eol=lf
+
+# Binary files — never modify
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.ico      binary
+*.icns     binary
+*.exe      binary
+*.dll      binary
+*.bin      binary
+*.lock     -text
+
+# Linguist hints — don't let pnpm-lock.yaml dominate the language stats
+pnpm-lock.yaml  linguist-generated
+Cargo.lock      linguist-generated

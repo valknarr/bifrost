@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default capability set for the Bridge main window. Bridge keeps the JS-side surface minimal: file I/O, process spawning, and Sandboxie / browser orchestration happen in Rust commands. The only JS-callable surfaces granted are `shell:allow-open` (so external URLs like GitHub release pages can open in the host browser) and `core:webview:allow-set-webview-zoom` (so the Settings UI-scale presets can call `webview.setZoom()`). Everything else routes through our own tauri::commands which have their own validation.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:webview:allow-set-webview-zoom",
+    "shell:allow-open"
+  ]
+}

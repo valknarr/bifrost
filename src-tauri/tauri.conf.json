@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Bridge",
+  "version": "0.0.1",
+  "identifier": "app.bridge.frontier",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Bridge",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 600,
+        "decorations": true,
+        "resizable": true,
+        "backgroundColor": "#04060a"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Utility",
+    "shortDescription": "Multi-pilot session manager for EVE Frontier",
+    "longDescription": "Bridge orchestrates isolated EVE Frontier game clients + per-pilot Brave Browser profiles + EVE Vault wallets for multi-pilot play. Uses Sandboxie-Plus under the hood. Strictly official-APIs-only.",
+    "copyright": "© 2026 Bridge contributors. MIT licensed.",
+    "windows": {
+      "nsis": {
+        "displayLanguageSelector": false
+      }
+    }
+  }
+}
