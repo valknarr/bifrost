@@ -201,6 +201,36 @@ Bridge stands on the shoulders of several open-source projects:
 CCP Games' EVE Frontier visual language inspired the UI palette and
 typography without using any CCP brand assets directly.
 
+## Known limitations
+
+Things that work today but have a sharp edge worth knowing about.
+Listed for transparency rather than tracked for fix unless someone
+hits one in practice.
+
+- **EVE Vault download verification is best-effort.** Bridge fetches
+  the official extension from `github.com/evefrontier/evevault` and
+  verifies its SHA-256 against the upstream `checksums.txt` when
+  that sidecar is present. If a future EVE Vault release ships
+  without `checksums.txt`, Bridge logs a warning and installs the
+  zip anyway — but doesn't yet surface "unverified" in the UI.
+  See `src-tauri/src/evevault.rs::install`. Mitigation: GitHub
+  serves the release artifact over TLS; the substitution surface
+  is essentially "GitHub itself."
+- **`delete_pilot` is not atomic across the save + filesystem-wipe
+  boundary.** Bridge removes the pilot from `pilots.json` and saves
+  the config *before* wiping the per-pilot directory under
+  `<app-data>/pilots/<id>/`. A crash in that ~1 second window
+  leaves an orphaned ~200 MB browser profile the UI can't see
+  anymore. No data loss — just disk slowly leaks until you nuke
+  `<app-data>` manually. Reproducing requires a power-cycle at
+  exactly the wrong moment.
+- **`Sandboxie::version()` always returns the variant + tag from
+  the Bridge-written marker, not the actual installed binary.** If
+  the user updates Sandboxie via its own auto-updater rather than
+  through Bridge's Settings panel, the version line in the
+  Detection row may lag until they trigger an update through Bridge
+  itself.
+
 ## Roadmap / Pre-1.0 TODO
 
 Tracked here rather than as Issues so contributors can see at a glance
