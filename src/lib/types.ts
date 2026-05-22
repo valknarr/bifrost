@@ -1,0 +1,128 @@
+// Shared TypeScript types. These mirror the Rust models in
+// src-tauri/src/pilot.rs — keep them in sync.
+
+export type PilotStatus = "stopped" | "starting" | "running" | "error";
+
+export interface Pilot {
+  /** Stable internal id, e.g. "frontier-1" */
+  id: string;
+  /** Display name shown in the UI */
+  name: string;
+  /** Sandboxie box name, e.g. "Frontier1" */
+  sandbox: string;
+  /** Per-pilot Chromium `--user-data-dir`. Browser-agnostic; today
+   *  Bridge bundles Brave but the dir layout is standard Chromium. */
+  browserProfileDir: string;
+  /** Optional Sui wallet address once known (read-only display) */
+  walletAddress: string | null;
+  /** Optional last-known SUI gas-token balance, pre-formatted */
+  walletBalance: string | null;
+  /** Optional last-known EVE token balance (the player-facing currency),
+   *  pre-formatted as a decimal string */
+  eveBalance: string | null;
+  /** Current lifecycle state */
+  status: PilotStatus;
+  /** Optional border / theme colour as #RRGGBB */
+  accent: string;
+  /** Archived pilots are hidden from the Managed list and shown under
+   *  Archived. Their sandboxes are preserved and can be restored. */
+  archived: boolean;
+  /** True once Bridge has successfully launched the game in this pilot's
+   *  sandbox at least once. Used to suppress the first-launch hint ribbon. */
+  launchedAtLeastOnce: boolean;
+}
+
+/** A single ecosystem app the user can launch into a pilot's browser. */
+export interface CompanionSite {
+  name: string;
+  /** 1–2 char monogram for the icon tile. */
+  icon: string;
+  url: string;
+  /** True for sites bundled with Bridge (cannot be removed, but can be
+   *  disabled). */
+  builtin: boolean;
+  /** True when the user has hidden this site from the per-pilot Apps
+   *  row. Site stays in the config so re-enabling restores it. */
+  disabled: boolean;
+}
+
+export interface BridgeConfig {
+  /** Path to Sandboxie-Plus install. null = autodetect */
+  sandboxiePath: string | null;
+  /** Path to the EVE Frontier game executable. null = autodetect */
+  frontierExe: string | null;
+  /** Local directory where per-pilot Chrome profiles live */
+  pilotsDir: string;
+  /** Whether to auto-launch all enabled pilots on app open */
+  launchAllOnStart: boolean;
+  /** Ordered list of ecosystem apps, both built-in and user-added. */
+  companionSites: CompanionSite[];
+  /** Webview zoom factor applied via Tauri's `webview.setZoom()`.
+   *  Settings exposes presets at 0.9 (Compact), 1.0 (Default), and
+   *  1.15 (Comfortable); persisted as the raw float for forward
+   *  compat with future keyboard-driven zoom. */
+  uiZoom: number;
+}
+
+/** EVE Vault extension install + update state. */
+export interface EveVaultStatus {
+  latestVersion: string | null;
+  installedVersion: string | null;
+  installDir: string | null;
+  updateAvailable: boolean;
+  /** Set when the GitHub fetch failed (rate-limit, network…). */
+  latestError: string | null;
+}
+
+/** Portable Chromium install + update state. */
+export interface ChromiumStatus {
+  latestVersion: string | null;
+  installedVersion: string | null;
+  installDir: string | null;
+  chromeExe: string | null;
+  updateAvailable: boolean;
+  latestSizeBytes: number | null;
+  /** Set when the GitHub fetch failed (rate-limit, network…). */
+  latestError: string | null;
+}
+
+/** Which Sandboxie variant is/was selected. Both ship from the same
+ *  GitHub repo and share the kernel driver + CLI surface — they
+ *  differ only in UI (Plus = modern Qt, Classic = legacy MFC). */
+export type SandboxieVariant = "plus" | "classic";
+
+/** Sandboxie installer state. Differs from ChromiumStatus in that
+ *  Sandboxie can't be made portable (kernel driver), so we additionally
+ *  track whether the binary is `detected` on disk (regardless of whether
+ *  Bridge installed it or the user did manually), and which variant is
+ *  on disk (Plus vs Classic). */
+export interface SandboxieInstallerStatus {
+  /** Variant currently detected on disk. Null if nothing's installed. */
+  installedVariant: SandboxieVariant | null;
+  /** Tag Bridge last installed via the in-app installer. Null if the
+   *  user installed externally or not at all. */
+  installedVersion: string | null;
+  /** True when Sandboxie binaries are present on the host, regardless
+   *  of which version or who installed them. */
+  detected: boolean;
+  /** Latest Plus release tag on GitHub. */
+  latestPlusVersion: string | null;
+  /** Latest Classic release tag on GitHub. */
+  latestClassicVersion: string | null;
+  updateAvailable: boolean;
+  latestSizeBytes: number | null;
+  /** Set when the GitHub fetch failed (rate-limit, network…). */
+  latestError: string | null;
+}
+
+export interface AppStatus {
+  sandboxieInstalled: boolean;
+  frontierFound: boolean;
+}
+
+/** A Sandboxie box that exists on disk but isn't yet managed by Bridge. */
+export interface DiscoveredBox {
+  name: string;
+  configLevel: string | null;
+  borderColor: string | null;
+}
