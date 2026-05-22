@@ -1,0 +1,78 @@
+name: Bug report
+description: Something in Bridge is broken or behaving unexpectedly.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Concrete reproduction steps and version
+        info shorten triage from days to minutes.
+
+        **Security issues:** please do NOT file them here.
+        See [SECURITY.md](https://github.com/valknarr/Bridge/blob/master/SECURITY.md)
+        for the private channel.
+
+  - type: input
+    id: bridge-version
+    attributes:
+      label: Bridge version
+      description: From the bottom-right of the app, the title bar, or `Cargo.toml`.
+      placeholder: "v0.0.1"
+    validations:
+      required: true
+
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows version
+      description: "`winver` → copy the build number (e.g. 22631)."
+      placeholder: "Windows 11 23H2 (build 22631.4317)"
+    validations:
+      required: true
+
+  - type: input
+    id: sandboxie-version
+    attributes:
+      label: Sandboxie-Plus version
+      description: Settings → Detection → Sandboxie-Plus line, or "Not installed".
+      placeholder: "v1.16.7"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: One paragraph. Skip preamble — start with the symptom.
+      placeholder: "Clicking Launch on a freshly-created pilot fails with '…'"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: Numbered steps that another user could follow on a clean install.
+      placeholder: |
+        1. Install Bridge from a fresh ZIP
+        2. Click "Install Sandboxie-Plus"
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / screenshots
+      description: |
+        Bridge logs to stdout. If you ran from `pnpm tauri dev`, paste the
+        last 30 lines from your terminal. Screenshots of the UI when the
+        bug occurs are also welcome.
+      render: shell

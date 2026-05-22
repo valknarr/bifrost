@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest a capability or quality-of-life improvement.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please skim [CONTRIBUTING.md](https://github.com/valknarr/Bridge/blob/master/CONTRIBUTING.md)
+        for the kinds of changes Bridge will and won't accept (in particular:
+        no DLL injection, no input multiplexing, no host-browser integrations,
+        no telemetry).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: |
+        Describe the user-visible pain. What are you trying to do today
+        that's slow / awkward / impossible?
+      placeholder: |
+        When I'm running 3 pilots, switching between their wallet
+        dashboards means clicking through 3 different windows.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would the ideal end-state look like?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: |
+        Anything you ruled out and why. Useful for the maintainer to
+        understand the design space without re-derivation.
+    validations:
+      required: false
+
+  - type: input
+    id: scope
+    attributes:
+      label: Rough scope estimate
+      description: "Tiny / Small / Medium / Big — your gut feel is fine."
+      placeholder: "Small (single Settings panel + one new Tauri command)"
