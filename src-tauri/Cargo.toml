@@ -38,6 +38,9 @@ dirs = "5"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 sha2 = "0.10"
+# Wraps cached favicon bytes as `data:` URLs the frontend can render
+# without a custom asset-protocol scope.
+base64 = "0.22"
 
 [dev-dependencies]
 # Auto-cleaning temp dirs for the cascading tests that exercise real

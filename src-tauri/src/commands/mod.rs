@@ -26,6 +26,7 @@
 pub mod browser;
 pub mod companion_sites;
 pub mod config;
+pub mod favicon;
 pub mod installers;
 pub mod lifecycle;
 pub mod pilots;
@@ -38,6 +39,7 @@ pub mod wallet;
 pub use browser::*;
 pub use companion_sites::*;
 pub use config::*;
+pub use favicon::*;
 pub use installers::*;
 pub use lifecycle::*;
 pub use pilots::*;

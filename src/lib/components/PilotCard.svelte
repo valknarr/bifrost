@@ -4,6 +4,7 @@
   import { pilotStore } from "../stores/pilots.svelte";
   import { integrationReady } from "../stores/vault.svelte";
   import { configStore } from "../stores/config.svelte";
+  import { faviconStore } from "../stores/favicons.svelte";
   import { api } from "../tauri";
   import { formatBackendError } from "../error";
   import Button from "./Button.svelte";
@@ -84,6 +85,16 @@
   const showFirstLaunchHint = $derived(
     !pilot.launchedAtLeastOnce && !isRunning,
   );
+
+  // Lazy-load favicons for each enabled companion site. The store
+  // dedupes by URL so repeat calls across pilot cards collapse to a
+  // single IPC per host. Failed fetches cache as `null` and don't
+  // retry within the session.
+  $effect(() => {
+    for (const site of configStore.enabledSites) {
+      faviconStore.load(site.url);
+    }
+  });
 </script>
 
 <article
@@ -302,13 +313,23 @@
       class="flex flex-wrap items-center gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg)]/20 px-4 py-2"
     >
       {#each configStore.enabledSites as site (site.url)}
+        {@const favicon = faviconStore.cache.get(site.url)}
         <button
           class="mono group flex h-11 w-11 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] bg-transparent text-[12px] font-bold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-focus)] hover:text-[var(--color-focus)]"
           onclick={() => openApp(site.url)}
           title="{site.name} — {site.url}"
           aria-label="Open {site.name} as {pilot.name}"
         >
-          {site.icon}
+          {#if favicon}
+            <img
+              src={favicon}
+              alt=""
+              class="h-6 w-6 object-contain"
+              draggable="false"
+            />
+          {:else}
+            {site.icon}
+          {/if}
         </button>
       {/each}
     </div>

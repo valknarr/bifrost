@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { pilotStore } from "../stores/pilots.svelte";
   import { vaultStore } from "../stores/vault.svelte";
+  import { chromiumStore } from "../stores/chromium.svelte";
   import { configStore } from "../stores/config.svelte";
   import { statusStore } from "../stores/status.svelte";
   import PilotCard from "../components/PilotCard.svelte";
@@ -23,8 +24,14 @@
     // First-load probe: mirror the persistent on-disk state to what
     // Sandboxie says is actually running right now.
     pilotStore.reconcile();
-    // Vault status drives whether each pilot card shows the Apps row.
+    // Wallet integration is "ready" when BOTH Brave (the bundled
+    // browser) AND the EVE Vault extension are installed. PilotCard
+    // gates its Apps row on `integrationReady()`, which reads both
+    // stores — they BOTH need a fresh probe on cold start, otherwise
+    // the row stays hidden until something else (e.g. the user
+    // visiting Settings) triggers the chromiumStore refresh.
     vaultStore.refresh();
+    chromiumStore.refresh();
     // Config drives the per-pilot Apps row (companion sites list).
     configStore.refresh();
     // Host-detection state — drives the "Setup required" banner above

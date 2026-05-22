@@ -75,4 +75,10 @@ export const api = {
     invoke<BridgeConfig>("remove_companion_site", { url }),
   setCompanionSiteDisabled: (url: string, disabled: boolean) =>
     invoke<BridgeConfig>("set_companion_site_disabled", { url, disabled }),
+
+  /** Resolve a companion-site URL to a `data:image/png;base64,…`
+   *  string, or null when no favicon could be retrieved. Rust handles
+   *  caching + negative-caching, so calling this freely from any
+   *  effect is cheap after the first hit. */
+  getFavicon: (url: string) => invoke<string | null>("get_favicon", { url }),
 } as const;

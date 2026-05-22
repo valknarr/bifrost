@@ -18,6 +18,7 @@ mod commands;
 mod config;
 mod error;
 mod evevault;
+mod favicon;
 mod http;
 mod ini;
 mod pilot;
@@ -89,6 +90,7 @@ pub fn run() {
             commands::add_companion_site,
             commands::remove_companion_site,
             commands::set_companion_site_disabled,
+            commands::get_favicon,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Bridge");
