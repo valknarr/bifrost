@@ -6,10 +6,9 @@
   import { statusStore } from "../stores/status.svelte";
   import { sandboxieStore } from "../stores/sandboxie.svelte";
   import { externalLinks, openExternal } from "../external";
-  import { confirmDelete } from "../confirm";
   import Button from "../components/Button.svelte";
   import VersionLink from "../components/VersionLink.svelte";
-  import IconDelete from "../components/IconDelete.svelte";
+  import UninstallButton from "../components/UninstallButton.svelte";
   import CompanionSitesSection from "../components/CompanionSitesSection.svelte";
   import type { SandboxieVariant } from "../types";
   import { ZOOM_PRESETS, presetFor, type ZoomPreset } from "../zoom";
@@ -260,23 +259,12 @@
                     ? "Updating…"
                     : `Update to v${activeLatestVersion}`}
                 </Button>
-                <button
-                  class="flex h-7 w-7 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] disabled:opacity-30"
-                  disabled={sandboxieBusy}
-                  onclick={() => {
-                    if (
-                      confirmDelete(
-                        `Sandboxie ${variantLabel}`,
-                        "Sandboxie ships a kernel driver — uninstalling will trigger a Windows UAC prompt. Close the EVE Frontier launcher and any running sandboxes first, or the uninstall will fail half-way. Pilots using Sandboxie sandboxes will stop working until you reinstall.",
-                      )
-                    )
-                      sandboxieStore.uninstall();
-                  }}
-                  aria-label={`Uninstall Sandboxie ${variantLabel}`}
-                  title={`Uninstall Sandboxie ${variantLabel}`}
-                >
-                  <IconDelete />
-                </button>
+                <UninstallButton
+                  component={`Sandboxie ${variantLabel}`}
+                  warning="Sandboxie ships a kernel driver — uninstalling will trigger a Windows UAC prompt. Close the EVE Frontier launcher and any running sandboxes first, or the uninstall will fail half-way. Pilots using Sandboxie sandboxes will stop working until you reinstall."
+                  busy={sandboxieBusy}
+                  onConfirm={() => sandboxieStore.uninstall()}
+                />
               </div>
             {:else}
               <div class="flex items-center justify-end gap-2 pt-1">
@@ -288,23 +276,12 @@
                 >
                   Check for updates
                 </Button>
-                <button
-                  class="flex h-7 w-7 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] disabled:opacity-30"
-                  disabled={sandboxieBusy}
-                  onclick={() => {
-                    if (
-                      confirmDelete(
-                        `Sandboxie ${variantLabel}`,
-                        "Sandboxie ships a kernel driver — uninstalling will trigger a Windows UAC prompt. Close the EVE Frontier launcher and any running sandboxes first, or the uninstall will fail half-way. Pilots using Sandboxie sandboxes will stop working until you reinstall.",
-                      )
-                    )
-                      sandboxieStore.uninstall();
-                  }}
-                  aria-label={`Uninstall Sandboxie ${variantLabel}`}
-                  title={`Uninstall Sandboxie ${variantLabel}`}
-                >
-                  <IconDelete />
-                </button>
+                <UninstallButton
+                  component={`Sandboxie ${variantLabel}`}
+                  warning="Sandboxie ships a kernel driver — uninstalling will trigger a Windows UAC prompt. Close the EVE Frontier launcher and any running sandboxes first, or the uninstall will fail half-way. Pilots using Sandboxie sandboxes will stop working until you reinstall."
+                  busy={sandboxieBusy}
+                  onConfirm={() => sandboxieStore.uninstall()}
+                />
               </div>
             {/if}
 
@@ -466,23 +443,12 @@
                     ? "Updating…"
                     : `Update to v${chromium.latestVersion}`}
                 </Button>
-                <button
-                  class="flex h-7 w-7 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] disabled:opacity-30"
-                  disabled={chromiumBusy}
-                  onclick={() => {
-                    if (
-                      confirmDelete(
-                        "the portable browser",
-                        "Per-pilot browser profiles (wallet sessions, extensions) are kept under each pilot — only the Brave binaries are removed.",
-                      )
-                    )
-                      chromiumStore.uninstall();
-                  }}
-                  aria-label="Uninstall portable browser"
-                  title="Uninstall portable browser"
-                >
-                  <IconDelete />
-                </button>
+                <UninstallButton
+                  component="the portable browser"
+                  warning="Per-pilot browser profiles (wallet sessions, extensions) are kept under each pilot — only the Brave binaries are removed."
+                  busy={chromiumBusy}
+                  onConfirm={() => chromiumStore.uninstall()}
+                />
               </div>
             {:else}
               <div class="flex items-center justify-end gap-2 pt-1">
@@ -494,23 +460,12 @@
                 >
                   Check for updates
                 </Button>
-                <button
-                  class="flex h-7 w-7 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] disabled:opacity-30"
-                  disabled={chromiumBusy}
-                  onclick={() => {
-                    if (
-                      confirmDelete(
-                        "the portable browser",
-                        "Per-pilot browser profiles (wallet sessions, extensions) are kept under each pilot — only the Brave binaries are removed.",
-                      )
-                    )
-                      chromiumStore.uninstall();
-                  }}
-                  aria-label="Uninstall portable browser"
-                  title="Uninstall portable browser"
-                >
-                  <IconDelete />
-                </button>
+                <UninstallButton
+                  component="the portable browser"
+                  warning="Per-pilot browser profiles (wallet sessions, extensions) are kept under each pilot — only the Brave binaries are removed."
+                  busy={chromiumBusy}
+                  onConfirm={() => chromiumStore.uninstall()}
+                />
               </div>
             {/if}
           </div>
@@ -608,23 +563,12 @@
                     ? "Updating…"
                     : `Update to v${vault.latestVersion}`}
                 </Button>
-                <button
-                  class="flex h-7 w-7 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] disabled:opacity-30"
-                  disabled={vaultBusy}
-                  onclick={() => {
-                    if (
-                      confirmDelete(
-                        "the EVE Vault extension",
-                        "Existing browser windows keep their loaded extension until they reload.",
-                      )
-                    )
-                      vaultStore.uninstall();
-                  }}
-                  aria-label="Uninstall EVE Vault extension"
-                  title="Uninstall EVE Vault extension"
-                >
-                  <IconDelete />
-                </button>
+                <UninstallButton
+                  component="the EVE Vault extension"
+                  warning="Existing browser windows keep their loaded extension until they reload."
+                  busy={vaultBusy}
+                  onConfirm={() => vaultStore.uninstall()}
+                />
               </div>
             {:else}
               <div class="flex items-center justify-end gap-2 pt-1">
@@ -636,23 +580,12 @@
                 >
                   Check for updates
                 </Button>
-                <button
-                  class="flex h-7 w-7 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] disabled:opacity-30"
-                  disabled={vaultBusy}
-                  onclick={() => {
-                    if (
-                      confirmDelete(
-                        "the EVE Vault extension",
-                        "Existing browser windows keep their loaded extension until they reload.",
-                      )
-                    )
-                      vaultStore.uninstall();
-                  }}
-                  aria-label="Uninstall EVE Vault extension"
-                  title="Uninstall EVE Vault extension"
-                >
-                  <IconDelete />
-                </button>
+                <UninstallButton
+                  component="the EVE Vault extension"
+                  warning="Existing browser windows keep their loaded extension until they reload."
+                  busy={vaultBusy}
+                  onConfirm={() => vaultStore.uninstall()}
+                />
               </div>
             {/if}
           </div>

@@ -432,11 +432,10 @@ mod tests {
     /// Also covers `update_available = false` for the external case
     /// (we can't say one way or the other if we don't know what's
     /// installed).
-    #[test]
-    fn status_with_detected_but_no_marker_reports_external_install() {
+    #[tokio::test]
+    async fn status_with_detected_but_no_marker_reports_external_install() {
         let tmp = TempDir::new().expect("tempdir");
-        let rt = tokio::runtime::Runtime::new().expect("rt");
-        let s = rt.block_on(status(tmp.path(), Some(SandboxieVariant::Plus), false));
+        let s = status(tmp.path(), Some(SandboxieVariant::Plus), false).await;
 
         assert!(s.detected, "host probe said yes");
         assert_eq!(s.installed_variant, Some(SandboxieVariant::Plus));
@@ -453,13 +452,12 @@ mod tests {
     /// And: not-detected → marker is meaningless even if present.
     /// A stale marker from a previous install the user removed via
     /// Windows Settings shouldn't claim Sandboxie is still around.
-    #[test]
-    fn status_with_undetected_ignores_stale_marker() {
+    #[tokio::test]
+    async fn status_with_undetected_ignores_stale_marker() {
         let tmp = TempDir::new().expect("tempdir");
         write_marker(tmp.path(), "1.16.7", SandboxieVariant::Plus).expect("marker");
 
-        let rt = tokio::runtime::Runtime::new().expect("rt");
-        let s = rt.block_on(status(tmp.path(), None, false));
+        let s = status(tmp.path(), None, false).await;
 
         assert!(!s.detected);
         assert!(s.installed_variant.is_none());
