@@ -107,15 +107,15 @@
 >
   <!-- Panel header. 2 px accent-tinted bottom border echoes
        CradleOS's HUD-style section dividers; inner section labels
-       below the header keep the lighter 1 px rule. -->
+       below the header keep the lighter 1 px rule.
+       `min-h-[40px]` matches the rule in PilotsView so the header
+       doesn't grow / shrink by a pixel or two when tabbing between
+       the views — see the comment over there for the arithmetic. -->
   <header class="border-b-2 border-[var(--color-accent)]/40 px-6 pt-5 pb-4">
-    <div class="flex items-baseline gap-4">
+    <div class="flex min-h-[40px] items-center gap-4">
       <h1 class="title-bracket text-lg tracking-[0.05em] text-[var(--color-text)]">
         System Configuration
       </h1>
-      <span class="text-[10px] tracking-[0.25em] text-[var(--color-text-dim)] uppercase">
-        Diagnostics · Paths · Defaults
-      </span>
     </div>
   </header>
 

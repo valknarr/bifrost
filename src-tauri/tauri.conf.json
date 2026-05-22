@@ -14,8 +14,8 @@
       {
         "label": "main",
         "title": "Bridge",
-        "width": 1280,
-        "height": 800,
+        "width": 960,
+        "height": 900,
         "minWidth": 960,
         "minHeight": 600,
         "decorations": true,
@@ -39,7 +39,7 @@
     ],
     "category": "Utility",
     "shortDescription": "Multi-pilot session manager for EVE Frontier",
-    "longDescription": "Bridge orchestrates isolated EVE Frontier game clients + per-pilot Brave Browser profiles + EVE Vault wallets for multi-pilot play. Uses Sandboxie-Plus under the hood. Strictly official-APIs-only.",
+    "longDescription": "Bridge orchestrates isolated EVE Frontier game clients + per-pilot Brave Browser profiles + EVE Vault wallets for multi-pilot play. Uses Sandboxie (Plus or Classic) under the hood. Strictly official-APIs-only.",
     "copyright": "© 2026 Bridge contributors. MIT licensed.",
     "windows": {
       "nsis": {

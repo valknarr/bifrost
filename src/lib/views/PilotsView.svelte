@@ -73,17 +73,18 @@
   <!-- Panel header. 2 px accent-tinted bottom border echoes
        CradleOS's HUD-style section dividers; inner section labels
        below the header keep the lighter 1 px rule so the visual
-       hierarchy reads top-down. -->
+       hierarchy reads top-down.
+       `min-h-[40px]` on the inner row is set HIGHER than the natural
+       height of either constraint — the Add Pilot Button (~38 px
+       with text-[11px] leading + py-2.5 + border) and the h1 alone
+       (~28 px). Both this and the equivalent rule in SettingsView
+       pin to the same value so the header doesn't grow / shrink by
+       a pixel or two when the user tabs between the views. -->
   <header class="border-b-2 border-[var(--color-accent)]/40 px-6 pt-5 pb-4">
-    <div class="flex flex-wrap items-center justify-between gap-4">
-      <div class="flex flex-wrap items-baseline gap-3">
-        <h1 class="title-bracket whitespace-nowrap text-lg tracking-[0.05em] text-[var(--color-text)]">
-          Pilot Roster
-        </h1>
-        <span class="whitespace-nowrap text-[10px] tracking-[0.2em] text-[var(--color-text-dim)] uppercase">
-          {managedPilots.length} mgd · {pilotStore.discovered.length} disc · {archivedPilots.length} arch
-        </span>
-      </div>
+    <div class="flex min-h-[40px] flex-wrap items-center justify-between gap-4">
+      <h1 class="title-bracket whitespace-nowrap text-lg tracking-[0.05em] text-[var(--color-text)]">
+        Pilot Roster
+      </h1>
       <div class="flex items-center gap-2">
         <input
           type="text"
@@ -102,18 +103,6 @@
   <div class="flex flex-col gap-8 px-6 pb-8">
     <!-- Managed -->
     <div class="flex flex-col gap-4">
-      <div class="flex items-baseline justify-between">
-        <div class="flex items-baseline gap-3">
-          <h2 class="section-label text-[var(--color-accent)]">Managed</h2>
-          <span class="text-[10px] tracking-[0.2em] text-[var(--color-text-dim)] uppercase">
-            Bridge-orchestrated sessions
-          </span>
-        </div>
-        <span class="mono text-[10px] text-[var(--color-text-dim)]">
-          {String(managedPilots.length).padStart(2, "0")}
-        </span>
-      </div>
-
       {#if pilotStore.loading && managedPilots.length === 0}
         <div class="text-[11px] text-[var(--color-text-muted)] tracking-[0.2em] uppercase">
           Loading roster…
@@ -130,7 +119,7 @@
           </p>
         </div>
       {:else}
-        <div class="grid gap-4 grid-cols-[repeat(auto-fill,minmax(280px,320px))]">
+        <div class="grid justify-center gap-4 grid-cols-[repeat(auto-fit,minmax(280px,320px))]">
           {#each managedPilots as pilot (pilot.id)}
             <PilotCard {pilot} />
           {/each}
@@ -152,7 +141,7 @@
             {String(pilotStore.discovered.length).padStart(2, "0")}
           </span>
         </div>
-        <div class="grid gap-4 grid-cols-[repeat(auto-fill,minmax(280px,320px))]">
+        <div class="grid justify-center gap-4 grid-cols-[repeat(auto-fit,minmax(280px,320px))]">
           {#each pilotStore.discovered as box (box.name)}
             <DiscoveredCard {box} />
           {/each}
@@ -174,7 +163,7 @@
             {String(archivedPilots.length).padStart(2, "0")}
           </span>
         </div>
-        <div class="grid gap-4 grid-cols-[repeat(auto-fill,minmax(280px,320px))]">
+        <div class="grid justify-center gap-4 grid-cols-[repeat(auto-fit,minmax(280px,320px))]">
           {#each archivedPilots as pilot (pilot.id)}
             <ArchivedCard {pilot} />
           {/each}

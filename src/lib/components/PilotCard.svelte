@@ -9,6 +9,7 @@
   import Button from "./Button.svelte";
   import StatusBadge from "./StatusBadge.svelte";
   import PilotPortrait from "./PilotPortrait.svelte";
+  import IconArchive from "./IconArchive.svelte";
 
   interface Props {
     pilot: Pilot;
@@ -16,7 +17,6 @@
 
   let { pilot }: Props = $props();
 
-  let openingBrowser = $state(false);
   let pickingAccent = $state(false);
   let palette = $state<string[]>([]);
 
@@ -33,17 +33,6 @@
   async function pickAccent(color: string) {
     await pilotStore.setAccent(pilot.id, color);
     pickingAccent = false;
-  }
-
-  async function openBrowser() {
-    openingBrowser = true;
-    try {
-      await api.openPilotBrowser(pilot.id);
-    } catch (e) {
-      pilotStore.error = formatBackendError(e);
-    } finally {
-      openingBrowser = false;
-    }
   }
 
   async function openApp(url: string) {
@@ -142,10 +131,9 @@
       <p
         class="text-[10px] leading-[1.4] tracking-[0.04em] text-[var(--color-warn)]"
       >
-        <span class="mono tracking-[0.18em] uppercase">First launch</span> · the
-        sandbox will inherit your default EVE Frontier launcher's account.
-        Log out of the default launcher first, or log out + sign in as this
-        pilot inside the sandbox after launch.
+        <span class="mono tracking-[0.18em] uppercase">The
+        sandbox will inherit your default EVE Frontier launcher's account.</span><br>
+        If you want clean start log out of the default launcher first.
       </p>
     </div>
   {/if}
@@ -300,71 +288,70 @@
     {/if}
   </div>
 
-  <!-- Apps row — only renders when wallet integration is ready -->
-  {#if integrationReady()}
+  <!-- Apps row — companion site shortcuts. Renders only when wallet
+       integration is ready (Brave + EVE Vault installed) AND there's
+       at least one enabled site to show. Clicking a site launches a
+       new per-pilot browser window with EVE Vault preloaded; on first
+       use the user logs in via the extension's own flow, after which
+       subsequent clicks just open the site as that pilot. We used to
+       expose a separate ⚙ "Configure" button that opened a blank
+       browser purely to walk through the EVE Vault setup, but that's
+       redundant — opening any app does the same thing. -->
+  {#if integrationReady() && configStore.enabledSites.length > 0}
     <div
-      class="flex items-center justify-between gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg)]/20 px-4 py-1.5"
+      class="flex flex-wrap items-center gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg)]/20 px-4 py-2"
     >
-      <div class="flex flex-wrap items-center gap-1.5">
-        {#each configStore.enabledSites as site (site.url)}
-          <button
-            class="mono group flex h-7 w-7 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] bg-transparent text-[10px] font-bold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-focus)] hover:text-[var(--color-focus)]"
-            onclick={() => openApp(site.url)}
-            title="{site.name} — {site.url}"
-            aria-label="Open {site.name} as {pilot.name}"
-          >
-            {site.icon}
-          </button>
-        {/each}
-        <!-- Visual separator + Configure (opens EVE Vault popup) -->
-        {#if configStore.sites.length > 0}
-          <span
-            class="mx-1 h-5 w-px bg-[var(--color-border-hi)]"
-            aria-hidden="true"
-          ></span>
-        {/if}
+      {#each configStore.enabledSites as site (site.url)}
         <button
-          class="mono group flex h-7 w-7 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] bg-transparent text-[12px] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-focus)] hover:text-[var(--color-focus)] disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={openingBrowser}
-          onclick={openBrowser}
-          title="Configure · open EVE Vault for this pilot"
-          aria-label="Open EVE Vault wallet for {pilot.name}"
+          class="mono group flex h-11 w-11 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] bg-transparent text-[12px] font-bold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-focus)] hover:text-[var(--color-focus)]"
+          onclick={() => openApp(site.url)}
+          title="{site.name} — {site.url}"
+          aria-label="Open {site.name} as {pilot.name}"
         >
-          ⚙
+          {site.icon}
         </button>
-      </div>
+      {/each}
     </div>
   {/if}
 
-  <!-- Action footer -->
+  <!-- Action footer.
+       The primary CTA (Launch / Stop) is sized `lg` and `flex-1` so it
+       dominates the row. Archive is a quiet icon-button on the RIGHT
+       — less weight, hints at a non-destructive "stash" action
+       (sandbox is preserved). Disabled while the pilot is running. -->
   <footer
     class="flex items-center gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg)]/40 px-4 py-2.5"
   >
     {#if isRunning}
       <Button
         variant="danger"
+        size="lg"
         class="flex-1"
         onclick={() => pilotStore.stop(pilot.id)}
       >
         Stop
       </Button>
-      <Button variant="ghost" disabled>Archive</Button>
     {:else}
       <Button
         variant="primary"
+        size="lg"
         class="flex-1"
         disabled={isBusy}
         onclick={() => pilotStore.start(pilot.id)}
       >
         ▶ {isBusy ? "Initialising…" : "Launch"}
       </Button>
-      <Button
-        variant="ghost"
-        onclick={() => pilotStore.archive(pilot.id)}
-        title="Stash this pilot. Sandbox is preserved and can be restored later."
-      >
-        Archive
-      </Button>
     {/if}
+    <button
+      class="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-focus)] hover:text-[var(--color-focus)] disabled:cursor-not-allowed disabled:opacity-30"
+      disabled={isRunning}
+      onclick={() => pilotStore.archive(pilot.id)}
+      aria-label="Archive pilot {pilot.name}"
+      title={isRunning
+        ? "Stop the pilot before archiving"
+        : "Stash this pilot. Sandbox is preserved and can be restored later."}
+    >
+      <IconArchive size="18" />
+    </button>
   </footer>
 </article>
