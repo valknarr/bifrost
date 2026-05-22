@@ -161,7 +161,16 @@ impl Sandboxie {
         let mut cmd = Command::new(&self.start_exe);
         cmd.arg(format!("/box:{box_name}")).arg(program).args(args);
         no_window(&mut cmd);
-        cmd.spawn()?;
+        let child = cmd.spawn()?;
+        // Log the resolved PID so a user-reported "game won't start"
+        // can be cross-referenced against tasklist / Sandboxie Plus's
+        // process tree. The Child handle is dropped immediately on
+        // the next line — Tokio detaches and the OS process keeps
+        // running independently.
+        tracing::info!(
+            "sandboxie: launched {program} in box {box_name} (pid={})",
+            child.id().unwrap_or(0)
+        );
         Ok(())
     }
 

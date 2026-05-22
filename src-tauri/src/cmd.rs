@@ -73,10 +73,33 @@ pub fn cli_failure_msg(label: &str, status: ExitStatus, stderr: &[u8]) -> String
 /// e.g. "Sandboxie installer exited with 2" rather than something
 /// generic about `powershell.exe`. UAC declined ([`UAC_DECLINED_EXIT_CODE`])
 /// is mapped to a friendlier "cancelled — UAC prompt declined." error.
+///
+/// **Argument contract**: neither `exe` nor any `arg` may contain
+/// newlines (`\r`/`\n`) or NUL. The function single-quote-escapes
+/// quotes correctly, but newlines would terminate the PowerShell
+/// one-liner mid-command and a NUL would break the IPC encoding.
+/// Today every caller passes either a known-safe Windows file path
+/// or a static silent-install flag, but rejecting the bad shape
+/// up-front is cheaper than relying on every future caller to
+/// remember the invariant.
 pub async fn run_elevated_silent(exe: &Path, args: &[&str], label: &str) -> Result<()> {
+    let exe_str = exe.to_string_lossy();
+    if has_forbidden_char(&exe_str) {
+        return Err(BridgeError::Other(format!(
+            "{label}: executable path contains a newline or NUL ({exe_str:?})"
+        )));
+    }
+    for arg in args {
+        if has_forbidden_char(arg) {
+            return Err(BridgeError::Other(format!(
+                "{label}: argument contains a newline or NUL ({arg:?})"
+            )));
+        }
+    }
+
     // PowerShell single-quote escape: a literal single quote inside a
     // single-quoted string is two single quotes.
-    let exe_q = exe.to_string_lossy().replace('\'', "''");
+    let exe_q = exe_str.replace('\'', "''");
     let args_q: Vec<String> = args
         .iter()
         .map(|a| format!("'{}'", a.replace('\'', "''")))
@@ -113,6 +136,14 @@ pub async fn run_elevated_silent(exe: &Path, args: &[&str], label: &str) -> Resu
         )));
     }
     Ok(())
+}
+
+/// True when `s` contains any character that would break the
+/// PowerShell one-liner constructed by [`run_elevated_silent`].
+/// Newlines terminate the command mid-statement; NUL breaks the
+/// process-creation IPC encoding entirely.
+fn has_forbidden_char(s: &str) -> bool {
+    s.contains(|c: char| c == '\n' || c == '\r' || c == '\0')
 }
 
 #[cfg(test)]
@@ -170,5 +201,28 @@ mod tests {
         // installer, and any future elevated launch all rely on this
         // constant matching Windows' ERROR_CANCELLED.
         assert_eq!(UAC_DECLINED_EXIT_CODE, 1223);
+    }
+
+    /// `run_elevated_silent` argument validation. The function
+    /// constructs a PowerShell one-liner; a stray newline mid-argument
+    /// would terminate the command early, a NUL would break process
+    /// creation. Both must be rejected upstream of the spawn.
+    #[test]
+    fn has_forbidden_char_rejects_control_chars() {
+        assert!(has_forbidden_char("hello\nworld"));
+        assert!(has_forbidden_char("hello\rworld"));
+        assert!(has_forbidden_char("hello\0world"));
+        assert!(has_forbidden_char("\n"));
+    }
+
+    #[test]
+    fn has_forbidden_char_accepts_normal_paths_and_args() {
+        // The typical inputs run_elevated_silent receives: Windows
+        // file paths (spaces, backslashes, single quotes via escape)
+        // and Inno Setup silent flags.
+        assert!(!has_forbidden_char(r"C:\Program Files\Sandboxie\unins000.exe"));
+        assert!(!has_forbidden_char("/verysilent"));
+        assert!(!has_forbidden_char("/suppressmsgboxes"));
+        assert!(!has_forbidden_char(r"C:\Users\valknarr's path\setup.exe"));
     }
 }

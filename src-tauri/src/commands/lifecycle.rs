@@ -56,11 +56,19 @@ pub async fn start_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
     Ok(())
 }
 
-/// Stop a pilot's session. Always marks the pilot stopped even if the
-/// terminate failed — the user's intent is "stop this pilot"; a
-/// missing-box or already-empty error from Sandboxie shouldn't leave
-/// the UI stuck reading RUNNING. We still surface the error so the
-/// user knows the box wasn't fully cleaned up.
+/// Stop a pilot's session. Always marks the pilot stopped — the
+/// user's intent is "stop this pilot", and the common failure modes
+/// of `Start.exe /terminate` are benign no-ops (box already empty,
+/// helper processes already exited, box was never started this
+/// session). A surfaced error in those cases would mean the user
+/// gets a red toast for the no-op case where they clicked Stop on
+/// an already-stopped pilot.
+///
+/// Real failures (Sandboxie isn't installed, the engine is wedged,
+/// permission denied) are downgraded to a `tracing::warn!` so they
+/// stay visible to anyone reading logs but don't trip the UI's
+/// error path. The next `reconcile_pilots` tick will catch any
+/// genuinely-still-running box and re-flip status.
 #[tauri::command]
 pub async fn stop_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
     let (cfg, sandbox) = {
@@ -82,7 +90,12 @@ pub async fn stop_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
     };
 
     state.set_pilot_status(&id, PilotStatus::Stopped);
-    terminate_result
+    if let Err(e) = &terminate_result {
+        tracing::warn!(
+            "stop_pilot({id}): terminate for box {sandbox} returned non-fatal error: {e}"
+        );
+    }
+    Ok(())
 }
 
 /// Reconcile Bridge's view with Sandboxie's actual runtime state. For

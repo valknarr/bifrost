@@ -51,7 +51,7 @@ pub async fn kill_browsers_for_profile(profile_dir: &Path) {
 
     let text = String::from_utf8_lossy(&out.stdout);
     for line in text.lines() {
-        if !line.to_lowercase().contains(&target) {
+        if !cmdline_holds_profile(&line.to_lowercase(), &target) {
             continue;
         }
         if let Some(pid_str) = line.split('|').next() {
@@ -67,6 +67,45 @@ pub async fn kill_browsers_for_profile(profile_dir: &Path) {
             }
         }
     }
+}
+
+/// True when `cmdline_lower` contains a `--user-data-dir` argument
+/// whose value is **exactly** `profile_lower`. Naive substring match
+/// would kill the wrong pilot's browser when two pilot ids share a
+/// prefix (e.g. `airikr` and `airikr-2`); this scans for the real
+/// argument token and compares the resolved path.
+///
+/// Accepts all the shapes Chromium/Brave emit for this flag:
+///   `--user-data-dir=<path>`           (POSIX-style, no quotes)
+///   `--user-data-dir="<path>"`         (Windows path with quotes)
+///   `--user-data-dir <path>`           (space-separated, rare)
+fn cmdline_holds_profile(cmdline_lower: &str, profile_lower: &str) -> bool {
+    let token = "--user-data-dir";
+    let mut from = 0;
+    while let Some(pos) = cmdline_lower[from..].find(token) {
+        let after = from + pos + token.len();
+        // Skip the separator: '=' or any whitespace after the flag.
+        let rest = cmdline_lower[after..]
+            .trim_start_matches('=')
+            .trim_start_matches(' ')
+            .trim_start_matches('\t');
+        // Strip surrounding quotes if present.
+        let (stripped, terminator): (&str, &[char]) = if let Some(s) = rest.strip_prefix('"') {
+            (s, &['"'])
+        } else if let Some(s) = rest.strip_prefix('\'') {
+            (s, &['\''])
+        } else {
+            (rest, &[' ', '\t', '"', '\''])
+        };
+        let end = stripped.find(terminator).unwrap_or(stripped.len());
+        let path = stripped[..end].trim_end_matches(['/', '\\']);
+        let profile_trimmed = profile_lower.trim_end_matches(['/', '\\']);
+        if path == profile_trimmed {
+            return true;
+        }
+        from = after;
+    }
+    false
 }
 
 /// Generate (or refresh) a tiny Chromium **theme extension** that
@@ -401,7 +440,19 @@ impl BrowserLauncher {
         // `kill_browsers_for_profile` above, which finds the right
         // process by command-line and runs `taskkill`.
         cmd.kill_on_drop(false);
-        cmd.spawn()?;
+        let child = cmd.spawn()?;
+        // Log the resolved PID alongside the profile dir so a user
+        // reporting "the browser window vanished" gives us something
+        // we can cross-reference against tasklist. The profile dir
+        // ends in `pilots/<pilot-id>/browser`, so the pilot is
+        // recoverable from the log line. Child handle is dropped
+        // immediately afterwards per the fire-and-forget contract
+        // documented above.
+        tracing::info!(
+            "browser: launched Brave (pid={}) for profile {}",
+            child.id().unwrap_or(0),
+            user_data_dir.display()
+        );
         Ok(())
     }
 }
@@ -534,6 +585,59 @@ mod tests {
         assert!(
             pins.iter().any(|v| v.as_str() == Some(fake_id)),
             "extension id must be in pinned_extensions"
+        );
+    }
+
+    // ---- cmdline_holds_profile -------------------------------------
+    //
+    // Substring matching on the profile dir was a real prefix-collision
+    // bug: a pilot named `airikr` would kill `airikr-2`'s browser
+    // because the latter's command line literally contained the
+    // former's profile path as a prefix. These tests pin the
+    // exact-match contract so a regression surfaces here.
+
+    #[test]
+    fn cmdline_holds_profile_exact_match_with_equals() {
+        let cmd = r#""c:\bridge\brave.exe" --user-data-dir=c:\bridge\pilots\airikr\browser --no-first-run"#.to_lowercase();
+        let profile = r"c:\bridge\pilots\airikr\browser".to_lowercase();
+        assert!(cmdline_holds_profile(&cmd, &profile));
+    }
+
+    #[test]
+    fn cmdline_holds_profile_quoted_path() {
+        let cmd = r#""c:\bridge\brave.exe" --user-data-dir="c:\bridge\pilots\airikr\browser" --foo"#.to_lowercase();
+        let profile = r"c:\bridge\pilots\airikr\browser".to_lowercase();
+        assert!(cmdline_holds_profile(&cmd, &profile));
+    }
+
+    #[test]
+    fn cmdline_holds_profile_rejects_prefix_collision() {
+        // `airikr-2`'s command line contains `airikr` as a substring
+        // (which the old naive contains() check would match) but the
+        // resolved `--user-data-dir` value isn't equal to airikr's
+        // profile path. Must NOT match.
+        let cmd = r#""c:\bridge\brave.exe" --user-data-dir=c:\bridge\pilots\airikr-2\browser"#
+            .to_lowercase();
+        let profile = r"c:\bridge\pilots\airikr\browser".to_lowercase();
+        assert!(!cmdline_holds_profile(&cmd, &profile));
+    }
+
+    #[test]
+    fn cmdline_holds_profile_handles_trailing_separator() {
+        // Profile path with trailing slash should still match a
+        // command line that wrote it without one (or vice versa).
+        let cmd = r#"brave.exe --user-data-dir=c:\bridge\pilots\airikr\browser"#.to_lowercase();
+        let profile_with_slash = r"c:\bridge\pilots\airikr\browser\".to_lowercase();
+        assert!(cmdline_holds_profile(&cmd, &profile_with_slash));
+    }
+
+    #[test]
+    fn cmdline_holds_profile_misses_when_token_absent() {
+        let cmd = "notepad.exe c:\\bridge\\pilots\\airikr\\browser".to_lowercase();
+        let profile = r"c:\bridge\pilots\airikr\browser".to_lowercase();
+        assert!(
+            !cmdline_holds_profile(&cmd, &profile),
+            "the path appearing as a positional arg shouldn't count"
         );
     }
 
