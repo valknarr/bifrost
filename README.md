@@ -209,6 +209,12 @@ issue once the repo is public.
 
 **Repo hygiene**
 
+- [ ] **Explicit Content Security Policy in `tauri.conf.json`** —
+      currently `csp: null` (see SECURITY.md "Current security posture"
+      for why). Replace with a deliberate `default-src 'self' tauri:;
+      img-src 'self' data:; …` policy once the build pipeline is stable
+      enough that locking it down won't break Tailwind / IPC at
+      release-time.
 - [ ] **Branch protection on `main`** — require PR before merging,
       require the `Rust (fmt + clippy + test)` and `Frontend
       (svelte-check)` status checks, require linear history, block

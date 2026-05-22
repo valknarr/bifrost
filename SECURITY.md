@@ -46,6 +46,28 @@ in-scope issues:
   prompt-injection / observed-content rules described in
   [CONTRIBUTING.md](./CONTRIBUTING.md); deviations are bugs.
 
+## Current security posture
+
+- **Webview content origin.** Bridge's Tauri webview only loads its
+  own bundled frontend (`../dist`). All remote content (companion-site
+  favicons, GitHub releases, Sui RPC) is fetched through the Rust
+  backend via the shared HTTP client and returned to the frontend
+  as data URLs / parsed structs. The webview itself never makes
+  direct outbound requests.
+- **Content Security Policy.** Set to `null` in `tauri.conf.json` —
+  deliberate while we baseline the design (Tailwind 4 injects styles
+  inline at build, the favicon path serves `data:image/png;base64,…`
+  URLs into `<img>` tags, the IPC bridge needs `ipc://` and
+  `tauri://` schemes). A restrictive explicit CSP is on the README
+  roadmap; the current `null` setting is acceptable for a v0.0.1
+  desktop app with no remote-content surface, but tightening it
+  before any plugin sandbox / extension hosting work is prudent.
+- **Per-pilot browser.** Brave runs *inside* a Sandboxie box AND under
+  its own per-pilot `--user-data-dir`. Cross-pilot session leakage
+  would require either a Sandboxie escape or Bridge writing the wrong
+  profile path; the second is covered by the cascading integration
+  tests pinning the `prepare_profile` contract.
+
 ## Out of scope
 
 - **Sandboxie vulnerabilities** (Plus or Classic) — please report those
