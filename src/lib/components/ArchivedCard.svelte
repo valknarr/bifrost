@@ -51,22 +51,32 @@
     </div>
   {/if}
 
+  <!-- All buttons at `size="sm"` so the three-button delete-confirm
+       state (Restore / Confirm / Cancel) fits on one row inside the
+       ~280 px card content width without wrapping. `md` buttons are
+       `min-w-[96px]` each, which forces the third button to a new
+       row and causes a visible layout jump when toggling between the
+       two states; `sm` is `min-w-[72px]` and clears that comfortably.
+       `flex-wrap` stays as a defensive fallback for very narrow
+       rendering (e.g. user zoom or future layout shifts). -->
   <footer class="flex flex-wrap gap-2">
-    <Button variant="focus" onclick={() => pilotStore.restore(pilot.id)}>
+    <Button size="sm" variant="focus" onclick={() => pilotStore.restore(pilot.id)}>
       Restore
     </Button>
     {#if confirmingDelete}
       <Button
+        size="sm"
         variant="danger"
         onclick={() => pilotStore.deletePermanently(pilot.id)}
       >
         Confirm
       </Button>
-      <Button variant="ghost" onclick={() => (confirmingDelete = false)}>
+      <Button size="sm" variant="ghost" onclick={() => (confirmingDelete = false)}>
         Cancel
       </Button>
     {:else}
       <Button
+        size="sm"
         variant="ghost"
         onclick={() => (confirmingDelete = true)}
         title="Permanently remove the Bifrost pilot record. The Sandboxie box itself is not deleted."
