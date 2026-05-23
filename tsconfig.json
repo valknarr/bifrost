@@ -11,9 +11,13 @@
     "strict": true,
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
-    "baseUrl": ".",
+    // TypeScript 6 deprecated `baseUrl` and now requires `paths`
+    // values to be relative (leading `./`). Under
+    // `"moduleResolution": "bundler"` they resolve from the
+    // tsconfig file itself, so this is equivalent to the old
+    // `baseUrl: "."` + `src/lib/*` form.
     "paths": {
-      "$lib/*": ["src/lib/*"]
+      "$lib/*": ["./src/lib/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.svelte"]
