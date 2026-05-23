@@ -182,8 +182,14 @@ pub struct ChromiumStatus {
 
 /// Query the GitHub Releases API for the latest Brave release and
 /// pick the Windows-x64 portable ZIP asset. Returns the metadata only;
-/// no download yet. Cached upstream via [`release_cache::fetch_with_cache`]
-/// so passive Settings refreshes don't burn through GitHub's rate limit.
+/// no download yet.
+///
+/// This is the raw / uncached path. Callers SHOULD wrap it via
+/// [`release_cache::fetch_with_cache`] with key `"chromium"` so
+/// passive Settings refreshes and Install clicks don't burn through
+/// GitHub's rate limit. `status()` below + `commands::installers::
+/// install_chromium` both do that. Don't call this directly from
+/// anywhere new.
 pub async fn fetch_latest_release() -> Result<ChromiumRelease> {
     let body = release_cache::fetch_release_json(REPO).await?;
 

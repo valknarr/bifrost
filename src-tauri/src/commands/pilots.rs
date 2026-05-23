@@ -118,7 +118,12 @@ fn generate_sandbox_name(pilots: &[Pilot]) -> String {
         .map(|p| p.sandbox.to_ascii_lowercase())
         .collect();
 
-    loop {
+    // Bounded retry: collision is astronomically unlikely
+    // (32-bit namespace ≈ 4 × 10⁹), but a malformed clock could
+    // theoretically spin forever. 1000 iterations is well past any
+    // plausible legitimate collision rate; the deterministic
+    // ordinal fallback below guarantees we always return.
+    for _ in 0..1000 {
         let ts = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_nanos() as u64)
@@ -129,8 +134,18 @@ fn generate_sandbox_name(pilots: &[Pilot]) -> String {
         if !taken.contains(&candidate.to_ascii_lowercase()) {
             return candidate;
         }
-        // Collision is astronomically unlikely; if it happens, loop.
-        // The counter increment guarantees progress.
+    }
+    // Deterministic last-resort ordinal. Never observed in practice;
+    // present so the function signature is total rather than
+    // `Result<String, ...>`. `BifrostNNNNNNNN` is still a valid
+    // Sandboxie box name (alphanumeric only).
+    let mut n: u32 = 0;
+    loop {
+        let candidate = format!("Bifrost{n:08}");
+        if !taken.contains(&candidate.to_ascii_lowercase()) {
+            return candidate;
+        }
+        n = n.wrapping_add(1);
     }
 }
 

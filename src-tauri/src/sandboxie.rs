@@ -258,11 +258,18 @@ impl Sandboxie {
             .unwrap_or(false);
 
         // Fallback: at least disable it so it can't auto-activate.
+        // Discard the result but log on failure so a postmortem can
+        // see both the original delete failure AND that disable
+        // didn't catch it either.
         if !removed {
             let mut cmd = Command::new(&self.sbie_ini);
             cmd.args(["set", box_name, "Enabled", "n"]);
             no_window(&mut cmd);
-            let _ = cmd.output().await;
+            if let Err(e) = cmd.output().await {
+                tracing::debug!(
+                    "delete_box: fallback `set Enabled n` for {box_name} also failed: {e}"
+                );
+            }
         }
 
         // Wipe the data dir.

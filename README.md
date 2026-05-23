@@ -230,6 +230,13 @@ hits one in practice.
   through Bifrost's Settings panel, the version line in the
   Detection row may lag until they trigger an update through Bifrost
   itself.
+- **`delete_box` assumes the default Sandboxie data root
+  (`C:\Sandbox\<user>\<box>\`).** If you've customised
+  `FileRootPath` in Sandboxie's own settings, deleting a box via
+  Bifrost will correctly remove the config section but leave the
+  data directory behind under your custom path. The box still
+  works as removed (no UI / kernel impact); only the on-disk
+  cleanup is incomplete.
 
 ## Roadmap / Pre-1.0 TODO
 

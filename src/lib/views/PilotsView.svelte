@@ -164,6 +164,7 @@
         <input
           type="text"
           placeholder="New pilot designation…"
+          aria-label="New pilot name"
           bind:value={newName}
           onkeydown={(e) => e.key === "Enter" && handleCreate()}
           class="mono w-[220px] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-[calc(12px*var(--text-scale,1))] text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-focus)] focus:outline-none"

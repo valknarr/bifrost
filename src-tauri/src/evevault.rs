@@ -52,6 +52,12 @@ pub struct EveVaultStatus {
 }
 
 /// Fetch the metadata for the latest published release. No download yet.
+///
+/// Raw / uncached path. Callers SHOULD wrap with
+/// [`release_cache::fetch_with_cache`] under key `"evevault"` so
+/// the rate-limit-backoff cache applies. `status()` below +
+/// `commands::installers::install_evevault` both do that. Don't
+/// call this directly from anywhere new.
 pub async fn fetch_latest_release() -> Result<ReleaseInfo> {
     let body = release_cache::fetch_release_json(REPO).await?;
 
