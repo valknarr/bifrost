@@ -48,13 +48,40 @@
 
     // Background drift-correction. Lifecycle actions (Start / Stop /
     // Archive / Adopt) already trigger a refresh via the store's
-    // `run()` wrapper, so this only catches state that changes outside
-    // Bifrost's own actions.
-    const tick = setInterval(
-      () => pilotStore.reconcile(),
-      RECONCILE_INTERVAL_MS,
-    );
-    return () => clearInterval(tick);
+    // `run()` wrapper, so this only catches state that changes
+    // outside Bifrost's own actions.
+    //
+    // Visibility gating: skip the tick entirely when the window is
+    // hidden. Two reasons:
+    //   1. The Sui RPC half of `reconcile_pilots` is a network call
+    //      that we have no reason to fire while the user can't see
+    //      the result — wasted bandwidth + potential rate-limit
+    //      burn.
+    //   2. The Sandboxie half is cheap, but if the user comes back
+    //      after 10 minutes the next visible tick will re-sync
+    //      reality immediately. Catching a process-died-while-hidden
+    //      30 seconds sooner isn't worth keeping the network half
+    //      alive.
+    //
+    // When visibility flips back to visible we trigger an immediate
+    // tick (rather than waiting up to 30 s) so the user sees fresh
+    // state right after refocusing the window.
+    const tick = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      pilotStore.reconcile();
+    }, RECONCILE_INTERVAL_MS);
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        pilotStore.reconcile();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      clearInterval(tick);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   });
 
   const managedPilots = $derived(

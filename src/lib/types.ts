@@ -39,6 +39,13 @@ export interface Pilot {
   /** True once Bifrost has successfully launched the game in this pilot's
    *  sandbox at least once. Used to suppress the first-launch hint ribbon. */
   launchedAtLeastOnce: boolean;
+  /** Unix milliseconds at which `walletBalance` / `eveBalance` were last
+   *  successfully refreshed from the Sui RPC. `null` until the first
+   *  refresh succeeds. PilotCard reads this to surface a staleness
+   *  badge — "Updated 5m ago" / "Stale" — so the user can tell at a
+   *  glance whether the figures on screen are current or were last
+   *  fetched 20 min ago when the network was up. */
+  walletBalanceFetchedAt: number | null;
 }
 
 /** A single ecosystem app the user can launch into a pilot's browser. */

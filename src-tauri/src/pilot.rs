@@ -58,6 +58,18 @@ pub struct Pilot {
     /// default-launcher account" hint ribbon in the UI.
     #[serde(default)]
     pub launched_at_least_once: bool,
+    /// Unix milliseconds at which `wallet_balance` / `eve_balance` were
+    /// last successfully refreshed from the Sui RPC. `None` until the
+    /// first successful refresh.
+    ///
+    /// The reconcile loop runs every 30 s and overwrites the balance
+    /// fields on success — but on RPC failure it silently keeps the
+    /// previous value. Without this timestamp the user can't tell
+    /// whether the figure on screen is current or 20 minutes stale.
+    /// PilotCard reads this and shows a "Updated 5m ago" / "Stale"
+    /// indicator so the staleness is never hidden.
+    #[serde(default)]
+    pub wallet_balance_fetched_at: Option<u64>,
 }
 
 /// The fixed palette Bifrost cycles pilots through. Each pilot keeps its
@@ -102,6 +114,7 @@ impl Pilot {
             accent,
             archived: false,
             launched_at_least_once: false,
+            wallet_balance_fetched_at: None,
         }
     }
 }

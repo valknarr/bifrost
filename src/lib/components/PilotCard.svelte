@@ -5,12 +5,19 @@
   import { integrationReady } from "../stores/vault.svelte";
   import { configStore } from "../stores/config.svelte";
   import { faviconStore } from "../stores/favicons.svelte";
+  import { clockStore, useClockTick } from "../stores/clock.svelte";
   import { api } from "../tauri";
   import { formatBackendError } from "../error";
   import Button from "./Button.svelte";
   import StatusBadge from "./StatusBadge.svelte";
   import PilotPortrait from "./PilotPortrait.svelte";
   import IconArchive from "./IconArchive.svelte";
+
+  // Subscribe to the shared clock tick so `balanceAge` re-derives
+  // every 15 s. Without this the "Updated 5m ago" label would be
+  // baked in at mount time and never update unless the pilot record
+  // changed for some other reason.
+  useClockTick();
 
   interface Props {
     pilot: Pilot;
@@ -90,6 +97,42 @@
   const showFirstLaunchHint = $derived(
     !pilot.launchedAtLeastOnce && !isRunning && !isMissing,
   );
+
+  /** Balance staleness — drives the small label below the stats grid
+   *  that tells the user when figures were last refreshed from the
+   *  Sui RPC. Three tiers, mapped from the age of
+   *  `wallet_balance_fetched_at`:
+   *
+   *  * `null` (no successful fetch yet or no wallet address) — no
+   *    label shown
+   *  * < 60 s — fresh, dim "Updated just now"
+   *  * 60 s ≤ age < 5 min — "Updated 2m ago", neutral muted colour
+   *  * ≥ 5 min — "Updated 12m ago — stale", warn-yellow tint
+   *
+   *  Recomputes every 15 s via `clockStore.now`. Without the explicit
+   *  read of `clockStore.now` inside this `$derived`, the value
+   *  freezes at mount time because nothing else changes in the
+   *  dependency graph between refreshes. */
+  const balanceAge = $derived.by(() => {
+    if (!pilot.walletAddress) return null;
+    const fetchedAt = pilot.walletBalanceFetchedAt;
+    if (fetchedAt == null) return null;
+    const ageMs = clockStore.now - fetchedAt;
+    if (ageMs < 0) return null; // clock skew / future timestamp — ignore
+    const ageSeconds = Math.floor(ageMs / 1000);
+    const ageMinutes = Math.floor(ageSeconds / 60);
+    if (ageSeconds < 60) {
+      return { label: "Updated just now", stale: false };
+    }
+    if (ageMinutes < 5) {
+      return { label: `Updated ${ageMinutes}m ago`, stale: false };
+    }
+    if (ageMinutes < 60) {
+      return { label: `Updated ${ageMinutes}m ago · stale`, stale: true };
+    }
+    const ageHours = Math.floor(ageMinutes / 60);
+    return { label: `Updated ${ageHours}h ago · stale`, stale: true };
+  });
 
   /** Confirm + permanently delete a pilot whose sandbox is gone. The
    *  backend bypasses the normal "archive-first" guard for Missing
@@ -309,6 +352,23 @@
           </span>
         </div>
       </div>
+
+      <!-- Balance staleness. Tiny single-line stamp under the stats
+           grid. Only renders when there IS a wallet to fetch and at
+           least one successful fetch has happened — pilots that
+           never had a balance fetched stay unmarked rather than
+           showing a confusing "never updated". Warn-yellow tint
+           when stale (≥ 5 min). -->
+      {#if balanceAge}
+        <div
+          class="border-t border-[var(--color-border)] px-4 py-1.5 text-[calc(9px*var(--text-scale,1))] tracking-[0.18em] uppercase {balanceAge.stale
+            ? 'text-[var(--color-warn)]'
+            : 'text-[var(--color-text-dim)]'}"
+          title="Balances refresh every 30 s when the window is in the foreground and the Sui RPC isn't rate-limiting us."
+        >
+          <span class="mono">{balanceAge.label}</span>
+        </div>
+      {/if}
 
       <!-- Compact wallet line — just the address, self-evident `0x…` form -->
       <button

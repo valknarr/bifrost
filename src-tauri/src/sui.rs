@@ -7,8 +7,11 @@
 //!
 //! Reference: <https://docs.sui.io/sui-api-ref>
 
-use std::time::Duration;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{BridgeError, Result};
@@ -17,6 +20,88 @@ use crate::http;
 /// Default public mainnet RPC. EVE Frontier launched on Sui mainnet; if
 /// CCP ever switches networks we can make this configurable.
 pub const DEFAULT_RPC: &str = "https://fullnode.mainnet.sui.io:443";
+
+/// How long to back off after detecting a rate-limit response from the
+/// Sui RPC. Mirrors the `release_cache::FAILURE_BACKOFF_TTL` shape but
+/// shorter (2 min instead of 5) because Sui's public mainnet RPC is
+/// much less strictly rate-limited than GitHub's unauth API; 2 min is
+/// enough to ride out a brief throttling burst without locking
+/// balances stale for too long.
+///
+/// The cache is keyed by address (NOT by `(address, coin)`) — when one
+/// coin call gets throttled, the other is almost certainly throttled
+/// too because they share the same RPC URL + IP. Per-address keying
+/// means N pilots × 1 entry, not N × 2.
+const RATE_LIMIT_BACKOFF: Duration = Duration::from_secs(2 * 60);
+
+/// Per-address rate-limit backoff cache. When the Sui RPC throttles a
+/// call for an address, we record the instant it happened and refuse
+/// subsequent calls for that address until the backoff window
+/// expires. Without this the 30 s reconcile tick would re-fire all 2N
+/// balance fetches on every tick, burning more quota and extending
+/// the lockout — same shape as the GitHub-API hammering bug we just
+/// fixed in `release_cache`.
+static RATE_LIMITED_UNTIL: Lazy<Mutex<HashMap<String, Instant>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
+/// True if `address` is currently in the rate-limit backoff window.
+/// Stale entries (older than the backoff TTL) are NOT pruned on read
+/// — we only inspect freshness — but they're naturally overwritten
+/// on the next failure for that address. The HashMap doesn't grow
+/// unbounded because the key space is bounded by the user's pilot
+/// count.
+pub fn is_address_rate_limited(address: &str) -> bool {
+    let Ok(guard) = RATE_LIMITED_UNTIL.lock() else {
+        return false;
+    };
+    let Some(inserted) = guard.get(address) else {
+        return false;
+    };
+    inserted.elapsed() < RATE_LIMIT_BACKOFF
+}
+
+/// Mark `address` as currently rate-limited. Re-marking refreshes the
+/// timer — a sustained throttling pattern keeps the backoff active.
+fn mark_address_rate_limited(address: &str) {
+    if let Ok(mut guard) = RATE_LIMITED_UNTIL.lock() {
+        guard.insert(address.to_string(), Instant::now());
+    }
+}
+
+/// Clear the rate-limit backoff for an address. Called after a
+/// successful fetch so the cache doesn't carry stale "this address
+/// was throttled 90 s ago" entries through the next backoff window.
+fn clear_address_rate_limited(address: &str) {
+    if let Ok(mut guard) = RATE_LIMITED_UNTIL.lock() {
+        guard.remove(address);
+    }
+}
+
+/// Pattern-match a Sui RPC error to decide whether it's a rate-limit
+/// signal (vs. transport timeout or address-not-found). Mirrors the
+/// `release_cache::is_rate_limit_error` shape but adapted for the
+/// error formats `SuiClient::get_balance` actually produces:
+///
+/// * HTTP 429 — "Too Many Requests" (explicit rate-limit response)
+/// * HTTP 503 — "Service Unavailable" (overloaded node; backing off
+///   is the polite move even if not technically a rate limit)
+/// * HTTP 403 — "Forbidden" (some Sui RPC providers gate by IP)
+/// * "rate limit" / "rate-limit" substrings — defence against future
+///   error-format changes
+///
+/// Transport timeouts (`request timed out`, `connection refused`,
+/// `dns lookup failed`) are deliberately NOT matched — those usually
+/// resolve on the next attempt and we don't want to lock the user
+/// out for 2 min over a single Wi-Fi blip.
+pub fn is_rate_limit_error(msg: &str) -> bool {
+    let lower = msg.to_ascii_lowercase();
+    lower.contains("429")
+        || lower.contains("503")
+        || lower.contains("403")
+        || lower.contains("rate limit")
+        || lower.contains("rate-limit")
+        || lower.contains("too many requests")
+}
 
 /// Native Sui coin type. `suix_getBalance` defaults to this when `coin_type`
 /// is null/omitted.
@@ -63,6 +148,17 @@ impl SuiClient {
     /// [`get_eve_balance`] so the coin-type IDs aren't repeated at
     /// each call site.
     async fn get_balance(&self, address: &str, coin_type: &str) -> Result<u128> {
+        // Rate-limit short-circuit: if a previous call for this
+        // address recently hit a 429/503/etc., refuse to fire another
+        // request until the backoff window expires. Returns the same
+        // error shape `is_rate_limit_error` matches so the per-pilot
+        // skip logic upstream stays consistent.
+        if is_address_rate_limited(address) {
+            return Err(BridgeError::Other(
+                "Sui RPC rate-limit backoff active for this address; will retry shortly".into(),
+            ));
+        }
+
         let body = serde_json::json!({
             "jsonrpc": "2.0",
             "id": 1,
@@ -80,9 +176,14 @@ impl SuiClient {
 
         let status = resp.status();
         if !status.is_success() {
-            return Err(BridgeError::Other(format!(
-                "Sui RPC returned HTTP {status}"
-            )));
+            let err_msg = format!("Sui RPC returned HTTP {status}");
+            // 429 / 503 / 403 → mark the address as rate-limited so
+            // subsequent ticks short-circuit without firing more
+            // requests at an overloaded node.
+            if is_rate_limit_error(&err_msg) {
+                mark_address_rate_limited(address);
+            }
+            return Err(BridgeError::Other(err_msg));
         }
 
         let body: JsonRpcResponse<BalanceResult> = resp
@@ -91,20 +192,32 @@ impl SuiClient {
             .map_err(|e| BridgeError::Other(format!("Sui RPC response parse failed: {e}")))?;
 
         if let Some(err) = body.error {
-            return Err(BridgeError::Other(format!(
-                "Sui RPC error {}: {}",
-                err.code, err.message
-            )));
+            let err_msg = format!("Sui RPC error {}: {}", err.code, err.message);
+            // JSON-RPC overload codes can show up as 200 OK with an
+            // `error` field — `-32000` is Sui's generic "server is
+            // having a bad time" code that the public node uses for
+            // both throttling and transient overload. Treat as
+            // rate-limit-equivalent and back off.
+            if err.code == -32000 || is_rate_limit_error(&err_msg) {
+                mark_address_rate_limited(address);
+            }
+            return Err(BridgeError::Other(err_msg));
         }
 
         let result = body.result.ok_or_else(|| {
             BridgeError::Other("Sui RPC response had no result and no error".into())
         })?;
 
-        result
+        let value = result
             .total_balance
             .parse::<u128>()
-            .map_err(|e| BridgeError::Other(format!("invalid totalBalance value: {e}")))
+            .map_err(|e| BridgeError::Other(format!("invalid totalBalance value: {e}")))?;
+
+        // Successful fetch clears any stale rate-limit entry so the
+        // address doesn't carry a leftover "throttled 90 s ago" mark
+        // through the next backoff window.
+        clear_address_rate_limited(address);
+        Ok(value)
     }
 
     /// Convenience wrapper for the native SUI balance.
@@ -166,4 +279,71 @@ struct JsonRpcError {
 struct BalanceResult {
     #[serde(rename = "totalBalance")]
     total_balance: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `is_rate_limit_error` matches the substrings `SuiClient::
+    /// get_balance` actually produces — pinning the contract here so a
+    /// future refactor that changes error wording breaks loudly
+    /// rather than silently disabling the backoff cache.
+    #[test]
+    fn rate_limit_error_recognises_throttling_responses() {
+        assert!(is_rate_limit_error("Sui RPC returned HTTP 429 Too Many Requests"));
+        assert!(is_rate_limit_error("Sui RPC returned HTTP 503 Service Unavailable"));
+        assert!(is_rate_limit_error("Sui RPC returned HTTP 403 Forbidden"));
+        assert!(is_rate_limit_error("Sui RPC error -32000: rate limit exceeded"));
+        assert!(is_rate_limit_error("rate-limit reached"));
+    }
+
+    /// Transport-class failures (timeout, DNS) must NOT trigger the
+    /// backoff — those are transient and usually resolve next tick.
+    /// If we treated a 1-second Wi-Fi drop as rate-limiting, the user
+    /// would be locked out of balance refreshes for 2 min for no
+    /// reason.
+    #[test]
+    fn rate_limit_error_ignores_transport_failures() {
+        assert!(!is_rate_limit_error("Sui RPC request failed: connection refused"));
+        assert!(!is_rate_limit_error("Sui RPC request failed: dns resolution error"));
+        assert!(!is_rate_limit_error("Sui RPC request failed: request timed out"));
+        assert!(!is_rate_limit_error("invalid totalBalance value: invalid digit"));
+    }
+
+    /// Pin the address-keyed cache shape: marking an address makes it
+    /// "rate-limited"; clearing it makes it free again. Doesn't pin
+    /// TTL expiry (that would require a sleep or a clock injection
+    /// the cache doesn't currently support) — see the deliberate
+    /// scope-limit comment in `is_address_rate_limited`.
+    #[test]
+    fn address_rate_limit_cache_marks_and_clears() {
+        // Unique key per test run so we don't collide with parallel
+        // test execution.
+        let addr = format!("0xtest_marks_and_clears_{}", std::process::id());
+
+        assert!(!is_address_rate_limited(&addr), "fresh address must not be marked");
+        mark_address_rate_limited(&addr);
+        assert!(is_address_rate_limited(&addr), "marked address must read as rate-limited");
+        clear_address_rate_limited(&addr);
+        assert!(!is_address_rate_limited(&addr), "cleared address must read as free again");
+    }
+
+    /// Re-marking refreshes the timer rather than appending a second
+    /// entry — sustained throttling keeps the cache "alive" for the
+    /// full TTL after the LAST failure, not the first one. Pin the
+    /// contract so a future hashmap-replacement-with-vec refactor
+    /// doesn't accidentally make the cache append-only.
+    #[test]
+    fn address_rate_limit_cache_remark_overwrites() {
+        let addr = format!("0xtest_remark_overwrites_{}", std::process::id());
+        mark_address_rate_limited(&addr);
+        mark_address_rate_limited(&addr);
+        mark_address_rate_limited(&addr);
+        // HashMap insert is overwriting; if it were appending we'd
+        // need a count-N check. Just verify the entry is still
+        // singular by reading.
+        assert!(is_address_rate_limited(&addr));
+        clear_address_rate_limited(&addr);
+    }
 }

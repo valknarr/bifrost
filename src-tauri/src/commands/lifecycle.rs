@@ -172,19 +172,33 @@ pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
         }
     }
 
+    // Track whether anything actually changed so we can skip the
+    // disk write when nothing did. Background reconcile ticks every
+    // 30 s with no state drift would otherwise rewrite pilots.json
+    // ~2 880×/day for no reason — wasteful, and on shared/cloud
+    // disks contributes to needless I/O quota usage. Mutation
+    // counter increments only when we OBSERVED a different value.
+    let mut status_changes: u32 = 0;
     {
         let mut pilots = state.pilots.lock().unwrap();
         for (id, status) in new_statuses {
             if let Some(p) = pilots.iter_mut().find(|p| p.id == id) {
-                p.status = status;
+                if p.status != status {
+                    p.status = status;
+                    status_changes += 1;
+                }
             }
         }
     }
 
     // Refresh on-chain balances at the same cadence — both are
-    // best-effort and we're already hitting the network.
-    super::wallet::refresh_balances(&state).await;
+    // best-effort and we're already hitting the network. Returns
+    // a "did anything land?" bool so the post-reconcile save can
+    // be skipped when nothing on the pilot record changed.
+    let balances_changed = super::wallet::refresh_balances(&state).await;
 
-    state.save_pilots()?;
+    if status_changes > 0 || balances_changed {
+        state.save_pilots()?;
+    }
     Ok(())
 }
