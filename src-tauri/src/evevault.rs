@@ -9,7 +9,7 @@
 //!
 //! [EVE Vault]: https://github.com/evefrontier/evevault
 
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};

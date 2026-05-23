@@ -16,7 +16,6 @@
 //!
 //! [Brave Browser]: https://github.com/brave/brave-browser
 
-use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
