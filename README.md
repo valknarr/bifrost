@@ -284,9 +284,10 @@ issue once the repo is public.
       then, document SHA-256 verification in `SECURITY.md`.
 - [ ] **Publish `SHA256SUMS.txt`** alongside the `.exe` in
       `release.yml` so users can verify the download integrity.
-- [ ] **Drop the `continue-on-error` from `cargo audit` and
-      `pnpm audit`** in `ci.yml` once the baseline is clean — make
-      a new advisory fail the build.
+- [x] **`cargo audit` and `pnpm audit` hard-fail CI on any new
+      advisory.** Baseline triaged clean as of the pre-public sweep;
+      see `src-tauri/audit.toml` for the small ignore-list (GTK3
+      transitives, Linux-only, dead code on Windows).
 
 **Test coverage**
 

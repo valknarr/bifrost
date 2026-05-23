@@ -171,7 +171,7 @@ pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
     // Track whether anything actually changed so we can skip the
     // disk write when nothing did. Background reconcile ticks every
     // 30 s with no state drift would otherwise rewrite pilots.json
-    // ~2 880Ã—/day for no reason — wasteful, and on shared/cloud
+    // ~2 880×/day for no reason — wasteful, and on shared/cloud
     // disks contributes to needless I/O quota usage. Mutation
     // counter increments only when we OBSERVED a different value.
     let mut status_changes: u32 = 0;

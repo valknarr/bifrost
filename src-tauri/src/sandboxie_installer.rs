@@ -26,7 +26,7 @@
 //!      headless once the user clicks "Yes" on the UAC prompt.
 //!   4. After the installer exits, drop a `.bifrost-installed-version`
 //!      marker (JSON: `{"version": "...", "variant": "plus|classic"}`)
-//!      so Settings can show "v1.16.7 Â· up to date" / "update
+//!      so Settings can show "v1.16.7 · up to date" / "update
 //!      available" and remembers which variant Bifrost installed.
 //!
 //! We deliberately don't attempt SHA-256 verification because

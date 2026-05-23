@@ -209,9 +209,9 @@
                     {#if sandboxieBusy}
                       Installing…
                     {:else if installTargetLatest}
-                      â–¼ Install {installTargetLabel} v{installTargetLatest}
+                      ▼ Install {installTargetLabel} v{installTargetLatest}
                     {:else}
-                      â–¼ Install {installTargetLabel}
+                      ▼ Install {installTargetLabel}
                     {/if}
                   </Button>
                 </div>
@@ -237,7 +237,7 @@
                   <p
                     class="border-l border-[var(--color-warn)]/40 pl-3 text-[calc(10px*var(--text-scale,1))] leading-snug text-[var(--color-warn)]"
                   >
-                    â“˜ Classic logs benign
+                    ⓘ Classic logs benign
                     <span class="mono">SBIE2205 ConsoleInit</span>
                     warnings on Windows 10 21H2 and later — its kernel
                     driver doesn't implement the IPC paths Plus added
@@ -433,9 +433,9 @@
                   {#if chromiumBusy}
                     Downloading…
                   {:else if chromium?.latestVersion}
-                    â–¼ Install v{chromium.latestVersion}
+                    ▼ Install v{chromium.latestVersion}
                   {:else}
-                    â–¼ Install latest
+                    ▼ Install latest
                   {/if}
                 </Button>
               </div>
@@ -555,9 +555,9 @@
                   {#if vaultBusy}
                     Installing…
                   {:else if vault?.latestVersion}
-                    â–¼ Install v{vault.latestVersion}
+                    ▼ Install v{vault.latestVersion}
                   {:else}
-                    â–¼ Install latest
+                    ▼ Install latest
                   {/if}
                 </Button>
               </div>
@@ -620,11 +620,13 @@
         </div>
       </div>
 
-      <!-- Display — UI zoom presets. Wired to Tauri's
-           `webview.setZoom()` so every painted pixel scales
-           uniformly (text, padding, borders, the drift field).
-           Choice is persisted in BifrostConfig.uiZoom and re-applied
-           on next launch by App.svelte. -->
+      <!-- Display — UI text-scale presets. Writes the
+           `--text-scale` CSS variable on `:root` so rem-based type
+           sizes scale together while pixel-based chrome (button
+           hit-targets, padding, grid gaps) stays fixed — the
+           desktop-app shape, not the browser-zoom shape. Choice is
+           persisted in BifrostConfig.uiZoom and re-applied on next
+           launch by App.svelte. -->
       <div class="flex flex-col gap-3">
         <div class="flex items-baseline justify-between">
           <h2 class="section-label">Display</h2>

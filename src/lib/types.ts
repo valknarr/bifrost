@@ -73,10 +73,13 @@ export interface BifrostConfig {
   launchAllOnStart: boolean;
   /** Ordered list of ecosystem apps, both built-in and user-added. */
   companionSites: CompanionSite[];
-  /** Webview zoom factor applied via Tauri's `webview.setZoom()`.
-   *  Settings exposes presets at 0.9 (Compact), 1.0 (Default), and
-   *  1.15 (Comfortable); persisted as the raw float for forward
-   *  compat with future keyboard-driven zoom. */
+  /** UI text-scale factor driving the `--text-scale` CSS variable on
+   *  `:root`. Rem-based type sizes scale together; pixel-based
+   *  chrome (button hit-targets, gaps) stays fixed — desktop-app
+   *  shape, not browser-zoom shape. Settings exposes presets at 0.9
+   *  (Compact), 1.0 (Default), and 1.15 (Comfortable); persisted as
+   *  the raw float for forward compat with future keyboard-driven
+   *  steps. */
   uiZoom: number;
   /** Preferred pilot-card column count in the roster grid. `0` = auto
    *  (responsive — as many cards as the window can hold); `2` and

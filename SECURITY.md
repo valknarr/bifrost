@@ -12,7 +12,8 @@ Email security reports privately to **valknarr@pm.me** with:
 - Step-by-step reproduction. Bifrost builds in a few minutes from source —
   if you can include a minimal sample profile or scripted repro, that
   shortens triage time significantly.
-- The Bifrost version (`bifrost --version` or the value in `Cargo.toml`),
+- The Bifrost version (the `version` field in `src-tauri/Cargo.toml`,
+  or the value in the bottom-status strip of the running app),
   your Windows build, and which Sandboxie variant + version you're on
   (Plus or Classic).
 - Whether you'd like to be credited in the release notes when the fix

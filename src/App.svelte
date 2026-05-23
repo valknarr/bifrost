@@ -53,11 +53,11 @@
   onMount(async () => {
     await configStore.refresh();
     if (configStore.config) {
-      // Best-effort: if the webview-zoom permission is missing or
-      // setZoom throws, fall back to the 1.0 default and log the
-      // reason for diagnosis. The Settings picker is the place users
-      // actually see this kind of error inline; startup must not
-      // block on it.
+      // Best-effort: if applying the persisted text-scale fails
+      // (CSSOM unreachable, document not yet attached, etc.), fall
+      // back to the 1.0 default and log the reason for diagnosis.
+      // The Settings picker is the place users actually see this
+      // kind of error inline; startup must not block on it.
       try {
         await applyZoom(configStore.config.uiZoom);
       } catch (e) {

@@ -9,6 +9,8 @@ use tauri::State;
 use crate::browser;
 use crate::error::{BifrostError, Result};
 use crate::pilot::{self, Pilot, PilotStatus};
+use crate::sandboxie::Sandboxie;
+use crate::state::AppState;
 
 /// Statuses that allow `delete_pilot` to bypass the "must be archived
 /// first" guard. A pilot whose Sandboxie box has been deleted externally
@@ -17,8 +19,6 @@ use crate::pilot::{self, Pilot, PilotStatus};
 /// pilots from being nuked by an accidental click; that concern doesn't
 /// apply when the sandbox is already gone.
 const ARCHIVE_BYPASS_STATUSES: &[PilotStatus] = &[PilotStatus::Missing];
-use crate::sandboxie::Sandboxie;
-use crate::state::AppState;
 
 #[tauri::command]
 pub fn list_pilots(state: State<'_, AppState>) -> Result<Vec<Pilot>> {

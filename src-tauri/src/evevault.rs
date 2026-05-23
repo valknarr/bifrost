@@ -265,10 +265,29 @@ pub async fn install(app_data: &Path, release: &ReleaseInfo) -> Result<()> {
         if let Some(parent) = out_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let mut buf = Vec::with_capacity(entry.size() as usize);
-        entry
-            .read_to_end(&mut buf)
+        // Bound the per-entry allocation + read. `entry.size()` is
+        // the declared-uncompressed size from the zip header —
+        // attacker / upstream controlled. A malicious or corrupted
+        // zip could declare a multi-GB size and force a giant
+        // pre-allocation; a high-compression-ratio zip could also
+        // expand past the download cap during streaming.
+        // EVE Vault's largest legitimate file is ~250 KB; capping
+        // each entry at 10 MiB gives 40× headroom and bounds the
+        // worst case. Both `min(declared, cap)` for the Vec capacity
+        // AND `take(cap)` on the reader so a lying header can't
+        // bypass the cap.
+        const MAX_ENTRY_BYTES: u64 = 10 * 1024 * 1024;
+        let declared = entry.size();
+        let cap_hint = std::cmp::min(declared, MAX_ENTRY_BYTES) as usize;
+        let mut buf = Vec::with_capacity(cap_hint);
+        let mut limited = std::io::Read::take(&mut entry, MAX_ENTRY_BYTES + 1);
+        std::io::Read::read_to_end(&mut limited, &mut buf)
             .map_err(|e| BifrostError::Other(format!("zip entry read: {e}")))?;
+        if buf.len() as u64 > MAX_ENTRY_BYTES {
+            return Err(BifrostError::Other(format!(
+                "zip entry exceeded {MAX_ENTRY_BYTES} bytes — refusing to extract"
+            )));
+        }
         std::fs::write(&out_path, &buf)?;
     }
 

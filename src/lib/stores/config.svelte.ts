@@ -68,9 +68,15 @@ class ConfigStore {
     try {
       await applyZoom(zoom);
     } catch (e) {
+      // applyZoom writes a CSS variable; the failure path here is
+      // essentially "document.documentElement.style is unreachable",
+      // which only happens if something's gone very wrong with the
+      // host. Surface the raw cause rather than inventing a
+      // diagnosis — the user can't act on this either way, but a
+      // bug report with the real error is more useful than one
+      // with a misleading "permission" hint.
       this.error =
-        "Couldn't change zoom — the webview permission may be missing. " +
-        formatBackendError(e);
+        "Couldn't apply UI scale. " + formatBackendError(e);
       return;
     }
     try {

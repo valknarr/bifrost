@@ -69,7 +69,7 @@ pub async fn set_pilot_wallet(
 
     // Best-effort balance fetches for both coins. Fan out concurrently
     // via `tokio::join` so the two RPC calls overlap (was sequential —
-    // ~2Ã— latency for no good reason). `join` collects both results
+    // ~2× latency for no good reason). `join` collects both results
     // even if one fails, so a single-coin failure leaves the other
     // populated; matches the previous sequential behaviour.
     let sui = SuiClient::new();

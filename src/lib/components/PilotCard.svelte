@@ -7,6 +7,7 @@
   import { configStore } from "../stores/config.svelte";
   import { clockStore, useClockTick } from "../stores/clock.svelte";
   import { api } from "../tauri";
+  import { confirmDestructive } from "../confirm";
   import Button from "./Button.svelte";
   import StatusBadge from "./StatusBadge.svelte";
   import PilotPortrait from "./PilotPortrait.svelte";
@@ -158,7 +159,7 @@
    *  pilots so a single click is enough. We still confirm because the
    *  pilot record (wallet address, accent, custom name) goes with it. */
   async function removeMissing() {
-    const ok = confirm(
+    const ok = confirmDestructive(
       `Remove pilot "${pilot.name}"?\n\nIts Sandboxie sandbox is gone, so there's nothing to clean up there. Bifrost will forget this pilot's wallet, accent, and browser profile. This cannot be undone.`,
     );
     if (!ok) return;

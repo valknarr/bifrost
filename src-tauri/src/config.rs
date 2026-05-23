@@ -13,7 +13,7 @@ use crate::error::Result;
 pub struct CompanionSite {
     /// Display name, e.g. "EF Map".
     pub name: String,
-    /// Single-letter or short monogram for the icon tile (â‰¤2 chars).
+    /// Single-letter or short monogram for the icon tile (≤2 chars).
     pub icon: String,
     /// Absolute URL the site loads at.
     pub url: String,
@@ -90,13 +90,17 @@ pub struct BifrostConfig {
     /// `default_companion_sites()`); users can append / remove their own.
     #[serde(default = "default_companion_sites")]
     pub companion_sites: Vec<CompanionSite>,
-    /// Webview zoom level applied via Tauri's `webview.setZoom()`. The
-    /// Settings panel exposes three presets (0.9 / 1.0 / 1.15) but we
-    /// store the raw float so users with persisted custom values from
-    /// future keyboard shortcuts (Ctrl + / -) still round-trip
-    /// correctly. Clamped to `MIN_UI_ZOOM..=MAX_UI_ZOOM` at the
-    /// command boundary so a corrupted config can't blow the viewport
-    /// up to 10×.
+    /// UI text scale factor. Drives the `--text-scale` CSS variable
+    /// on `:root` (see `app.css`) so rem-based type sizes scale
+    /// together while pixel-based chrome (button hit-targets,
+    /// gaps) stays fixed — the desktop-app shape, not the
+    /// browser-zoom shape. Settings exposes three presets (0.9
+    /// Compact / 1.0 Default / 1.15 Comfortable) but we store the
+    /// raw float so persisted custom values from future
+    /// keyboard shortcuts (Ctrl + / -) still round-trip correctly.
+    /// Clamped to `MIN_UI_ZOOM..=MAX_UI_ZOOM` at the command
+    /// boundary so a corrupted config can't push the viewport to
+    /// absurd sizes.
     #[serde(default = "default_ui_zoom")]
     pub ui_zoom: f32,
     /// Preferred number of pilot cards per row in the roster grid.
@@ -160,8 +164,8 @@ pub const MAX_ROSTER_WINDOW_HEIGHT: u32 = 5120;
 
 /// Compile-time sanity check on the zoom bounds. Catches refactors
 /// that accidentally flip `MIN_UI_ZOOM > MAX_UI_ZOOM` or set
-/// `MIN_UI_ZOOM <= 0` (which would make webview.setZoom() crash on
-/// some platforms).
+/// `MIN_UI_ZOOM <= 0` (which would multiply CSS rem sizes by zero
+/// and render the UI invisible).
 const _: () = {
     assert!(MIN_UI_ZOOM > 0.0);
     assert!(MAX_UI_ZOOM > MIN_UI_ZOOM);
@@ -307,8 +311,8 @@ mod tests {
     }
 
     /// The default URLs must be unique so `add_companion_site`'s
-    /// duplicate check + the React `key={site.url}` rendering both
-    /// work correctly.
+    /// duplicate check + the Svelte `{#each ... (site.url)}` keyed
+    /// rendering both work correctly.
     #[test]
     fn default_companion_sites_have_unique_urls() {
         let sites = default_companion_sites();

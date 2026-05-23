@@ -21,10 +21,13 @@ pub fn set_config(state: State<'_, AppState>, config: BifrostConfig) -> Result<(
     state.save_config(config)
 }
 
-/// Persist a new UI zoom factor and return the updated config. The
-/// frontend mirrors this by calling `webview.setZoom(zoom)` immediately
-/// so the change is visible without a restart; storing it here means
-/// the next launch reads the same value back from disk.
+/// Persist a new UI text-scale factor and return the updated config.
+/// The frontend mirrors this by setting the `--text-scale` CSS
+/// variable on `document.documentElement` immediately (see
+/// `src/lib/zoom.ts::applyZoom`) so the change is visible without a
+/// restart; storing it here means the next launch reads the same
+/// value back from disk and re-applies it before the user sees the
+/// UI.
 ///
 /// Clamped to `MIN_UI_ZOOM..=MAX_UI_ZOOM` so a corrupted config or a
 /// misbehaving caller can't blow the viewport up to 10× and trap the

@@ -503,10 +503,24 @@ pub async fn install(app_data: &Path, release: &ChromiumRelease) -> Result<()> {
         if let Some(parent) = out_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let mut buf = Vec::with_capacity(entry.size() as usize);
-        entry
-            .read_to_end(&mut buf)
+        // Bound the per-entry allocation + read so a malicious /
+        // corrupted zip can't OOM us via a lying size header or a
+        // high-compression-ratio bomb. Brave's largest individual
+        // file is on the order of ~200 MB (the main DLL); capping
+        // each entry at 400 MiB gives 2× headroom for future
+        // growth while still bounding the worst case.
+        const MAX_ENTRY_BYTES: u64 = 400 * 1024 * 1024;
+        let declared = entry.size();
+        let cap_hint = std::cmp::min(declared, MAX_ENTRY_BYTES) as usize;
+        let mut buf = Vec::with_capacity(cap_hint);
+        let mut limited = std::io::Read::take(&mut entry, MAX_ENTRY_BYTES + 1);
+        std::io::Read::read_to_end(&mut limited, &mut buf)
             .map_err(|e| BifrostError::Other(format!("chromium zip entry read: {e}")))?;
+        if buf.len() as u64 > MAX_ENTRY_BYTES {
+            return Err(BifrostError::Other(format!(
+                "chromium zip entry exceeded {MAX_ENTRY_BYTES} bytes — refusing to extract"
+            )));
+        }
         std::fs::write(&out_path, &buf)?;
     }
 

@@ -40,10 +40,11 @@ export const ZOOM_PRESETS = {
 
 export type ZoomPreset = keyof typeof ZOOM_PRESETS;
 
-/** Match a raw zoom float back to its preset name, or "custom" if it
+/** Match a raw scale float back to its preset name, or "custom" if it
  *  doesn't line up with any of the three. Used by the picker to
  *  highlight the active preset. We compare with a small epsilon so
- *  round-trips through JSON / setZoom don't drift the selection. */
+ *  round-trips through JSON storage don't drift the selection
+ *  (float-string-float can shift the value by ULPs). */
 export function presetFor(zoom: number): ZoomPreset | "custom" {
   for (const [key, p] of Object.entries(ZOOM_PRESETS) as [ZoomPreset, typeof ZOOM_PRESETS[ZoomPreset]][]) {
     if (Math.abs(zoom - p.value) < 0.001) return key;

@@ -215,14 +215,14 @@ mod tests {
     #[test]
     fn parse_finds_named_section_case_insensitively() {
         // The motivating bug: a pilot's `Pilot.sandbox` field holds
-        // "BridgeF89BB26E" exactly, but a user editing Sandboxie.ini by
+        // "BifrostF89BB26E" exactly, but a user editing Sandboxie.ini by
         // hand might normalise the case. Section lookup must be case-
         // insensitive so neither side surprises the other.
         let f = write_ini_utf16(
             "[GlobalSettings]\n\
              FileRootPath=C:\\Sandbox\n\
              \n\
-             [BridgeF89BB26E]\n\
+             [BifrostF89BB26E]\n\
              Enabled=y\n\
              ConfigLevel=10\n",
         );
@@ -230,13 +230,13 @@ mod tests {
         assert!(
             sections
                 .iter()
-                .any(|s| s.name.eq_ignore_ascii_case("bridgef89bb26e")),
+                .any(|s| s.name.eq_ignore_ascii_case("bifrostf89bb26e")),
             "case-insensitive lookup must find the section"
         );
         assert!(
             sections
                 .iter()
-                .any(|s| s.name.eq_ignore_ascii_case("BRIDGEF89BB26E")),
+                .any(|s| s.name.eq_ignore_ascii_case("BIFROSTF89BB26E")),
         );
     }
 
@@ -257,7 +257,7 @@ mod tests {
         assert!(
             !sections
                 .iter()
-                .any(|s| s.name.eq_ignore_ascii_case("BridgeF89BB26E")),
+                .any(|s| s.name.eq_ignore_ascii_case("BifrostF89BB26E")),
             "missing section must not match"
         );
     }

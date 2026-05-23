@@ -82,9 +82,12 @@ html {
      rem-based size (Tailwind's `text-base`, `text-lg`, custom `0.7rem`
      class labels) scales relative to this, while pixel-based chrome
      (`min-h-[36px]`, `--spacing: 4px`) stays put. JS writes
-     `--text-scale` via `applyTextScale(...)` in zoom.ts when the user
-     picks a Settings › Display preset; default `1` keeps the scale at
-     1.0 if the variable is never set. */
+     `--text-scale` via `applyZoom(...)` in zoom.ts when the user
+     picks a Settings › Display preset (the function name pre-dates
+     the move off Tauri's webview-zoom; kept for backward-compat
+     since `BifrostConfig.uiZoom` still names the same value);
+     default `1` keeps the scale at 1.0 if the variable is never
+     set. */
   font-size: calc(16px * var(--text-scale, 1));
 
   height: 100%;
