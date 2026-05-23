@@ -37,7 +37,7 @@
   // Which variant the user wants to install when nothing's on disk.
   // Plus is the recommended default; the "Use Classic instead" link
   // below the install button toggles this. Persisted only for the
-  // lifetime of the Settings view â€” there's no point storing it
+  // lifetime of the Settings view — there's no point storing it
   // server-side, the user picks at install time.
   let installTarget = $state<SandboxieVariant>("plus");
 
@@ -97,7 +97,7 @@
     return ok ? "text-[var(--color-ok)]" : "text-[var(--color-danger)]";
   }
   function tag(ok: boolean): string {
-    return ok ? "â— Detected" : "âœ• Missing";
+    return ok ? "● Detected" : "✕ Missing";
   }
 </script>
 
@@ -109,7 +109,7 @@
        below the header keep the lighter 1 px rule.
        `min-h-[40px]` matches the rule in PilotsView so the header
        doesn't grow / shrink by a pixel or two when tabbing between
-       the views â€” see the comment over there for the arithmetic. -->
+       the views — see the comment over there for the arithmetic. -->
   <header class="border-b-2 border-[var(--color-accent)]/40 px-6 pt-5 pb-4">
     <div class="flex min-h-[40px] items-center gap-4">
       <h1 class="title-bracket text-lg tracking-[0.05em] text-[var(--color-text)]">
@@ -121,7 +121,7 @@
   <div class="flex flex-col gap-8 px-6 pb-8">
     {#if loading}
       <div class="text-[calc(11px*var(--text-scale,1))] text-[var(--color-text-muted)] tracking-[0.2em] uppercase">
-        Reading stateâ€¦
+        Reading state…
       </div>
     {:else}
       <!-- Detection -->
@@ -135,7 +135,7 @@
         <div
           class="flex flex-col gap-3 border border-[var(--color-border)] bg-[var(--color-bg)] px-5 py-4"
         >
-          <!-- Sandboxie row (Plus or Classic â€” both variants share the
+          <!-- Sandboxie row (Plus or Classic — both variants share the
                kernel driver + CLI surface, so one row covers both). -->
           <div class="flex flex-col gap-2">
             <div class="field">
@@ -192,7 +192,7 @@
               </p>
             {/if}
 
-            <!-- Action row â€” single Install when missing (with a
+            <!-- Action row — single Install when missing (with a
                  variant-toggle link below), otherwise the cluster sits
                  flush-right under the status line: Check for updates +
                  trash. -->
@@ -207,7 +207,7 @@
                     title={`Download + run the Sandboxie ${installTargetLabel} installer silently (one UAC prompt)`}
                   >
                     {#if sandboxieBusy}
-                      Installingâ€¦
+                      Installing…
                     {:else if installTargetLatest}
                       â–¼ Install {installTargetLabel} v{installTargetLatest}
                     {:else}
@@ -231,7 +231,7 @@
                        console-subsystem updates; SbieDll proxies a
                        few IPC calls that the older driver returns
                        NOT_IMPLEMENTED for. Logged as SBIE2205 lines
-                       but harmless â€” EVE Frontier launches and runs
+                       but harmless — EVE Frontier launches and runs
                        regardless. Surfacing this so users who pick
                        Classic aren't surprised by their log. -->
                   <p
@@ -239,7 +239,7 @@
                   >
                     â“˜ Classic logs benign
                     <span class="mono">SBIE2205 ConsoleInit</span>
-                    warnings on Windows 10 21H2 and later â€” its kernel
+                    warnings on Windows 10 21H2 and later — its kernel
                     driver doesn't implement the IPC paths Plus added
                     for the newer console subsystem. Non-fatal: EVE
                     Frontier still launches and plays. Plus ships the
@@ -256,12 +256,12 @@
                   onclick={() => sandboxieStore.install(activeVariant)}
                 >
                   {sandboxieBusy
-                    ? "Updatingâ€¦"
+                    ? "Updating…"
                     : `Update to v${activeLatestVersion}`}
                 </Button>
                 <UninstallButton
                   component={`Sandboxie ${variantLabel}`}
-                  warning="Sandboxie ships a kernel driver â€” uninstalling will trigger a Windows UAC prompt. Close the EVE Frontier launcher and any running sandboxes first, or the uninstall will fail half-way. Pilots using Sandboxie sandboxes will stop working until you reinstall."
+                  warning="Sandboxie ships a kernel driver — uninstalling will trigger a Windows UAC prompt. Close the EVE Frontier launcher and any running sandboxes first, or the uninstall will fail half-way. Pilots using Sandboxie sandboxes will stop working until you reinstall."
                   busy={sandboxieBusy}
                   onConfirm={() => sandboxieStore.uninstall()}
                 />
@@ -278,7 +278,7 @@
                 </Button>
                 <UninstallButton
                   component={`Sandboxie ${variantLabel}`}
-                  warning="Sandboxie ships a kernel driver â€” uninstalling will trigger a Windows UAC prompt. Close the EVE Frontier launcher and any running sandboxes first, or the uninstall will fail half-way. Pilots using Sandboxie sandboxes will stop working until you reinstall."
+                  warning="Sandboxie ships a kernel driver — uninstalling will trigger a Windows UAC prompt. Close the EVE Frontier launcher and any running sandboxes first, or the uninstall will fail half-way. Pilots using Sandboxie sandboxes will stop working until you reinstall."
                   busy={sandboxieBusy}
                   onConfirm={() => sandboxieStore.uninstall()}
                 />
@@ -298,7 +298,7 @@
                 class="text-[calc(10px*var(--text-scale,1))] leading-snug text-[var(--color-text-muted)]"
               >
                 Bifrost installs Sandboxie-Plus by default. Sandboxie
-                Classic is also supported â€” same kernel driver, lighter
+                Classic is also supported — same kernel driver, lighter
                 UI. Only one variant can be installed at a time; to
                 switch, uninstall first then install the other.
                 Windows requires one UAC prompt to grant the installer
@@ -331,7 +331,7 @@
                   onclick={() => openExternal(externalLinks.eveFrontier)}
                   title={externalLinks.eveFrontier}
                 >
-                  Download â†—
+                  Download ↗
                 </button>
               </div>
             {/if}
@@ -339,7 +339,7 @@
         </div>
       </div>
 
-      <!-- EVE Vault integration â€” no explicit on/off toggle. Bifrost
+      <!-- EVE Vault integration — no explicit on/off toggle. Bifrost
            considers the integration "active" whenever both Brave and
            the EVE Vault extension are installed; the two install rows
            below are the only controls needed. -->
@@ -371,7 +371,7 @@
               <span class="label">Brave</span>
               <span class="leader"></span>
               <span class="value {tone(!!chromium?.installedVersion)}">
-                {chromium?.installedVersion ? "â— Installed" : "â—‹ Not installed"}
+                {chromium?.installedVersion ? "● Installed" : "○ Not installed"}
                 {#if chromium?.installedVersion}
                   <span class="ml-1 text-[var(--color-text-dim)]">
                     Â· <VersionLink
@@ -423,7 +423,7 @@
                   onclick={() => chromiumStore.install()}
                 >
                   {#if chromiumBusy}
-                    Downloadingâ€¦
+                    Downloading…
                   {:else if chromium?.latestVersion}
                     â–¼ Install v{chromium.latestVersion}
                   {:else}
@@ -440,12 +440,12 @@
                   onclick={() => chromiumStore.install()}
                 >
                   {chromiumBusy
-                    ? "Updatingâ€¦"
+                    ? "Updating…"
                     : `Update to v${chromium.latestVersion}`}
                 </Button>
                 <UninstallButton
                   component="the portable browser"
-                  warning="Per-pilot browser profiles (wallet sessions, extensions) are kept under each pilot â€” only the Brave binaries are removed."
+                  warning="Per-pilot browser profiles (wallet sessions, extensions) are kept under each pilot — only the Brave binaries are removed."
                   busy={chromiumBusy}
                   onConfirm={() => chromiumStore.uninstall()}
                 />
@@ -462,7 +462,7 @@
                 </Button>
                 <UninstallButton
                   component="the portable browser"
-                  warning="Per-pilot browser profiles (wallet sessions, extensions) are kept under each pilot â€” only the Brave binaries are removed."
+                  warning="Per-pilot browser profiles (wallet sessions, extensions) are kept under each pilot — only the Brave binaries are removed."
                   busy={chromiumBusy}
                   onConfirm={() => chromiumStore.uninstall()}
                 />
@@ -491,7 +491,7 @@
               <span class="label">EVE Vault</span>
               <span class="leader"></span>
               <span class="value {tone(!!vault?.installedVersion)}">
-                {vault?.installedVersion ? "â— Installed" : "â—‹ Not installed"}
+                {vault?.installedVersion ? "● Installed" : "○ Not installed"}
                 {#if vault?.installedVersion}
                   <span class="ml-1 text-[var(--color-text-dim)]">
                     Â· <VersionLink
@@ -543,7 +543,7 @@
                   onclick={() => vaultStore.install()}
                 >
                   {#if vaultBusy}
-                    Installingâ€¦
+                    Installing…
                   {:else if vault?.latestVersion}
                     â–¼ Install v{vault.latestVersion}
                   {:else}
@@ -560,7 +560,7 @@
                   onclick={() => vaultStore.install()}
                 >
                   {vaultBusy
-                    ? "Updatingâ€¦"
+                    ? "Updating…"
                     : `Update to v${vault.latestVersion}`}
                 </Button>
                 <UninstallButton
@@ -601,16 +601,16 @@
           <p class="text-[calc(10px*var(--text-scale,1))] tracking-[0.04em] text-[var(--color-text-dim)] leading-relaxed">
             <span class="text-[var(--color-warn)]">One-time setup per pilot:</span>
             the first browser launch shows a Chromium window with EVE
-            Vault pinned to the toolbar. Click the wallet icon â†’ sign in
-            via FusionAuth â†’ derives the Sui address via zkLogin.
+            Vault pinned to the toolbar. Click the wallet icon → sign in
+            via FusionAuth → derives the Sui address via zkLogin.
             Bifrost can't automate this step (it requires your credentials)
-            but only happens once per pilot â€” the profile remembers from
+            but only happens once per pilot — the profile remembers from
             then on.
           </p>
         </div>
       </div>
 
-      <!-- Display â€” UI zoom presets. Wired to Tauri's
+      <!-- Display — UI zoom presets. Wired to Tauri's
            `webview.setZoom()` so every painted pixel scales
            uniformly (text, padding, borders, the drift field).
            Choice is persisted in BifrostConfig.uiZoom and re-applied
@@ -643,7 +643,7 @@
           </div>
 
           <!-- Picker. Each button is `primary` when active, `ghost`
-               otherwise â€” so the selected preset glows accent-orange
+               otherwise — so the selected preset glows accent-orange
                and the other two read as available alternatives. -->
           <div class="flex flex-wrap items-center gap-2">
             {#each ["compact", "default", "comfortable"] as key (key)}
@@ -670,7 +670,7 @@
           <p
             class="text-[calc(10px*var(--text-scale,1))] leading-snug text-[var(--color-text-muted)]"
           >
-            Scales text only â€” button hit-targets, padding, and grid
+            Scales text only — button hit-targets, padding, and grid
             gaps stay at their natural pixel sizes regardless of
             preset. Compact reads as denser type in the same chrome;
             Comfortable as bigger type in the same chrome. The choice
@@ -681,7 +681,7 @@
                fixed column count instead of the responsive default.
                Stored as `rosterColumns` in BifrostConfig (0 = auto,
                2 = two cards per row, 3 = three). PilotsView reacts
-               to the value via configStore â€” no extra view-glue. -->
+               to the value via configStore — no extra view-glue. -->
           <div class="mt-2 flex flex-col gap-2 border-t border-[var(--color-border)] pt-3">
             <div class="field">
               <span class="label">Roster layout</span>
@@ -696,7 +696,7 @@
             </div>
             <div class="flex flex-wrap items-center gap-2">
               {#each [
-                { value: 0, label: "Auto", title: "Responsive â€” as many pilots per row as the window can hold." },
+                { value: 0, label: "Auto", title: "Responsive — as many pilots per row as the window can hold." },
                 { value: 2, label: "2 pilots", title: "Lock the grid to two pilots per row. Best for narrower windows." },
                 { value: 3, label: "3 pilots", title: "Lock the grid to three pilots per row. Best for wider windows." },
               ] as option (option.value)}
@@ -714,7 +714,7 @@
               class="text-[calc(10px*var(--text-scale,1))] leading-snug text-[var(--color-text-muted)]"
             >
               Picks how many pilot cards line up per row. Auto adds
-              columns as you drag the window wider â€” 3, 4, 5, as many
+              columns as you drag the window wider — 3, 4, 5, as many
               as fit at the natural card width. The fixed options (2
               or 3) snap the window to that layout and lock it,
               regardless of how you resize afterwards. The choice
@@ -739,21 +739,21 @@
             <span class="label">Sandboxie root</span>
             <span class="leader"></span>
             <span class="value mono text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-muted)]">
-              {config?.sandboxiePath ?? "â€”"}
+              {config?.sandboxiePath ?? "—"}
             </span>
           </div>
           <div class="field">
             <span class="label">Frontier exe</span>
             <span class="leader"></span>
             <span class="value mono text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-muted)]">
-              {config?.frontierExe ?? "â€”"}
+              {config?.frontierExe ?? "—"}
             </span>
           </div>
           <div class="field">
             <span class="label">Pilots dir</span>
             <span class="leader"></span>
             <span class="value mono text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-muted)]">
-              {config?.pilotsDir ?? "â€”"}
+              {config?.pilotsDir ?? "—"}
             </span>
           </div>
         </dl>

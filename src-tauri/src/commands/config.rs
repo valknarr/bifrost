@@ -27,7 +27,7 @@ pub fn set_config(state: State<'_, AppState>, config: BifrostConfig) -> Result<(
 /// the next launch reads the same value back from disk.
 ///
 /// Clamped to `MIN_UI_ZOOM..=MAX_UI_ZOOM` so a corrupted config or a
-/// misbehaving caller can't blow the viewport up to 10Ã— and trap the
+/// misbehaving caller can't blow the viewport up to 10× and trap the
 /// user without a way to recover.
 #[tauri::command]
 pub fn set_ui_zoom(state: State<'_, AppState>, zoom: f32) -> Result<BifrostConfig> {
@@ -47,7 +47,7 @@ pub fn set_ui_zoom(state: State<'_, AppState>, zoom: f32) -> Result<BifrostConfi
 
 /// Persist the user's preferred pilot-roster column count and return
 /// the updated config. `0` = auto (responsive grid), `2`/`3` = explicit
-/// overrides. Anything else is rejected â€” a corrupted config or a
+/// overrides. Anything else is rejected — a corrupted config or a
 /// misbehaving frontend can't land on `0` columns (invisible grid) or
 /// silly values like `64` (would push the layout off-screen).
 ///

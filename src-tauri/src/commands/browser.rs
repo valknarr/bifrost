@@ -5,12 +5,12 @@
 //! Brave process with the right flags + extensions).
 //!
 //! Two entry points:
-//! - [`open_pilot_browser`] â€” the plain "Wallet" button on each pilot
+//! - [`open_pilot_browser`] — the plain "Wallet" button on each pilot
 //!   card. Opens the EVE Vault popup URL directly if Bifrost already
 //!   knows the extension's Chromium-assigned ID; otherwise a blank
 //!   new tab.
-//! - [`open_pilot_app`] â€” the per-pilot Apps row. Opens a specific
-//!   URL in standalone `--app=â€¦` mode (no Chrome chrome) so each
+//! - [`open_pilot_app`] — the per-pilot Apps row. Opens a specific
+//!   URL in standalone `--app=…` mode (no Chrome chrome) so each
 //!   ecosystem site feels like a desktop app.
 
 use std::path::PathBuf;
@@ -31,7 +31,7 @@ pub async fn open_pilot_browser(state: State<'_, AppState>, id: String) -> Resul
 }
 
 /// Open a specific URL in this pilot's browser as a standalone
-/// Chromium "app" window (`--app=URL` â€” no URL bar / tabs / menu).
+/// Chromium "app" window (`--app=URL` — no URL bar / tabs / menu).
 /// Same per-pilot profile + EVE Vault extension as the regular
 /// Wallet button, so the site receives this pilot's identity via the
 /// Sui Wallet Standard.
@@ -40,8 +40,8 @@ pub async fn open_pilot_app(state: State<'_, AppState>, id: String, url: String)
     open_pilot_browser_impl(state, id, Some(url)).await
 }
 
-/// Shared core for opening a per-pilot browser window. `url = Some(â€¦)`
-/// launches in `--app=` mode (no Chrome chrome â€” looks like a
+/// Shared core for opening a per-pilot browser window. `url = Some(…)`
+/// launches in `--app=` mode (no Chrome chrome — looks like a
 /// standalone desktop app). `url = None` opens a regular window.
 ///
 /// The wallet integration is implicitly active whenever both Brave
@@ -54,13 +54,13 @@ async fn open_pilot_browser_impl(
     url: Option<String>,
 ) -> Result<()> {
     let cfg = state.config();
-    // Bifrost owns its Chromium. No host-browser fallback â€” keeps the
+    // Bifrost owns its Chromium. No host-browser fallback — keeps the
     // experience identical across all users' machines and avoids ever
     // touching their day-to-day browser profile.
     let browser_exe_path = chromium::chrome_exe_path(&state.app_data_dir).ok_or_else(|| {
         BifrostError::Other(
-            "Portable Chromium isn't installed yet. Open Settings â†’ \
-             EVE Vault Integration â†’ Portable browser â†’ Install."
+            "Portable Chromium isn't installed yet. Open Settings → \
+             EVE Vault Integration → Portable browser → Install."
                 .into(),
         )
     })?;
@@ -87,7 +87,7 @@ async fn open_pilot_browser_impl(
 
     // Generate / refresh the per-pilot theme extension so the
     // Chromium window frame colour matches this pilot's accent.
-    // Best-effort â€” failures only mean Chromium uses its default
+    // Best-effort — failures only mean Chromium uses its default
     // colours, the rest of the launch is unaffected.
     let theme_dir = browser::ensure_pilot_theme(&pilot_root, &pilot_name, &pilot_accent).ok();
 
@@ -103,13 +103,13 @@ async fn open_pilot_browser_impl(
     }
 
     // Resolve URL precedence:
-    //   1. Explicit URL passed in (Apps buttons)        â†’ --app=URL
+    //   1. Explicit URL passed in (Apps buttons)        → --app=URL
     //   2. Plain Wallet click + we know the EVE Vault
-    //      ID + manifest declares a popup file         â†’ regular tab,
+    //      ID + manifest declares a popup file         → regular tab,
     //                                                    chrome-extension:// URL
     //                                                    (--app= mode refuses
     //                                                    non-web schemes)
-    //   3. First-ever launch of this profile           â†’ no URL, blank
+    //   3. First-ever launch of this profile           → no URL, blank
     //                                                    new tab page; the
     //                                                    extension auto-loads
     //                                                    and will be in Prefs

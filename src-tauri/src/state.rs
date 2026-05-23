@@ -84,7 +84,7 @@ impl AppState {
 }
 
 /// Read `pilots.json`. Returns an empty Vec when the file doesn't
-/// exist yet. Resets all pilots to Stopped on load â€” runtime state
+/// exist yet. Resets all pilots to Stopped on load — runtime state
 /// never survives a restart since the sandboxes/processes are gone.
 fn load_pilots(path: &Path) -> Result<Vec<Pilot>> {
     if !path.exists() {
@@ -100,7 +100,7 @@ fn load_pilots(path: &Path) -> Result<Vec<Pilot>> {
 
 fn save_pilots(path: &Path, pilots: &[Pilot]) -> Result<()> {
     // pilots.json is the source of truth for the user's entire
-    // roster â€” a power loss / crash mid-write previously left a
+    // roster — a power loss / crash mid-write previously left a
     // zero-byte file and `load_or_default` silently falling back to
     // an empty pilot list. Now goes through write_atomic (tmp +
     // rename), which is atomic on every platform we support.

@@ -11,7 +11,7 @@ use crate::state::AppState;
 
 /// Start a pilot's session: provision the box if needed, launch the
 /// EVE Frontier exe inside it. We deliberately don't auto-open the
-/// browser here â€” the wallet flow is explicit (user clicks Wallet on
+/// browser here — the wallet flow is explicit (user clicks Wallet on
 /// the pilot card) so they're never surprised by extra windows.
 #[tauri::command]
 pub async fn start_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
@@ -56,7 +56,7 @@ pub async fn start_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
     Ok(())
 }
 
-/// Stop a pilot's session. Always marks the pilot stopped â€” the
+/// Stop a pilot's session. Always marks the pilot stopped — the
 /// user's intent is "stop this pilot", and the common failure modes
 /// of `Start.exe /terminate` are benign no-ops (box already empty,
 /// helper processes already exited, box was never started this
@@ -110,10 +110,10 @@ pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
     let cfg = state.config();
     // Snapshot includes `launched_at_least_once`: a pilot that has
     // successfully launched at least once but whose box is now gone is
-    // unambiguously broken (the sandbox was nuked externally â€” usually
+    // unambiguously broken (the sandbox was nuked externally — usually
     // via Sandboxie's own "Delete Content" menu). A pilot that has
     // NEVER launched might just not have been provisioned yet, so we
-    // leave those as Stopped â€” `start_pilot` will provision on demand.
+    // leave those as Stopped — `start_pilot` will provision on demand.
     let pilot_snapshot: Vec<(String, String, bool)> = {
         let pilots = state.pilots.lock().unwrap();
         pilots
@@ -122,15 +122,15 @@ pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
             .collect()
     };
 
-    // Query Sandboxie outside the lock â€” every check shells out.
+    // Query Sandboxie outside the lock — every check shells out.
     let sb = match cfg.sandboxie_path.as_deref() {
         Some(p) => Sandboxie::at(p).ok(),
         None => None,
     };
 
     // Identify "the game is running" by the actual game executable,
-    // not just by "the box has any sandboxed process" â€” Sandboxie
-    // keeps helper processes (SandboxieRpcSs, SandboxieDcomLaunch, â€¦)
+    // not just by "the box has any sandboxed process" — Sandboxie
+    // keeps helper processes (SandboxieRpcSs, SandboxieDcomLaunch, …)
     // alive for a linger window after the user app exits, and we don't
     // want pilots to look ONLINE during that window.
     let game_exe_name: String = cfg
@@ -150,7 +150,7 @@ pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
             // is now gone from Sandboxie.ini, surface as Missing so the
             // UI can offer to clean it up. Pilots that have never
             // launched yet are still in "first-launch will provision"
-            // territory â€” don't false-positive them as missing.
+            // territory — don't false-positive them as missing.
             if launched_before && !crate::ini::box_section_exists(&sandbox) {
                 new_statuses.push((id, PilotStatus::Missing));
                 continue;
@@ -166,7 +166,7 @@ pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
             ));
         }
     } else {
-        // No Sandboxie â€” best we can do is mark everything stopped.
+        // No Sandboxie — best we can do is mark everything stopped.
         for (id, _, _) in pilot_snapshot {
             new_statuses.push((id, PilotStatus::Stopped));
         }
@@ -175,7 +175,7 @@ pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
     // Track whether anything actually changed so we can skip the
     // disk write when nothing did. Background reconcile ticks every
     // 30 s with no state drift would otherwise rewrite pilots.json
-    // ~2 880Ã—/day for no reason â€” wasteful, and on shared/cloud
+    // ~2 880×/day for no reason — wasteful, and on shared/cloud
     // disks contributes to needless I/O quota usage. Mutation
     // counter increments only when we OBSERVED a different value.
     let mut status_changes: u32 = 0;
@@ -191,7 +191,7 @@ pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
         }
     }
 
-    // Refresh on-chain balances at the same cadence â€” both are
+    // Refresh on-chain balances at the same cadence — both are
     // best-effort and we're already hitting the network. Returns
     // a "did anything land?" bool so the post-reconcile save can
     // be skipped when nothing on the pilot record changed.

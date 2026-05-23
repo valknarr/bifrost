@@ -1,17 +1,17 @@
 //! Portable browser downloader & installer.
 //!
-//! Mirrors the [`evevault`](crate::evevault) module â€” fetches the latest
+//! Mirrors the [`evevault`](crate::evevault) module — fetches the latest
 //! Windows x64 portable ZIP of [Brave Browser] from GitHub Releases,
 //! extracts it to `<app-data>/chromium/current/`, and exposes the
 //! resulting browser executable path via [`chrome_exe_path`].
 //!
 //! We've cycled through portable Chromium distros to find one that
 //! handles EVE Vault's OAuth flow:
-//!   - Ungoogled Chromium â†’ strips Google identity plumbing,
+//!   - Ungoogled Chromium → strips Google identity plumbing,
 //!     `chromiumapp.org` redirect broke FusionAuth.
-//!   - Thorium AVX2 â†’ process crashed on launch (CPU compatibility or
+//!   - Thorium AVX2 → process crashed on launch (CPU compatibility or
 //!     fork-specific issue), file-lock errors on retry.
-//!   - **Brave** â†’ real, signed Chromium fork with full identity plumbing
+//!   - **Brave** → real, signed Chromium fork with full identity plumbing
 //!     intact. Bigger than UCG (220 MB) but actually works.
 //!
 //! [Brave Browser]: https://github.com/brave/brave-browser
@@ -27,7 +27,7 @@ use crate::release_cache;
 
 const REPO: &str = "brave/brave-browser";
 
-/// Asset matcher â€” Brave publishes both portable binaries and installers
+/// Asset matcher — Brave publishes both portable binaries and installers
 /// in the same release; we want only the Windows x64 portable ZIP and
 /// must reject the symbols ZIP (1.4 GB of pdb files) plus the
 /// installer EXEs.
@@ -68,8 +68,8 @@ mod tests {
 
     // ---- version-marker round-trip ----------------------------------
     //
-    // Cascading scenario: install completes â†’ marker is written â†’
-    // `read_installed_version` reports the same tag â†’ uninstall â†’
+    // Cascading scenario: install completes → marker is written →
+    // `read_installed_version` reports the same tag → uninstall →
     // `read_installed_version` reports None. Each of these tests
     // exercises a real on-disk path so a regression in `install_dir`,
     // `version_marker` (the private helper), or the `uninstall`
@@ -79,8 +79,8 @@ mod tests {
     use tempfile::TempDir;
 
     /// Fresh app-data dir: nothing installed, `read_installed_version`
-    /// returns `None`. This is the first-launch contract â€” the
-    /// Settings row shows "â—‹ Not installed" only if we trust this.
+    /// returns `None`. This is the first-launch contract — the
+    /// Settings row shows "○ Not installed" only if we trust this.
     #[test]
     fn read_installed_version_returns_none_on_empty_app_data() {
         let tmp = TempDir::new().expect("tempdir");
@@ -113,7 +113,7 @@ mod tests {
         assert!(read_installed_version(tmp.path()).is_none());
     }
 
-    /// Marker leading/trailing whitespace must be trimmed â€” text
+    /// Marker leading/trailing whitespace must be trimmed — text
     /// editors love to add a trailing newline.
     #[test]
     fn marker_whitespace_is_trimmed() {
@@ -125,7 +125,7 @@ mod tests {
     }
 
     /// Uninstall removes the install dir (and therefore the marker
-    /// inside it). The Settings UI relies on this â€” uninstall must
+    /// inside it). The Settings UI relies on this — uninstall must
     /// cause `read_installed_version` to flip to None on the very
     /// next call, no app restart needed.
     #[test]
@@ -161,7 +161,7 @@ pub struct ChromiumRelease {
 }
 
 /// Live status the Settings panel renders for the portable browser
-/// row â€” combines on-disk install detection with the latest-known
+/// row — combines on-disk install detection with the latest-known
 /// upstream release so the UI can offer Install / Update / Reinstall.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -222,7 +222,7 @@ pub fn install_dir(app_data: &Path) -> PathBuf {
 /// Remove the portable browser install in its entirety. Safe no-op when
 /// nothing's installed. We can do this with a plain
 /// `remove_dir_all` because the portable build doesn't drop anything
-/// outside this directory â€” no kernel driver, no service, no registry
+/// outside this directory — no kernel driver, no service, no registry
 /// hooks. Callers must ensure no Brave processes are holding handles
 /// (the Settings UI does this only when no pilots have a browser
 /// open).
@@ -337,7 +337,7 @@ pub async fn install(app_data: &Path, release: &ChromiumRelease) -> Result<()> {
         release.tag,
         release.size_bytes / 1_048_576
     );
-    // 600 s timeout for this specific request â€” it's a ~180 MB
+    // 600 s timeout for this specific request — it's a ~180 MB
     // download. Pool + DNS + TLS state is reused from prior fetches
     // via the shared client.
     let zip_bytes = http::client()

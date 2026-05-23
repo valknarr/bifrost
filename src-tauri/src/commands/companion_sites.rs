@@ -25,7 +25,7 @@ pub fn add_companion_site(
     // URL validation. Previously checked only the scheme prefix,
     // which let "https:// " (prefix + space) and "https://" (just
     // the scheme, no host) persist as garbage. Parse with
-    // `url::Url::parse` (via reqwest's re-export â€” already a
+    // `url::Url::parse` (via reqwest's re-export — already a
     // transitive dep) so a missing host, malformed authority, or
     // unsupported scheme all fail at the validation boundary
     // instead of later when something tries to favicon-fetch it
@@ -85,7 +85,7 @@ pub fn add_companion_site(
 }
 
 /// Remove a user-added companion site by URL. Built-in sites are kept
-/// â€” the command silently no-ops for them so the UI doesn't have to
+/// — the command silently no-ops for them so the UI doesn't have to
 /// special-case its `Remove` button visibility.
 #[tauri::command]
 pub fn remove_companion_site(state: State<'_, AppState>, url: String) -> Result<BifrostConfig> {

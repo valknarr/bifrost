@@ -1,12 +1,12 @@
 // Shared TypeScript types. These mirror the Rust models in
-// src-tauri/src/pilot.rs â€” keep them in sync.
+// src-tauri/src/pilot.rs — keep them in sync.
 
 export type PilotStatus =
   | "stopped"
   | "starting"
   | "running"
   | "error"
-  /** The pilot's Sandboxie box is no longer in Sandboxie.ini â€” the user
+  /** The pilot's Sandboxie box is no longer in Sandboxie.ini — the user
    *  (or another tool) deleted it externally. The pilot record is now
    *  orphaned; the UI surfaces a "Sandbox missing" badge and a one-click
    *  Remove action that bypasses the normal archive-then-delete flow. */
@@ -42,7 +42,7 @@ export interface Pilot {
   /** Unix milliseconds at which `walletBalance` / `eveBalance` were last
    *  successfully refreshed from the Sui RPC. `null` until the first
    *  refresh succeeds. PilotCard reads this to surface a staleness
-   *  badge â€” "Updated 5m ago" / "Stale" â€” so the user can tell at a
+   *  badge — "Updated 5m ago" / "Stale" — so the user can tell at a
    *  glance whether the figures on screen are current or were last
    *  fetched 20 min ago when the network was up. */
   walletBalanceFetchedAt: number | null;
@@ -51,7 +51,7 @@ export interface Pilot {
 /** A single ecosystem app the user can launch into a pilot's browser. */
 export interface CompanionSite {
   name: string;
-  /** 1â€“2 char monogram for the icon tile. */
+  /** 1–2 char monogram for the icon tile. */
   icon: string;
   url: string;
   /** True for sites bundled with Bifrost (cannot be removed, but can be
@@ -79,18 +79,18 @@ export interface BifrostConfig {
    *  compat with future keyboard-driven zoom. */
   uiZoom: number;
   /** Preferred pilot-card column count in the roster grid. `0` = auto
-   *  (responsive â€” as many cards as the window can hold); `2` and
-   *  `3` are explicit overrides surfaced under Settings â€º Display
+   *  (responsive — as many cards as the window can hold); `2` and
+   *  `3` are explicit overrides surfaced under Settings › Display
    *  for multiboxers who want a locked layout. */
   rosterColumns: number;
   /** Last user-chosen window width in CSS pixels, captured while the
    *  user was in Auto roster mode. `null` for fresh installs or for
    *  users who have never tweaked the window in Auto. Restored on
-   *  cold start so a 1600 Ã— 1000 Auto layout reopens at exactly
+   *  cold start so a 1600 × 1000 Auto layout reopens at exactly
    *  that geometry. */
   rosterWindowWidth: number | null;
   /** Last user-chosen window height in CSS pixels. Paired with
-   *  `rosterWindowWidth` â€” both are written together by the
+   *  `rosterWindowWidth` — both are written together by the
    *  debounced resize listener, so they never desync. */
   rosterWindowHeight: number | null;
 }
@@ -101,7 +101,7 @@ export interface EveVaultStatus {
   installedVersion: string | null;
   installDir: string | null;
   updateAvailable: boolean;
-  /** Set when the GitHub fetch failed (rate-limit, networkâ€¦). */
+  /** Set when the GitHub fetch failed (rate-limit, network…). */
   latestError: string | null;
 }
 
@@ -113,12 +113,12 @@ export interface ChromiumStatus {
   chromeExe: string | null;
   updateAvailable: boolean;
   latestSizeBytes: number | null;
-  /** Set when the GitHub fetch failed (rate-limit, networkâ€¦). */
+  /** Set when the GitHub fetch failed (rate-limit, network…). */
   latestError: string | null;
 }
 
 /** Which Sandboxie variant is/was selected. Both ship from the same
- *  GitHub repo and share the kernel driver + CLI surface â€” they
+ *  GitHub repo and share the kernel driver + CLI surface — they
  *  differ only in UI (Plus = modern Qt, Classic = legacy MFC). */
 export type SandboxieVariant = "plus" | "classic";
 
@@ -142,7 +142,7 @@ export interface SandboxieInstallerStatus {
   latestClassicVersion: string | null;
   updateAvailable: boolean;
   latestSizeBytes: number | null;
-  /** Set when the GitHub fetch failed (rate-limit, networkâ€¦). */
+  /** Set when the GitHub fetch failed (rate-limit, network…). */
   latestError: string | null;
 }
 

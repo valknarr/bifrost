@@ -1,7 +1,7 @@
 //! Minimal Sui RPC client.
 //!
 //! We talk to the public Sui mainnet JSON-RPC endpoint to read on-chain
-//! state for a pilot's wallet address. Reads only â€” Bifrost never signs or
+//! state for a pilot's wallet address. Reads only — Bifrost never signs or
 //! submits transactions. Strictly aligned with the "official APIs only"
 //! posture: this endpoint is publicly documented and requires no auth.
 //!
@@ -28,10 +28,10 @@ pub const DEFAULT_RPC: &str = "https://fullnode.mainnet.sui.io:443";
 /// enough to ride out a brief throttling burst without locking
 /// balances stale for too long.
 ///
-/// The cache is keyed by address (NOT by `(address, coin)`) â€” when one
+/// The cache is keyed by address (NOT by `(address, coin)`) — when one
 /// coin call gets throttled, the other is almost certainly throttled
 /// too because they share the same RPC URL + IP. Per-address keying
-/// means N pilots Ã— 1 entry, not N Ã— 2.
+/// means N pilots × 1 entry, not N × 2.
 const RATE_LIMIT_BACKOFF: Duration = Duration::from_secs(2 * 60);
 
 /// Per-address rate-limit backoff cache. When the Sui RPC throttles a
@@ -39,14 +39,14 @@ const RATE_LIMIT_BACKOFF: Duration = Duration::from_secs(2 * 60);
 /// subsequent calls for that address until the backoff window
 /// expires. Without this the 30 s reconcile tick would re-fire all 2N
 /// balance fetches on every tick, burning more quota and extending
-/// the lockout â€” same shape as the GitHub-API hammering bug we just
+/// the lockout — same shape as the GitHub-API hammering bug we just
 /// fixed in `release_cache`.
 static RATE_LIMITED_UNTIL: Lazy<Mutex<HashMap<String, Instant>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 /// True if `address` is currently in the rate-limit backoff window.
 /// Stale entries (older than the backoff TTL) are NOT pruned on read
-/// â€” we only inspect freshness â€” but they're naturally overwritten
+/// — we only inspect freshness — but they're naturally overwritten
 /// on the next failure for that address. The HashMap doesn't grow
 /// unbounded because the key space is bounded by the user's pilot
 /// count.
@@ -61,7 +61,7 @@ pub fn is_address_rate_limited(address: &str) -> bool {
 }
 
 /// Mark `address` as currently rate-limited. Re-marking refreshes the
-/// timer â€” a sustained throttling pattern keeps the backoff active.
+/// timer — a sustained throttling pattern keeps the backoff active.
 fn mark_address_rate_limited(address: &str) {
     if let Ok(mut guard) = RATE_LIMITED_UNTIL.lock() {
         guard.insert(address.to_string(), Instant::now());
@@ -82,15 +82,15 @@ fn clear_address_rate_limited(address: &str) {
 /// `release_cache::is_rate_limit_error` shape but adapted for the
 /// error formats `SuiClient::get_balance` actually produces:
 ///
-/// * HTTP 429 â€” "Too Many Requests" (explicit rate-limit response)
-/// * HTTP 503 â€” "Service Unavailable" (overloaded node; backing off
+/// * HTTP 429 — "Too Many Requests" (explicit rate-limit response)
+/// * HTTP 503 — "Service Unavailable" (overloaded node; backing off
 ///   is the polite move even if not technically a rate limit)
-/// * HTTP 403 â€” "Forbidden" (some Sui RPC providers gate by IP)
-/// * "rate limit" / "rate-limit" substrings â€” defence against future
+/// * HTTP 403 — "Forbidden" (some Sui RPC providers gate by IP)
+/// * "rate limit" / "rate-limit" substrings — defence against future
 ///   error-format changes
 ///
 /// Transport timeouts (`request timed out`, `connection refused`,
-/// `dns lookup failed`) are deliberately NOT matched â€” those usually
+/// `dns lookup failed`) are deliberately NOT matched — those usually
 /// resolve on the next attempt and we don't want to lock the user
 /// out for 2 min over a single Wi-Fi blip.
 pub fn is_rate_limit_error(msg: &str) -> bool {
@@ -117,7 +117,7 @@ const MIST_PER_SUI: u64 = 1_000_000_000;
 
 /// JSON-RPC client for Sui mainnet.
 ///
-/// Doesn't own a `reqwest::Client` â€” it uses the process-wide
+/// Doesn't own a `reqwest::Client` — it uses the process-wide
 /// [`http::client`] so the TLS + connection pool is shared with the
 /// GitHub fetches. This struct is now a thin namespace over the RPC
 /// URL; keeping it as a struct (vs. free functions) preserves
@@ -139,12 +139,12 @@ impl SuiClient {
     /// in the coin's smallest unit (e.g. MIST for SUI). Errors
     /// propagate transport / parse failures.
     ///
-    /// 10 s per-request timeout â€” Sui mainnet RPC is usually
+    /// 10 s per-request timeout — Sui mainnet RPC is usually
     /// sub-second; longer than that means the node is slow or the
     /// link is bad, and we'd rather surface that quickly than wedge
     /// the reconcile loop.
     ///
-    /// Private â€” callers go through [`get_sui_balance`] /
+    /// Private — callers go through [`get_sui_balance`] /
     /// [`get_eve_balance`] so the coin-type IDs aren't repeated at
     /// each call site.
     async fn get_balance(&self, address: &str, coin_type: &str) -> Result<u128> {
@@ -177,7 +177,7 @@ impl SuiClient {
         let status = resp.status();
         if !status.is_success() {
             let err_msg = format!("Sui RPC returned HTTP {status}");
-            // 429 / 503 / 403 â†’ mark the address as rate-limited so
+            // 429 / 503 / 403 → mark the address as rate-limited so
             // subsequent ticks short-circuit without firing more
             // requests at an overloaded node.
             if is_rate_limit_error(&err_msg) {
@@ -194,7 +194,7 @@ impl SuiClient {
         if let Some(err) = body.error {
             let err_msg = format!("Sui RPC error {}: {}", err.code, err.message);
             // JSON-RPC overload codes can show up as 200 OK with an
-            // `error` field â€” `-32000` is Sui's generic "server is
+            // `error` field — `-32000` is Sui's generic "server is
             // having a bad time" code that the public node uses for
             // both throttling and transient overload. Treat as
             // rate-limit-equivalent and back off.
@@ -241,7 +241,7 @@ impl Default for SuiClient {
 /// explorer use 9, but pilot cards stay compact at 4.
 const MAX_FRACTIONAL_DIGITS: usize = 4;
 
-/// Render a coin amount (in smallest unit, 9 decimals â€” true for both
+/// Render a coin amount (in smallest unit, 9 decimals — true for both
 /// SUI and EVE) as a human-readable string, trimmed to
 /// [`MAX_FRACTIONAL_DIGITS`] so cards stay compact.
 pub fn format_coin(raw: u128) -> String {
@@ -286,7 +286,7 @@ mod tests {
     use super::*;
 
     /// `is_rate_limit_error` matches the substrings `SuiClient::
-    /// get_balance` actually produces â€” pinning the contract here so a
+    /// get_balance` actually produces — pinning the contract here so a
     /// future refactor that changes error wording breaks loudly
     /// rather than silently disabling the backoff cache.
     #[test]
@@ -299,7 +299,7 @@ mod tests {
     }
 
     /// Transport-class failures (timeout, DNS) must NOT trigger the
-    /// backoff â€” those are transient and usually resolve next tick.
+    /// backoff — those are transient and usually resolve next tick.
     /// If we treated a 1-second Wi-Fi drop as rate-limiting, the user
     /// would be locked out of balance refreshes for 2 min for no
     /// reason.
@@ -314,7 +314,7 @@ mod tests {
     /// Pin the address-keyed cache shape: marking an address makes it
     /// "rate-limited"; clearing it makes it free again. Doesn't pin
     /// TTL expiry (that would require a sleep or a clock injection
-    /// the cache doesn't currently support) â€” see the deliberate
+    /// the cache doesn't currently support) — see the deliberate
     /// scope-limit comment in `is_address_rate_limited`.
     #[test]
     fn address_rate_limit_cache_marks_and_clears() {
@@ -330,7 +330,7 @@ mod tests {
     }
 
     /// Re-marking refreshes the timer rather than appending a second
-    /// entry â€” sustained throttling keeps the cache "alive" for the
+    /// entry — sustained throttling keeps the cache "alive" for the
     /// full TTL after the LAST failure, not the first one. Pin the
     /// contract so a future hashmap-replacement-with-vec refactor
     /// doesn't accidentally make the cache append-only.

@@ -119,7 +119,16 @@ impl Pilot {
     }
 }
 
-fn slugify(s: &str) -> String {
+/// Convert a display name to a filesystem-safe slug.
+///
+/// Public so `commands::pilots` and `commands::sandboxes` can both
+/// use it as their canonical name → id mapping. Returns an empty
+/// string for names that contain no alphanumeric characters (e.g.
+/// `"!!!"`, `"   "`, `""`) — the caller MUST treat an empty result
+/// as a validation failure rather than constructing a pilot with
+/// `id == ""` (which expands `<pilots_dir>/<id>` to the parent
+/// directory and lets `remove_dir_all` wipe every pilot at once).
+pub fn slugify(s: &str) -> String {
     s.trim()
         .to_lowercase()
         .chars()
@@ -127,6 +136,57 @@ fn slugify(s: &str) -> String {
         .collect::<String>()
         .trim_matches('-')
         .to_string()
+}
+
+/// Produce a pilot id that doesn't collide with any existing pilot's
+/// id. `slug` is the slugified display name; `existing_ids` is the
+/// set of ids already in use (archived + managed). If `slug` is
+/// already unique, returns it. Otherwise appends `-<8 hex>` derived
+/// from system time so the user can reuse names freely (e.g. archive
+/// an old "Airikr", create a new "Airikr") without aliasing on disk.
+///
+/// Returns `None` if `slug` is empty — callers should validate the
+/// display name before getting here, but `None` is a second line of
+/// defence that maps cleanly to a validation error at the command
+/// boundary.
+pub fn unique_pilot_id<I>(slug: &str, existing_ids: I) -> Option<String>
+where
+    I: IntoIterator,
+    I::Item: AsRef<str>,
+{
+    if slug.is_empty() {
+        return None;
+    }
+    let taken: std::collections::HashSet<String> = existing_ids
+        .into_iter()
+        .map(|s| s.as_ref().to_ascii_lowercase())
+        .collect();
+    if !taken.contains(&slug.to_ascii_lowercase()) {
+        return Some(slug.to_string());
+    }
+    // Collision — append a time-derived hex suffix. Loop guards
+    // against the (astronomically unlikely) case that the suffix
+    // itself collides on a fast retry.
+    for _ in 0..16 {
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos() as u64)
+            .unwrap_or(0);
+        let candidate = format!("{slug}-{:08x}", (ts.wrapping_mul(0x9E37_79B9) >> 16) as u32);
+        if !taken.contains(&candidate.to_ascii_lowercase()) {
+            return Some(candidate);
+        }
+    }
+    // Fall back to a deterministic ordinal so we never return None
+    // for a non-empty slug.
+    let mut n = 2;
+    loop {
+        let candidate = format!("{slug}-{n}");
+        if !taken.contains(&candidate.to_ascii_lowercase()) {
+            return Some(candidate);
+        }
+        n += 1;
+    }
 }
 
 #[cfg(test)]

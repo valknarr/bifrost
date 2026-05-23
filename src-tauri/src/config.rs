@@ -27,7 +27,7 @@ pub struct CompanionSite {
     pub disabled: bool,
 }
 
-/// Default ecosystem sites bundled with Bifrost. Order matters â€” this is
+/// Default ecosystem sites bundled with Bifrost. Order matters — this is
 /// the order they render in.
 pub fn default_companion_sites() -> Vec<CompanionSite> {
     vec![
@@ -73,7 +73,7 @@ pub fn default_companion_sites() -> Vec<CompanionSite> {
 ///
 /// Note: pre-v0.0.2 configs may contain a `chromeExe` field that points
 /// at a host-installed Chromium browser, and pre-v0.0.3 configs may
-/// contain `enableWalletIntegration`. Both are deliberately unused now â€”
+/// contain `enableWalletIntegration`. Both are deliberately unused now —
 /// Bifrost manages its own portable Chromium, and the EVE Vault
 /// integration is automatically active whenever both Brave and the EVE
 /// Vault extension are installed (no explicit toggle needed). Serde's
@@ -96,19 +96,19 @@ pub struct BifrostConfig {
     /// future keyboard shortcuts (Ctrl + / -) still round-trip
     /// correctly. Clamped to `MIN_UI_ZOOM..=MAX_UI_ZOOM` at the
     /// command boundary so a corrupted config can't blow the viewport
-    /// up to 10Ã—.
+    /// up to 10×.
     #[serde(default = "default_ui_zoom")]
     pub ui_zoom: f32,
     /// Preferred number of pilot cards per row in the roster grid.
     /// `0` means "auto" (the responsive `repeat(auto-fit, minmax(...))`
-    /// default â€” as many cards per row as the window can hold);
-    /// `2` and `3` are explicit overrides surfaced in Settings â€º
+    /// default — as many cards per row as the window can hold);
+    /// `2` and `3` are explicit overrides surfaced in Settings ›
     /// Display so users who multibox at a fixed count can lock the
     /// layout to match.
     #[serde(default = "default_roster_columns")]
     pub roster_columns: u8,
     /// Last user-chosen window width (CSS pixels). Persisted only
-    /// while the user is in Auto roster mode â€” the fixed presets
+    /// while the user is in Auto roster mode — the fixed presets
     /// snap the window to a known width on pick and don't need a
     /// separate memory. Frontend debounces 500 ms after a resize
     /// before calling `set_roster_window_size` so we don't write
@@ -122,9 +122,9 @@ pub struct BifrostConfig {
     pub roster_window_height: Option<u32>,
 }
 
-/// 0.5â€“2.0 covers every reasonable presbyopia-correction / hi-DPI
+/// 0.5–2.0 covers every reasonable presbyopia-correction / hi-DPI
 /// case. Higher than 2.0 starts overflowing the configured minimum
-/// window width (720 px after the roster-layout work â€” was 960 px
+/// window width (720 px after the roster-layout work — was 960 px
 /// before) in inconvenient ways; lower than 0.5 makes the UI
 /// unreadable.
 pub const MIN_UI_ZOOM: f32 = 0.5;
@@ -134,7 +134,7 @@ fn default_ui_zoom() -> f32 {
     1.0
 }
 
-/// 0 = auto (responsive `auto-fit, minmax(...)` â€” current behaviour).
+/// 0 = auto (responsive `auto-fit, minmax(...)` — current behaviour).
 /// Stored as a small int rather than an enum so adding more presets
 /// later (4? a custom value?) doesn't require a schema migration.
 fn default_roster_columns() -> u8 {
@@ -165,7 +165,7 @@ pub const MAX_ROSTER_WINDOW_HEIGHT: u32 = 5120;
 const _: () = {
     assert!(MIN_UI_ZOOM > 0.0);
     assert!(MAX_UI_ZOOM > MIN_UI_ZOOM);
-    assert!(MAX_UI_ZOOM <= 3.0); // above 3Ã— breaks the 960-px min window
+    assert!(MAX_UI_ZOOM <= 3.0); // above 3× breaks the 960-px min window
 };
 
 impl BifrostConfig {
@@ -196,7 +196,7 @@ impl BifrostConfig {
 
     pub fn save(&self, path: &PathBuf) -> Result<()> {
         // config.json holds companion sites + persisted Auto-mode
-        // window size + ui-zoom + roster columns â€” corruption here
+        // window size + ui-zoom + roster columns — corruption here
         // silently resets the user back to defaults on next launch
         // and they have no signal anything went wrong. Atomic write
         // (tmp + rename) makes a crash mid-write a no-op rather
@@ -237,8 +237,8 @@ fn default_pilots_dir() -> String {
 
 #[cfg(test)]
 mod tests {
-    //! Cascading config tests â€” they exercise the
-    //! `defaults() â†’ save() â†’ load_or_default()` round-trip end to
+    //! Cascading config tests — they exercise the
+    //! `defaults() → save() → load_or_default()` round-trip end to
     //! end so a regression in serde derives, file I/O, or the
     //! companion-site invariants surfaces here instead of when a
     //! user's saved settings stop loading.
@@ -284,8 +284,8 @@ mod tests {
         }
     }
 
-    /// Built-in icon monograms fit the 1â€“2 char tile slot. Three
-    /// chars would visually overflow the 28Ã—28 button in the Apps
+    /// Built-in icon monograms fit the 1–2 char tile slot. Three
+    /// chars would visually overflow the 28×28 button in the Apps
     /// row.
     #[test]
     fn default_companion_site_icons_fit_tile() {
@@ -330,7 +330,7 @@ mod tests {
     }
 
     /// Loading from a missing path returns the defaults instead of
-    /// erroring out. This is the first-launch path â€” Bifrost must not
+    /// erroring out. This is the first-launch path — Bifrost must not
     /// crash on a fresh machine.
     #[test]
     fn load_or_default_returns_defaults_for_missing_file() {
@@ -348,7 +348,7 @@ mod tests {
 
     /// Pre-v0.1 configs may contain `enableWalletIntegration` or
     /// `chromeExe` keys we no longer read. They must load without
-    /// error â€” serde's default behaviour is to ignore unknown fields,
+    /// error — serde's default behaviour is to ignore unknown fields,
     /// so this test pins that contract.
     #[test]
     fn load_tolerates_unknown_legacy_keys() {
@@ -373,7 +373,7 @@ mod tests {
         // Removed field doesn't crash anything; we just don't see it.
     }
 
-    /// Save â†’ load â†’ save must produce stable output (idempotent).
+    /// Save → load → save must produce stable output (idempotent).
     /// If serde reorders or normalises something, this catches it.
     #[test]
     fn config_save_load_save_is_stable() {
@@ -423,7 +423,7 @@ mod tests {
     }
 
     /// `defaults()` ships zoom = 1.0. If anyone ever changes that
-    /// default it should be a deliberate decision, not an accident â€”
+    /// default it should be a deliberate decision, not an accident —
     /// this test will fail and prompt review.
     #[test]
     fn defaults_ship_zoom_one() {
@@ -463,7 +463,7 @@ mod tests {
     }
 
     /// The Settings panel offers three preset zoom values. They must
-    /// all fall inside the backend's accepted range â€” otherwise the
+    /// all fall inside the backend's accepted range — otherwise the
     /// picker would silently render values the `set_ui_zoom` command
     /// then rejects. Compile-time invariants on the bounds themselves
     /// (positive, max > min, etc.) live in the `const _: ()` block

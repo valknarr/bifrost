@@ -75,7 +75,7 @@ impl Sandboxie {
         self.set(box_name, "AutoRecover", "n").await?;
         self.set(box_name, "BlockNetworkFiles", "y").await?;
 
-        // Visual hints â€” Bifrost draws its own UI so we keep Sandboxie's
+        // Visual hints — Bifrost draws its own UI so we keep Sandboxie's
         // window decorations off. Sandboxie's standard-isolation tree
         // icon stays yellow regardless of BorderColor (that's a
         // product decision in Sandboxie-Plus, not something we can
@@ -126,7 +126,7 @@ impl Sandboxie {
     }
 
     /// `Start.exe /box:<box> /wait <program> <args...>`
-    /// Currently unused â€” kept as a building block for future actions
+    /// Currently unused — kept as a building block for future actions
     /// that need to run a command inside a sandbox and wait for it.
     #[allow(dead_code)]
     pub async fn run_in_box(&self, box_name: &str, program: &str, args: &[&str]) -> Result<()> {
@@ -147,7 +147,7 @@ impl Sandboxie {
         Ok(())
     }
 
-    /// `Start.exe /box:<box> <program> <args...>` â€” non-blocking. Returns
+    /// `Start.exe /box:<box> <program> <args...>` — non-blocking. Returns
     /// once the process is spawned, not when it exits.
     pub async fn launch_in_box(
         &self,
@@ -162,7 +162,7 @@ impl Sandboxie {
         // Log the resolved PID so a user-reported "game won't start"
         // can be cross-referenced against tasklist / Sandboxie Plus's
         // process tree. The Child handle is dropped immediately on
-        // the next line â€” Tokio detaches and the OS process keeps
+        // the next line — Tokio detaches and the OS process keeps
         // running independently.
         tracing::info!(
             "sandboxie: launched {program} in box {box_name} (pid={})",
@@ -180,7 +180,7 @@ impl Sandboxie {
     /// Pre-flight: if the box isn't in Sandboxie.ini we short-circuit
     /// to empty WITHOUT invoking Start.exe. `Start.exe /box:<unknown>
     /// /listpids` pops up a native "Invalid box name parameter" GUI
-    /// dialog that we can't suppress via stdio redirection â€” checking
+    /// dialog that we can't suppress via stdio redirection — checking
     /// the ini first avoids the popup for pilots whose sandbox was
     /// nuked externally (e.g. via Sandboxie's own "Delete Content"
     /// menu).
@@ -208,7 +208,7 @@ impl Sandboxie {
     /// boxes Bifrost doesn't manage too (third-party / discovered boxes
     /// still hold the kernel driver open).
     ///
-    /// Used by the uninstall pre-flight â€” the Inno uninstaller can't
+    /// Used by the uninstall pre-flight — the Inno uninstaller can't
     /// tear down `SbieDrv.sys` while any sandboxed process is holding it
     /// open, and a half-failed uninstall is painful to recover from
     /// (orphaned service entries, stuck driver, often needs a reboot
@@ -244,7 +244,7 @@ impl Sandboxie {
 
     /// Tear down a sandbox: remove its config from Sandboxie.ini (or
     /// disable it as a fallback) and wipe its on-disk data directory at
-    /// `C:\Sandbox\<user>\<box>\`. Best-effort throughout â€” partial
+    /// `C:\Sandbox\<user>\<box>\`. Best-effort throughout — partial
     /// failures only log a warning.
     pub async fn delete_box(&self, box_name: &str) -> Result<()> {
         // Try to remove the entire section.
@@ -279,11 +279,11 @@ impl Sandboxie {
     }
 
     /// Terminate every process running in the given box.
-    /// Uses `Start.exe /box:<box> /terminate` â€” this is scoped to the single
+    /// Uses `Start.exe /box:<box> /terminate` — this is scoped to the single
     /// named box. Do NOT use `/terminate_all`: that flag is global and kills
     /// every Sandboxie process across every box, ignoring `/box:`.
     ///
-    /// Pre-flight: same reasoning as `list_pids` â€” if the box isn't in
+    /// Pre-flight: same reasoning as `list_pids` — if the box isn't in
     /// Sandboxie.ini we no-op rather than letting Start.exe pop a GUI
     /// dialog. Callers (stop / archive / delete) treat terminate as
     /// best-effort anyway, and "no box to terminate" is the same
@@ -308,7 +308,7 @@ impl Sandboxie {
 }
 
 /// Resolve a set of PIDs to image names by parsing `tasklist /fo csv`.
-/// Returns an empty map if tasklist is unavailable or the call fails â€”
+/// Returns an empty map if tasklist is unavailable or the call fails —
 /// callers treat that as "we don't know what's running."
 async fn process_names_for(pids: &[u32]) -> std::collections::HashMap<u32, String> {
     use std::collections::{HashMap, HashSet};
@@ -345,7 +345,7 @@ async fn process_names_for(pids: &[u32]) -> std::collections::HashMap<u32, Strin
 mod tests {
     //! `Sandboxie::at(path)` is the gating predicate used wherever
     //! Bifrost needs to ask "is Sandboxie actually usable right now?"
-    //! â€” including `commands::sandboxes::list_sandboxes`, which
+    //! — including `commands::sandboxes::list_sandboxes`, which
     //! short-circuits to empty when the engine isn't installed (so
     //! stale boxes left behind by Inno's "preserve user data"
     //! uninstall behaviour don't show up on the Pilots view as
@@ -367,7 +367,7 @@ mod tests {
     fn at_returns_err_when_only_one_binary_present() {
         let tmp = TempDir::new().expect("tempdir");
         std::fs::write(tmp.path().join("SbieIni.exe"), b"").expect("write");
-        // Start.exe is still missing â€” must NOT report Sandboxie as
+        // Start.exe is still missing — must NOT report Sandboxie as
         // usable just because half the surface exists.
         let result = Sandboxie::at(tmp.path());
         assert!(matches!(result, Err(BifrostError::SandboxieMissing)));

@@ -48,7 +48,7 @@ use crate::sandboxie::Sandboxie;
 const REPO: &str = "sandboxie-plus/Sandboxie";
 
 /// Inno-Setup silent-install flags. Shared by `install` and `uninstall`
-/// â€” same flags, same expected behaviour (no GUI, no message boxes, no
+/// — same flags, same expected behaviour (no GUI, no message boxes, no
 /// reboot prompt).
 const INNO_SILENT_ARGS: &[&str] = &["/verysilent", "/suppressmsgboxes", "/norestart"];
 
@@ -79,13 +79,13 @@ impl SandboxieVariant {
 /// Asset matcher per variant. Real-world asset names seen on the
 /// `sandboxie-plus/Sandboxie` releases page:
 ///   - `Sandboxie-Plus-x64-v1.17.6.exe`         (current Plus)
-///   - `Sandboxie-Plus-ARM64-v1.17.6.exe`       (Plus ARM â€” rejected)
+///   - `Sandboxie-Plus-ARM64-v1.17.6.exe`       (Plus ARM — rejected)
 ///   - `Sandboxie-Classic-x64-v5.72.6.exe`      (current Classic)
 ///   - `Sandboxie-Classic-v5.69.6.exe`          (older Classic, no `x64`)
 ///
 /// Both Plus and Classic ship from the same release tag (Plus's
 /// version owns the tag, Classic's version is embedded only in its
-/// filename â€” see [`extract_version_from_asset_name`]).
+/// filename — see [`extract_version_from_asset_name`]).
 fn matches_variant_asset(name: &str, variant: SandboxieVariant) -> bool {
     let lower = name.to_ascii_lowercase();
     if !lower.ends_with(".exe") {
@@ -98,8 +98,8 @@ fn matches_variant_asset(name: &str, variant: SandboxieVariant) -> bool {
                 && !lower.contains("classic")
         }
         SandboxieVariant::Classic => {
-            // Accept both the old `Sandboxie-Classic-vâ€¦` and the new
-            // `Sandboxie-Classic-x64-vâ€¦` shape. Reject any future ARM
+            // Accept both the old `Sandboxie-Classic-v…` and the new
+            // `Sandboxie-Classic-x64-v…` shape. Reject any future ARM
             // variant defensively.
             lower.starts_with("sandboxie-classic-") && !lower.contains("arm")
         }
@@ -135,7 +135,7 @@ fn extract_version_from_asset_name(name: &str) -> Option<String> {
 }
 
 /// Which Sandboxie variant lives at this install path, if any. Looks
-/// at the path string as the cheap heuristic â€” Plus paths contain
+/// at the path string as the cheap heuristic — Plus paths contain
 /// "sandboxie-plus", Classic paths contain "sandboxie" but not the
 /// "-plus" suffix.
 pub fn variant_of_install_path(path: &Path) -> Option<SandboxieVariant> {
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn matcher_plus_rejects_pre_1x_naming() {
-        // Pre-1.x releases used `Sandboxie-Plus-Setup-*` â€” we want the
+        // Pre-1.x releases used `Sandboxie-Plus-Setup-*` — we want the
         // new layout only.
         assert!(!matches_variant_asset(
             "Sandboxie-Plus-Setup-x64-v0.99.exe",
@@ -214,7 +214,7 @@ mod tests {
     /// As of 2025 the real Classic asset name has the `x64` infix:
     /// `Sandboxie-Classic-x64-v5.72.6.exe`. The older shape without
     /// the infix (`Sandboxie-Classic-v5.69.6.exe`) appears in
-    /// historical releases â€” accept both.
+    /// historical releases — accept both.
     #[test]
     fn matcher_accepts_classic_current_x64_layout() {
         assert!(matches_variant_asset(
@@ -272,7 +272,7 @@ mod tests {
     #[test]
     fn matcher_classic_rejects_pre_1x_naming() {
         // Old pre-Plus-era Classic builds used `SandboxieInstall.exe`
-        // â€” outside the new "Sandboxie-Classic-*" layout we expect.
+        // — outside the new "Sandboxie-Classic-*" layout we expect.
         assert!(!matches_variant_asset(
             "SandboxieInstall.exe",
             SandboxieVariant::Classic
@@ -358,7 +358,7 @@ mod tests {
 
     // ---- version-marker round-trip ----------------------------------
     //
-    // Sandboxie is special â€” Bifrost tracks the version *we installed*
+    // Sandboxie is special — Bifrost tracks the version *we installed*
     // separately from "is it detected on disk?", because users can
     // install Sandboxie themselves and Bifrost then has no marker. The
     // `status()` function combines both. These tests pin the marker
@@ -426,8 +426,8 @@ mod tests {
 
     /// Cascading: `status()` combines on-disk detection (the
     /// `detected_variant` arg from the host probe) with the
-    /// Bifrost-written marker. The "external install" case â€” detected
-    /// but no marker â€” must surface as `installed_version = None`
+    /// Bifrost-written marker. The "external install" case — detected
+    /// but no marker — must surface as `installed_version = None`
     /// rather than claiming Bifrost installed something it didn't.
     /// Also covers `update_available = false` for the external case
     /// (we can't say one way or the other if we don't know what's
@@ -441,15 +441,15 @@ mod tests {
         assert_eq!(s.installed_variant, Some(SandboxieVariant::Plus));
         assert!(
             s.installed_version.is_none(),
-            "no marker â†’ no Bifrost-tracked version"
+            "no marker → no Bifrost-tracked version"
         );
         assert!(
             !s.update_available,
-            "we don't know what version is installed â€” never claim 'update available'"
+            "we don't know what version is installed — never claim 'update available'"
         );
     }
 
-    /// And: not-detected â†’ marker is meaningless even if present.
+    /// And: not-detected → marker is meaningless even if present.
     /// A stale marker from a previous install the user removed via
     /// Windows Settings shouldn't claim Sandboxie is still around.
     #[tokio::test]
@@ -487,7 +487,7 @@ pub struct SandboxieRelease {
 /// Combines on-disk detection (`detected` + `installed_variant`) with
 /// the Bifrost-tracked version (`installed_version`, only set when
 /// Bifrost ran the installer itself) and the latest-known upstream
-/// tags for *both* variants â€” the UI shows the install button for
+/// tags for *both* variants — the UI shows the install button for
 /// whichever variant the user picks.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -527,7 +527,7 @@ pub async fn fetch_latest_release(variant: SandboxieVariant) -> Result<Sandboxie
 
 /// Parse a cached `/releases/latest` JSON blob and extract the asset
 /// for the requested variant. Each variant's version is parsed from
-/// its own asset filename rather than the release `tag_name` â€” the
+/// its own asset filename rather than the release `tag_name` — the
 /// repo bundles Plus + Classic into one release tagged with Plus's
 /// version, so Classic's actual version (e.g. `5.72.6`) only appears
 /// in its filename (`Sandboxie-Classic-x64-v5.72.6.exe`).
@@ -637,7 +637,7 @@ pub fn read_installed_marker(app_data: &Path) -> Option<(String, SandboxieVarian
         return Some((payload.version, payload.variant));
     }
 
-    // Legacy plain-text marker â€” Bifrost only knew about Plus then.
+    // Legacy plain-text marker — Bifrost only knew about Plus then.
     Some((trimmed.to_string(), SandboxieVariant::Plus))
 }
 
@@ -654,19 +654,19 @@ pub async fn status(
     let detected = detected_variant.is_some();
 
     // Pull the marker if (and only if) something is actually on disk.
-    // A stale marker without binaries is misleading â€” treat as fresh.
+    // A stale marker without binaries is misleading — treat as fresh.
     let marker = if detected {
         read_installed_marker(app_data)
     } else {
         None
     };
     let installed_version = marker.as_ref().map(|(v, _)| v.clone());
-    // Prefer the host-detected variant (the source of truth â€” that's
+    // Prefer the host-detected variant (the source of truth — that's
     // what's actually on disk). Fall back to the marker variant for
     // the case where the install path didn't classify cleanly.
     let installed_variant = detected_variant.or_else(|| marker.as_ref().map(|(_, v)| *v));
 
-    // One GitHub fetch, then parse twice â€” once per variant. Failures
+    // One GitHub fetch, then parse twice — once per variant. Failures
     // are surfaced as `latest_error`; per-asset misses surface as
     // `None` for that variant's tag (e.g. a release that only ships
     // Plus assets reports a Classic version of None).
@@ -700,10 +700,10 @@ pub async fn status(
 
     let update_available = match (&installed_version, &latest_version_for_active) {
         (Some(i), Some(l)) => i != l,
-        // Detected but no marker â†’ manual install, we can't tell. Don't
+        // Detected but no marker → manual install, we can't tell. Don't
         // claim an update is available (would be misleading).
         (None, Some(_)) if detected => false,
-        // Not installed at all â†’ "update" semantically means "install".
+        // Not installed at all → "update" semantically means "install".
         (None, Some(_)) => true,
         _ => false,
     };
@@ -807,13 +807,13 @@ pub async fn uninstall(app_data: &Path, sandboxie_root: Option<&Path>) -> Result
             run_elevated_silent(&uninstaller, INNO_SILENT_ARGS, "Sandboxie uninstaller").await?;
         } else {
             tracing::warn!(
-                "sandboxie-installer: no uninstaller at {} â€” scrubbing Bifrost marker only",
+                "sandboxie-installer: no uninstaller at {} — scrubbing Bifrost marker only",
                 uninstaller.display()
             );
         }
     }
 
-    // Always clear our own version marker â€” keeps the UI honest even if
+    // Always clear our own version marker — keeps the UI honest even if
     // the user removed Sandboxie via Windows Settings while Bifrost was
     // closed.
     let marker = version_marker(app_data);
@@ -825,8 +825,8 @@ pub async fn uninstall(app_data: &Path, sandboxie_root: Option<&Path>) -> Result
 
 /// Silence Sandboxie's "Program Compatibility" wizard.
 ///
-/// Without this, the first time SbieSvc spins up after install â€” which
-/// for Bifrost users is right when they click "Add pilot" â€” Sandboxie
+/// Without this, the first time SbieSvc spins up after install — which
+/// for Bifrost users is right when they click "Add pilot" — Sandboxie
 /// scans the host for installed apps with known compat templates
 /// (Office licensing, Edge, Windows Live, etc.) and prompts the user
 /// to apply them globally. The dialog is harmless but it shatters
@@ -837,7 +837,7 @@ pub async fn uninstall(app_data: &Path, sandboxie_root: Option<&Path>) -> Result
 /// effect as ticking the "Don't check for program compatibility in
 /// the future" checkbox in the dialog, done preemptively. Best-effort:
 /// if SbieIni isn't where we expected or the call fails we only log a
-/// warning â€” the wizard appearing is a paper-cut, not a blocker.
+/// warning — the wizard appearing is a paper-cut, not a blocker.
 /// Applies to both Plus and Classic (the global config option lives
 /// in the shared engine, not the variant-specific UI).
 pub async fn suppress_compat_prompts(sandboxie_root: &Path) {
@@ -856,5 +856,5 @@ pub async fn suppress_compat_prompts(sandboxie_root: &Path) {
         tracing::warn!("suppress_compat_prompts: failed to set AutoRunSoftCompat=n: {e}");
         return;
     }
-    tracing::info!("sandboxie-installer: AutoRunSoftCompat=n applied â€” compat wizard silenced");
+    tracing::info!("sandboxie-installer: AutoRunSoftCompat=n applied — compat wizard silenced");
 }

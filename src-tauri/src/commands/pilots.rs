@@ -12,7 +12,7 @@ use crate::pilot::{self, Pilot, PilotStatus};
 
 /// Statuses that allow `delete_pilot` to bypass the "must be archived
 /// first" guard. A pilot whose Sandboxie box has been deleted externally
-/// is already half-broken â€” forcing the user to archive-then-delete
+/// is already half-broken — forcing the user to archive-then-delete
 /// just adds friction. The archive guard exists to protect *running*
 /// pilots from being nuked by an accidental click; that concern doesn't
 /// apply when the sandbox is already gone.
@@ -27,11 +27,31 @@ pub fn list_pilots(state: State<'_, AppState>) -> Result<Vec<Pilot>> {
 
 /// Create a new managed pilot. Eagerly provisions the Sandboxie box so
 /// Bifrost's view of the world matches Sandboxie's. Provisioning
-/// failure is non-fatal â€” the pilot record is saved either way, and
+/// failure is non-fatal — the pilot record is saved either way, and
 /// the next Launch click retries.
 #[tauri::command]
 pub async fn create_pilot(state: State<'_, AppState>, name: String) -> Result<Pilot> {
     let cfg = state.config();
+
+    // Validation step 1: non-empty trimmed name. Without this an
+    // empty / whitespace-only `name` propagates to `id = ""` and
+    // `<pilots_dir>/<id>` collapses to the parent — so
+    // `delete_pilot`'s `remove_dir_all` would wipe every pilot's
+    // browser profile in a single click. The FE has its own guard;
+    // this is defence-in-depth at the command boundary.
+    let trimmed_name = name.trim().to_string();
+    if trimmed_name.is_empty() {
+        return Err(BifrostError::Other("Pilot name cannot be empty.".into()));
+    }
+    // Validation step 2: slug must contain at least one alphanumeric
+    // character. Catches names like "!!!" / "---" that pass the
+    // non-empty check but slugify to "".
+    let slug = pilot::slugify(&trimmed_name);
+    if slug.is_empty() {
+        return Err(BifrostError::Other(
+            "Pilot name must contain at least one letter or number.".into(),
+        ));
+    }
 
     // Build the pilot record under the lock, then drop it before any
     // async I/O (Sandboxie provisioning).
@@ -39,13 +59,27 @@ pub async fn create_pilot(state: State<'_, AppState>, name: String) -> Result<Pi
         let mut pilots = state.pilots.lock().unwrap();
         if pilots
             .iter()
-            .any(|p| !p.archived && p.name.eq_ignore_ascii_case(&name))
+            .any(|p| !p.archived && p.name.eq_ignore_ascii_case(&trimmed_name))
         {
-            return Err(BifrostError::PilotExists(name));
+            return Err(BifrostError::PilotExists(trimmed_name));
         }
+        // Validation step 3: id uniqueness across BOTH archived and
+        // managed pilots. Previously a fresh "Airikr" and an
+        // archived "Airikr" both got id = "airikr" and shared a
+        // browser profile dir on disk — `delete_pilot` on one
+        // would nuke the other's data. `unique_pilot_id` appends a
+        // hex suffix on collision so the ids are always disjoint.
+        let existing_ids: Vec<String> = pilots.iter().map(|p| p.id.clone()).collect();
+        let id = pilot::unique_pilot_id(&slug, existing_ids.iter().map(|s| s.as_str()))
+            .ok_or_else(|| {
+                BifrostError::Other(
+                    "Pilot name must contain at least one letter or number.".into(),
+                )
+            })?;
         let taken: Vec<String> = pilots.iter().map(|p| p.accent.clone()).collect();
         let taken_refs: Vec<&str> = taken.iter().map(|s| s.as_str()).collect();
-        let mut pilot = Pilot::new(name, &taken_refs);
+        let mut pilot = Pilot::new(trimmed_name, &taken_refs);
+        pilot.id = id;
         pilot.sandbox = generate_sandbox_name(&pilots);
         let dir = PathBuf::from(&cfg.pilots_dir).join(&pilot.id);
         pilot.browser_profile_dir = dir.to_string_lossy().into_owned();
@@ -54,7 +88,7 @@ pub async fn create_pilot(state: State<'_, AppState>, name: String) -> Result<Pi
     };
     state.save_pilots()?;
 
-    // Eager provisioning. Failure is non-fatal â€” log + carry on, the
+    // Eager provisioning. Failure is non-fatal — log + carry on, the
     // user can retry by clicking Launch.
     if let Some(sb_path) = cfg.sandboxie_path.as_deref() {
         if let Ok(sb) = Sandboxie::at(sb_path) {
@@ -70,7 +104,7 @@ pub async fn create_pilot(state: State<'_, AppState>, name: String) -> Result<Pi
     Ok(pilot)
 }
 
-/// Generate a unique Sandboxie box name. Format: `Bifrost<8 hex>` â€”
+/// Generate a unique Sandboxie box name. Format: `Bifrost<8 hex>` —
 /// alphanumeric only (Sandboxie's name constraint), short enough to
 /// fit in the UI without truncation, and prefixed so a quick glance at
 /// Sandboxie-Plus's own UI tells the user which boxes Bifrost owns.
@@ -115,7 +149,7 @@ pub async fn archive_pilot(state: State<'_, AppState>, id: String) -> Result<()>
     };
 
     // Best-effort terminate. If it fails (box doesn't exist, already
-    // empty) we still archive â€” the user's intent is to put this
+    // empty) we still archive — the user's intent is to put this
     // pilot aside.
     if let Some(sb_path) = cfg.sandboxie_path.as_deref() {
         if let Ok(sb) = Sandboxie::at(sb_path) {
@@ -139,7 +173,7 @@ pub async fn archive_pilot(state: State<'_, AppState>, id: String) -> Result<()>
 }
 
 /// Restore an archived pilot back to the Managed list. Refuses if a
-/// managed pilot with the same display name already exists â€” the user
+/// managed pilot with the same display name already exists — the user
 /// has to rename one or the other before restoring.
 #[tauri::command]
 pub fn restore_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
@@ -163,7 +197,7 @@ pub fn restore_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
         // Re-find with proper error propagation. The unwrap that
         // used to live here was technically unreachable today
         // because we hold the lock from the initial find through
-        // this mutation â€” but if anyone ever inserts a yield point
+        // this mutation — but if anyone ever inserts a yield point
         // (e.g. an async pre-check) between the two finds, a
         // concurrent delete could leave us with `None` and panic
         // the whole runtime. Propagating `PilotNotFound` is cheap
@@ -257,7 +291,7 @@ pub async fn delete_pilot(state: State<'_, AppState>, id: String) -> Result<()> 
     // once `taskkill /F /T` has done its work; the longer waits cover
     // the slow tail of Brave shutdown on hard-pressed machines (heavy
     // antivirus scanners, indexing services). Total worst-case wait
-    // is 1.7 s â€” short enough that the delete feels responsive even
+    // is 1.7 s — short enough that the delete feels responsive even
     // on the slow path.
     const HANDLE_RELEASE_DELAYS_MS: &[u64] = &[200, 500, 1000];
 

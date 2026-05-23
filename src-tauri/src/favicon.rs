@@ -9,13 +9,13 @@
 //!     WebView2 traffic.
 //!   - Caching: favicons rarely change. We keep them under
 //!     `<app-data>/favicons/<host>.png` with a 7-day TTL, so a typical
-//!     boot is pure disk reads â€” no network at all.
+//!     boot is pure disk reads — no network at all.
 //!
 //! Negative-cache sentinel: failed fetches write a **0-byte file**
 //! at the same path. Subsequent `fetch_data_url` calls within the TTL
 //! see the empty file and return None without re-hitting upstream.
 //! Without this the log fills with "no favicon available for X" for
-//! every config refresh â€” the user sees stale glyphs and spam logs.
+//! every config refresh — the user sees stale glyphs and spam logs.
 //! The Settings "refresh" affordance can use `force=true` later to
 //! bypass the sentinel; for the lean re-introduction we just rely
 //! on the 7-day TTL to retry automatically.
@@ -36,7 +36,7 @@ use crate::http;
 /// Size in px to request from Google's favicon service.
 const FAVICON_SIZE: u32 = 64;
 
-/// Per-request timeout. Favicons are tiny â€” anything longer almost
+/// Per-request timeout. Favicons are tiny — anything longer almost
 /// certainly means the host hung the connection.
 const FETCH_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -90,12 +90,12 @@ fn parse_host(url: &str) -> Result<String> {
 }
 
 /// Cap on a single favicon body. 256 KiB is two orders of magnitude
-/// larger than the largest real-world favicon (~10â€“20 KiB for a
-/// 64 Ã— 64 PNG with palette + alpha), so legitimate icons fit
+/// larger than the largest real-world favicon (~10–20 KiB for a
+/// 64 × 64 PNG with palette + alpha), so legitimate icons fit
 /// comfortably while a malicious or misbehaving host can't feed us
 /// a multi-GB body that would OOM the Tauri process.
 ///
-/// Favicon URLs come from user-added companion sites â€” Google's
+/// Favicon URLs come from user-added companion sites — Google's
 /// `s2/favicons` endpoint sanitises the upstream icon for us, but
 /// the direct-host fallback (`https://{host}/favicon.ico`) talks to
 /// whatever the user typed, with the bifrost user-agent. Capping
@@ -110,7 +110,7 @@ const MAX_FAVICON_BYTES: u64 = 256 * 1024;
 /// host can't drown the process with an unbounded response. If the
 /// response either advertises `Content-Length > MAX_FAVICON_BYTES`
 /// or actually streams past the cap, we error rather than continue
-/// reading â€” the cap is enforced even when `Content-Length` is
+/// reading — the cap is enforced even when `Content-Length` is
 /// missing or lies.
 async fn try_fetch(url: &str) -> Result<Vec<u8>> {
     let resp = http::client()
@@ -124,7 +124,7 @@ async fn try_fetch(url: &str) -> Result<Vec<u8>> {
     }
 
     // Up-front rejection when the server announces an oversized
-    // body â€” saves the stream loop work below.
+    // body — saves the stream loop work below.
     if let Some(len) = resp.content_length() {
         if len > MAX_FAVICON_BYTES {
             return Err(BifrostError::Other(format!(
@@ -156,7 +156,7 @@ async fn try_fetch(url: &str) -> Result<Vec<u8>> {
 }
 
 /// Ensure the favicon for `url` is cached locally. Returns the cache
-/// path (which may be a real PNG or a 0-byte sentinel â€” callers
+/// path (which may be a real PNG or a 0-byte sentinel — callers
 /// distinguish by reading the file). When `force` is true the
 /// freshness check is skipped so a manual retry can re-hit upstream.
 async fn fetch_cached(app_data: &Path, url: &str, force: bool) -> Result<PathBuf> {
@@ -207,10 +207,10 @@ async fn fetch_cached(app_data: &Path, url: &str, force: bool) -> Result<PathBuf
     }
 }
 
-/// Frontend-facing helper: produce a `data:image/png;base64,â€¦` URL
+/// Frontend-facing helper: produce a `data:image/png;base64,…` URL
 /// for the favicon, or None when no favicon is available (host
 /// returned nothing AND no stale cache exists). The 0-byte sentinel
-/// surface AS None â€” callers render the user-defined letter glyph.
+/// surface AS None — callers render the user-defined letter glyph.
 pub async fn fetch_data_url(app_data: &Path, url: &str) -> Option<String> {
     let path = fetch_cached(app_data, url, false).await.ok()?;
     let bytes = std::fs::read(&path).ok()?;
@@ -280,7 +280,7 @@ mod tests {
     }
 
     /// 0-byte sentinel from a previous failed fetch must surface as
-    /// None â€” empty bytes are not a valid PNG and rendering them as a
+    /// None — empty bytes are not a valid PNG and rendering them as a
     /// data URL would draw a broken-image icon.
     #[tokio::test]
     async fn data_url_is_none_for_zero_byte_sentinel() {

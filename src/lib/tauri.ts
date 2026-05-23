@@ -80,7 +80,7 @@ export const api = {
   setCompanionSiteDisabled: (url: string, disabled: boolean) =>
     invoke<BifrostConfig>("set_companion_site_disabled", { url, disabled }),
 
-  /** Resolve a companion-site URL to a `data:image/png;base64,â€¦`
+  /** Resolve a companion-site URL to a `data:image/png;base64,…`
    *  string, or null when no favicon could be retrieved. Rust handles
    *  caching + negative-caching, so calling this freely from any
    *  effect is cheap after the first hit. */

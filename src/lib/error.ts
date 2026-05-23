@@ -2,7 +2,7 @@
 // `BifrostError` as a plain string for the frontend (see `error.rs`),
 // but JS's `invoke()` then wraps that string into a thrown value
 // that stringifies as "Error: <message>". The "Error: " prefix is
-// noise â€” every store / view that catches a backend error wants the
+// noise — every store / view that catches a backend error wants the
 // plain message for display.
 //
 // Centralising this in one helper means future changes to the error

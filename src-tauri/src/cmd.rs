@@ -7,14 +7,14 @@
 //!
 //!   1. Suppress the console flash a GUI-subsystem process gets when it
 //!      spawns a CLI tool (`CREATE_NO_WINDOW`).
-//!   2. Format a uniform `"<label> exited with <status> â€” <stderr>"`
+//!   2. Format a uniform `"<label> exited with <status> — <stderr>"`
 //!      error message when a tool fails.
 //!   3. Elevate a silent installer via PowerShell's
 //!      `Start-Process -Verb RunAs -Wait`, mapping the UAC-declined
 //!      exit code to a friendly message.
 //!
 //! Centralising these here keeps the call sites focused on what they're
-//! actually doing â€” and means future tweaks (new exit-code mappings,
+//! actually doing — and means future tweaks (new exit-code mappings,
 //! logging hooks, retry policy) only have to land in one place.
 
 use std::path::Path;
@@ -48,15 +48,15 @@ pub fn no_window(cmd: &mut Command) {
 #[cfg(not(windows))]
 pub fn no_window(_cmd: &mut Command) {}
 
-/// Build the standard "exited with status N â€” stderr" message used
+/// Build the standard "exited with status N — stderr" message used
 /// whenever an external CLI call fails. Trims the stderr and omits the
-/// "â€” â€¦" suffix when nothing was written.
+/// "— …" suffix when nothing was written.
 pub fn cli_failure_msg(label: &str, status: ExitStatus, stderr: &[u8]) -> String {
     let stderr_trimmed = String::from_utf8_lossy(stderr).trim().to_string();
     if stderr_trimmed.is_empty() {
         format!("{label} exited with {status}")
     } else {
-        format!("{label} exited with {status} â€” {stderr_trimmed}")
+        format!("{label} exited with {status} — {stderr_trimmed}")
     }
 }
 
@@ -72,7 +72,7 @@ pub fn cli_failure_msg(label: &str, status: ExitStatus, stderr: &[u8]) -> String
 /// `label` is folded into error messages so a failure surfaces as
 /// e.g. "Sandboxie installer exited with 2" rather than something
 /// generic about `powershell.exe`. UAC declined ([`UAC_DECLINED_EXIT_CODE`])
-/// is mapped to a friendlier "cancelled â€” UAC prompt declined." error.
+/// is mapped to a friendlier "cancelled — UAC prompt declined." error.
 ///
 /// **Argument contract**: neither `exe` nor any `arg` may contain
 /// newlines (`\r`/`\n`) or NUL. The function single-quote-escapes
@@ -126,7 +126,7 @@ pub async fn run_elevated_silent(exe: &Path, args: &[&str], label: &str) -> Resu
     if !out.status.success() {
         if matches!(out.status.code(), Some(UAC_DECLINED_EXIT_CODE)) {
             return Err(BifrostError::Other(format!(
-                "{label} cancelled â€” UAC prompt declined."
+                "{label} cancelled — UAC prompt declined."
             )));
         }
         return Err(BifrostError::Other(cli_failure_msg(
@@ -154,7 +154,7 @@ mod tests {
     /// Build an ExitStatus from a raw code so we can exercise the
     /// `cli_failure_msg` formatter without spawning a real process.
     /// Cross-platform via `from_raw` on Unix and bit-pattern on
-    /// Windows (the actual value isn't relied on â€” we only read it
+    /// Windows (the actual value isn't relied on — we only read it
     /// back through `Display`).
     #[cfg(unix)]
     fn make_status(code: c_int) -> ExitStatus {
@@ -181,8 +181,8 @@ mod tests {
         let msg = cli_failure_msg("frobnicator", make_status(1), b"");
         assert!(msg.contains("frobnicator"));
         assert!(
-            !msg.contains(" â€” "),
-            "should not emit a 'â€” ' separator when stderr is empty"
+            !msg.contains(" — "),
+            "should not emit a '— ' separator when stderr is empty"
         );
     }
 
@@ -190,7 +190,7 @@ mod tests {
     fn failure_msg_omits_stderr_separator_when_whitespace_only() {
         let msg = cli_failure_msg("frobnicator", make_status(1), b"   \n\r\n  ");
         assert!(
-            !msg.contains(" â€” "),
+            !msg.contains(" — "),
             "whitespace-only stderr must be treated as empty"
         );
     }

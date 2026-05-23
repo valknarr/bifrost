@@ -48,7 +48,7 @@ pub async fn set_pilot_wallet(
         return Ok(updated);
     }
 
-    // Cheap sanity check â€” Sui addresses are 0x-prefixed, 64 hex chars.
+    // Cheap sanity check — Sui addresses are 0x-prefixed, 64 hex chars.
     if !is_valid_sui_address(&trimmed) {
         return Err(BifrostError::Other(
             "Address must be 0x-prefixed and 64 hex chars long.".into(),
@@ -68,8 +68,8 @@ pub async fn set_pilot_wallet(
     state.save_pilots()?;
 
     // Best-effort balance fetches for both coins. Fan out concurrently
-    // via `tokio::join` so the two RPC calls overlap (was sequential â€”
-    // ~2Ã— latency for no good reason). `join` collects both results
+    // via `tokio::join` so the two RPC calls overlap (was sequential —
+    // ~2× latency for no good reason). `join` collects both results
     // even if one fails, so a single-coin failure leaves the other
     // populated; matches the previous sequential behaviour.
     let sui = SuiClient::new();
@@ -120,7 +120,7 @@ pub async fn set_pilot_wallet(
 }
 
 /// One pilot's just-fetched balances. `(pilot_id, sui_result,
-/// eve_result)` â€” kept as a `Result` per coin so the per-call error
+/// eve_result)` — kept as a `Result` per coin so the per-call error
 /// is visible to the caller even when the other coin succeeded.
 type BalanceResult = (
     String,
@@ -132,23 +132,23 @@ type BalanceResult = (
 /// address. Concurrent across the two coins for each pilot via
 /// `tokio::join`; pilots are still iterated sequentially because the
 /// Sui RPC's per-IP throttling triggers on bursts, not on steady-
-/// state load â€” back-to-back-with-a-tiny-gap is friendlier than
+/// state load — back-to-back-with-a-tiny-gap is friendlier than
 /// fanned-out-N-pilots-at-once.
 ///
 /// Two pre-flight checks per pilot before any network call:
 ///
-/// 1. `is_address_rate_limited(addr)` â€” if we recently got 429/503
+/// 1. `is_address_rate_limited(addr)` — if we recently got 429/503
 ///    for this address, skip both calls until the backoff window
 ///    expires. Without this the 30 s reconcile tick re-fires every
 ///    pilot's pair of requests on every tick, extending the lockout.
-/// 2. (implicit, via `get_balance`) â€” even if 1. somehow passes a
+/// 2. (implicit, via `get_balance`) — even if 1. somehow passes a
 ///    stale flag, the inner cache check inside `get_balance` is the
 ///    second line of defence.
 ///
 /// Returns `true` if any pilot's balance or fetch-timestamp changed,
 /// so the caller can skip `save_pilots()` on a no-op tick. This is
 /// the second half of the "stop writing pilots.json every 30 s" fix
-/// â€” `reconcile_pilots` does the first half by tracking status
+/// — `reconcile_pilots` does the first half by tracking status
 /// changes; both signals together drive the save decision.
 ///
 /// Called by [`super::lifecycle::reconcile_pilots`].
@@ -178,7 +178,7 @@ pub async fn refresh_balances(state: &State<'_, AppState>) -> bool {
         // the code easier to reason about.
         if is_address_rate_limited(&addr) {
             tracing::debug!(
-                "wallet refresh: skipping pilot {id} â€” Sui RPC backoff active"
+                "wallet refresh: skipping pilot {id} — Sui RPC backoff active"
             );
             // Surface the skip as a "no fresh data this tick" pair
             // of synthetic errors so the timestamp stays unchanged
@@ -226,7 +226,7 @@ pub async fn refresh_balances(state: &State<'_, AppState>) -> bool {
                 }
                 Err(e) => tracing::debug!("EVE refresh for pilot {id} failed: {e}"),
             }
-            // Stamp the refresh time only when SOMETHING came back â€”
+            // Stamp the refresh time only when SOMETHING came back —
             // a tick that failed both coins should leave the
             // staleness clock ticking from its previous value, not
             // reset it to "fresh". Bump `anything_changed` so the
@@ -242,7 +242,7 @@ pub async fn refresh_balances(state: &State<'_, AppState>) -> bool {
 }
 
 /// Sui address shape check. Doesn't verify the address actually owns
-/// anything â€” just that it's syntactically a Sui address (0x + 64 hex
+/// anything — just that it's syntactically a Sui address (0x + 64 hex
 /// chars) so we surface bad input before hitting the RPC.
 fn is_valid_sui_address(s: &str) -> bool {
     let Some(rest) = s.strip_prefix("0x") else {
