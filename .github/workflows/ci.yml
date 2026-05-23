@@ -62,11 +62,19 @@ jobs:
       # advisory DB. Baseline triage (pre-public sweep) cleared all
       # CVEs — the only remaining advisories are GTK3 transitives
       # (Linux-only, Bifrost is Windows) which are ignored via
-      # `src-tauri/audit.toml`. CI now hard-fails on any NEW
-      # advisory so a real CVE can't slip in unnoticed.
+      # `src-tauri/audit.toml`. CI hard-fails on any NEW advisory so
+      # a real CVE can't slip in unnoticed.
+      #
+      # Version pinned to 0.22.1+ because earlier versions (0.21.2,
+      # which we used initially) can't parse CVSS 4.0 vector strings
+      # — they abort the whole audit when ANY advisory in the DB
+      # uses CVSS 4.0, even advisories for crates we don't depend on
+      # (RUSTSEC-2026-0146 for anchor-lang is what tripped us). The
+      # `--locked` ensures the install matches the lockfile shipped
+      # with cargo-audit, so we get a deterministic install.
       - name: cargo audit
         run: |
-          cargo install --locked cargo-audit --version 0.21.2
+          cargo install --locked cargo-audit --version 0.22.1
           cargo audit
 
   frontend:
