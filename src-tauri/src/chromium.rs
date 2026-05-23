@@ -1,17 +1,17 @@
 //! Portable browser downloader & installer.
 //!
-//! Mirrors the [`evevault`](crate::evevault) module — fetches the latest
+//! Mirrors the [`evevault`](crate::evevault) module â€” fetches the latest
 //! Windows x64 portable ZIP of [Brave Browser] from GitHub Releases,
 //! extracts it to `<app-data>/chromium/current/`, and exposes the
 //! resulting browser executable path via [`chrome_exe_path`].
 //!
 //! We've cycled through portable Chromium distros to find one that
 //! handles EVE Vault's OAuth flow:
-//!   - Ungoogled Chromium → strips Google identity plumbing,
+//!   - Ungoogled Chromium â†’ strips Google identity plumbing,
 //!     `chromiumapp.org` redirect broke FusionAuth.
-//!   - Thorium AVX2 → process crashed on launch (CPU compatibility or
+//!   - Thorium AVX2 â†’ process crashed on launch (CPU compatibility or
 //!     fork-specific issue), file-lock errors on retry.
-//!   - **Brave** → real, signed Chromium fork with full identity plumbing
+//!   - **Brave** â†’ real, signed Chromium fork with full identity plumbing
 //!     intact. Bigger than UCG (220 MB) but actually works.
 //!
 //! [Brave Browser]: https://github.com/brave/brave-browser
@@ -21,13 +21,13 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::{BridgeError, Result};
+use crate::error::{BifrostError, Result};
 use crate::http;
 use crate::release_cache;
 
 const REPO: &str = "brave/brave-browser";
 
-/// Asset matcher — Brave publishes both portable binaries and installers
+/// Asset matcher â€” Brave publishes both portable binaries and installers
 /// in the same release; we want only the Windows x64 portable ZIP and
 /// must reject the symbols ZIP (1.4 GB of pdb files) plus the
 /// installer EXEs.
@@ -68,8 +68,8 @@ mod tests {
 
     // ---- version-marker round-trip ----------------------------------
     //
-    // Cascading scenario: install completes → marker is written →
-    // `read_installed_version` reports the same tag → uninstall →
+    // Cascading scenario: install completes â†’ marker is written â†’
+    // `read_installed_version` reports the same tag â†’ uninstall â†’
     // `read_installed_version` reports None. Each of these tests
     // exercises a real on-disk path so a regression in `install_dir`,
     // `version_marker` (the private helper), or the `uninstall`
@@ -79,8 +79,8 @@ mod tests {
     use tempfile::TempDir;
 
     /// Fresh app-data dir: nothing installed, `read_installed_version`
-    /// returns `None`. This is the first-launch contract — the
-    /// Settings row shows "○ Not installed" only if we trust this.
+    /// returns `None`. This is the first-launch contract â€” the
+    /// Settings row shows "â—‹ Not installed" only if we trust this.
     #[test]
     fn read_installed_version_returns_none_on_empty_app_data() {
         let tmp = TempDir::new().expect("tempdir");
@@ -113,7 +113,7 @@ mod tests {
         assert!(read_installed_version(tmp.path()).is_none());
     }
 
-    /// Marker leading/trailing whitespace must be trimmed — text
+    /// Marker leading/trailing whitespace must be trimmed â€” text
     /// editors love to add a trailing newline.
     #[test]
     fn marker_whitespace_is_trimmed() {
@@ -125,7 +125,7 @@ mod tests {
     }
 
     /// Uninstall removes the install dir (and therefore the marker
-    /// inside it). The Settings UI relies on this — uninstall must
+    /// inside it). The Settings UI relies on this â€” uninstall must
     /// cause `read_installed_version` to flip to None on the very
     /// next call, no app restart needed.
     #[test]
@@ -161,7 +161,7 @@ pub struct ChromiumRelease {
 }
 
 /// Live status the Settings panel renders for the portable browser
-/// row — combines on-disk install detection with the latest-known
+/// row â€” combines on-disk install detection with the latest-known
 /// upstream release so the UI can offer Install / Update / Reinstall.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -189,23 +189,23 @@ pub async fn fetch_latest_release() -> Result<ChromiumRelease> {
 
     let tag = body["tag_name"]
         .as_str()
-        .ok_or_else(|| BridgeError::Other("release JSON has no tag_name".into()))?
+        .ok_or_else(|| BifrostError::Other("release JSON has no tag_name".into()))?
         .to_string();
     let assets = body["assets"]
         .as_array()
-        .ok_or_else(|| BridgeError::Other("release JSON has no assets array".into()))?;
+        .ok_or_else(|| BifrostError::Other("release JSON has no assets array".into()))?;
     let asset = assets
         .iter()
         .find(|a| is_portable_zip(a["name"].as_str().unwrap_or_default()))
         .ok_or_else(|| {
-            BridgeError::Other(format!("release {tag} has no win32-x64 portable ZIP"))
+            BifrostError::Other(format!("release {tag} has no win32-x64 portable ZIP"))
         })?;
 
     Ok(ChromiumRelease {
         tag,
         zip_url: asset["browser_download_url"]
             .as_str()
-            .ok_or_else(|| BridgeError::Other("asset has no browser_download_url".into()))?
+            .ok_or_else(|| BifrostError::Other("asset has no browser_download_url".into()))?
             .to_string(),
         size_bytes: asset["size"].as_u64().unwrap_or(0),
         published_at: body["published_at"].as_str().map(|s| s.to_string()),
@@ -222,7 +222,7 @@ pub fn install_dir(app_data: &Path) -> PathBuf {
 /// Remove the portable browser install in its entirety. Safe no-op when
 /// nothing's installed. We can do this with a plain
 /// `remove_dir_all` because the portable build doesn't drop anything
-/// outside this directory — no kernel driver, no service, no registry
+/// outside this directory â€” no kernel driver, no service, no registry
 /// hooks. Callers must ensure no Brave processes are holding handles
 /// (the Settings UI does this only when no pilots have a browser
 /// open).
@@ -337,7 +337,7 @@ pub async fn install(app_data: &Path, release: &ChromiumRelease) -> Result<()> {
         release.tag,
         release.size_bytes / 1_048_576
     );
-    // 600 s timeout for this specific request — it's a ~180 MB
+    // 600 s timeout for this specific request â€” it's a ~180 MB
     // download. Pool + DNS + TLS state is reused from prior fetches
     // via the shared client.
     let zip_bytes = http::client()
@@ -345,10 +345,10 @@ pub async fn install(app_data: &Path, release: &ChromiumRelease) -> Result<()> {
         .timeout(std::time::Duration::from_secs(600))
         .send()
         .await
-        .map_err(|e| BridgeError::Other(format!("chromium zip download failed: {e}")))?
+        .map_err(|e| BifrostError::Other(format!("chromium zip download failed: {e}")))?
         .bytes()
         .await
-        .map_err(|e| BridgeError::Other(format!("chromium zip body read failed: {e}")))?;
+        .map_err(|e| BifrostError::Other(format!("chromium zip body read failed: {e}")))?;
 
     let target = install_dir(app_data);
     if target.exists() {
@@ -357,12 +357,12 @@ pub async fn install(app_data: &Path, release: &ChromiumRelease) -> Result<()> {
     std::fs::create_dir_all(&target)?;
 
     let mut archive = zip::ZipArchive::new(std::io::Cursor::new(zip_bytes.as_ref()))
-        .map_err(|e| BridgeError::Other(format!("chromium zip parse failed: {e}")))?;
+        .map_err(|e| BifrostError::Other(format!("chromium zip parse failed: {e}")))?;
 
     for i in 0..archive.len() {
         let mut entry = archive
             .by_index(i)
-            .map_err(|e| BridgeError::Other(format!("chromium zip entry {i}: {e}")))?;
+            .map_err(|e| BifrostError::Other(format!("chromium zip entry {i}: {e}")))?;
         let Some(name) = entry.enclosed_name() else {
             continue;
         };
@@ -377,7 +377,7 @@ pub async fn install(app_data: &Path, release: &ChromiumRelease) -> Result<()> {
         let mut buf = Vec::with_capacity(entry.size() as usize);
         entry
             .read_to_end(&mut buf)
-            .map_err(|e| BridgeError::Other(format!("chromium zip entry read: {e}")))?;
+            .map_err(|e| BifrostError::Other(format!("chromium zip entry read: {e}")))?;
         std::fs::write(&out_path, &buf)?;
     }
 

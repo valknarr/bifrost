@@ -106,7 +106,7 @@ Output lands in `src-tauri/target/release/bundle/`.
 │       ├── evevault.rs             EVE Vault extension downloader
 │       ├── release_cache.rs        Shared GitHub-fetch helpers + 30-min cache
 │       ├── config.rs               Persisted settings
-│       ├── error.rs                BridgeError + Result alias
+│       ├── error.rs                BifrostError + Result alias
 │       ├── ini.rs                  Sandboxie.ini parser
 │       └── sui.rs                  Sui mainnet RPC client
 ├── .github/                        CI workflow + issue templates

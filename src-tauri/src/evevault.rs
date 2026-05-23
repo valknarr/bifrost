@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::error::{BridgeError, Result};
+use crate::error::{BifrostError, Result};
 use crate::http;
 use crate::release_cache;
 
@@ -57,17 +57,17 @@ pub async fn fetch_latest_release() -> Result<ReleaseInfo> {
 
     let tag = body["tag_name"]
         .as_str()
-        .ok_or_else(|| BridgeError::Other("release JSON has no tag_name".into()))?
+        .ok_or_else(|| BifrostError::Other("release JSON has no tag_name".into()))?
         .to_string();
     let assets = body["assets"]
         .as_array()
-        .ok_or_else(|| BridgeError::Other("release JSON has no assets array".into()))?;
+        .ok_or_else(|| BifrostError::Other("release JSON has no assets array".into()))?;
 
     let zip_url = assets
         .iter()
         .find(|a| a["name"].as_str() == Some(ASSET_NAME))
         .and_then(|a| a["browser_download_url"].as_str())
-        .ok_or_else(|| BridgeError::Other(format!("release has no {ASSET_NAME} asset")))?
+        .ok_or_else(|| BifrostError::Other(format!("release has no {ASSET_NAME} asset")))?
         .to_string();
     let checksum_url = assets
         .iter()
@@ -165,8 +165,8 @@ pub async fn status(app_data: &Path, force_refresh: bool) -> EveVaultStatus {
 /// the extension isn't installed or the manifest doesn't declare a
 /// popup. The caller combines this with the extension's Chromium-
 /// assigned ID (see `browser::read_extension_id`) to build a working
-/// `chrome-extension://<id>/<popup>` URL — we can't compute the ID
-/// reliably ourselves because Chromium's path → ID hashing differs from
+/// `chrome-extension://<id>/<popup>` URL â€” we can't compute the ID
+/// reliably ourselves because Chromium's path â†’ ID hashing differs from
 /// any reproducible Rust implementation we've tried.
 pub fn popup_filename(app_data: &Path) -> Option<String> {
     let manifest_path = install_dir(app_data).join("manifest.json");
@@ -184,7 +184,7 @@ pub fn popup_filename(app_data: &Path) -> Option<String> {
 /// (wiping any previous install). Writes a `.bifrost-version` marker
 /// on success.
 pub async fn install(app_data: &Path, release: &ReleaseInfo) -> Result<()> {
-    // EVE Vault is a few-MB download — the shared client's 120 s
+    // EVE Vault is a few-MB download â€” the shared client's 120 s
     // default timeout fits, no override needed.
     let client = http::client();
 
@@ -194,10 +194,10 @@ pub async fn install(app_data: &Path, release: &ReleaseInfo) -> Result<()> {
             .get(url)
             .send()
             .await
-            .map_err(|e| BridgeError::Other(format!("checksums.txt download failed: {e}")))?
+            .map_err(|e| BifrostError::Other(format!("checksums.txt download failed: {e}")))?
             .text()
             .await
-            .map_err(|e| BridgeError::Other(format!("checksums.txt body read failed: {e}")))?;
+            .map_err(|e| BifrostError::Other(format!("checksums.txt body read failed: {e}")))?;
         txt.lines()
             .find(|line| line.contains(ASSET_NAME))
             .and_then(|line| line.split_whitespace().next())
@@ -211,16 +211,16 @@ pub async fn install(app_data: &Path, release: &ReleaseInfo) -> Result<()> {
         .get(&release.zip_url)
         .send()
         .await
-        .map_err(|e| BridgeError::Other(format!("zip download failed: {e}")))?
+        .map_err(|e| BifrostError::Other(format!("zip download failed: {e}")))?
         .bytes()
         .await
-        .map_err(|e| BridgeError::Other(format!("zip body read failed: {e}")))?;
+        .map_err(|e| BifrostError::Other(format!("zip body read failed: {e}")))?;
 
     // 3. Verify hash if we have one.
     if let Some(expected) = &expected_hash {
         let actual = hex_encode(&Sha256::digest(&zip_bytes));
         if &actual != expected {
-            return Err(BridgeError::Other(format!(
+            return Err(BifrostError::Other(format!(
                 "SHA-256 mismatch for {ASSET_NAME}: expected {expected}, got {actual}"
             )));
         }
@@ -237,12 +237,12 @@ pub async fn install(app_data: &Path, release: &ReleaseInfo) -> Result<()> {
     std::fs::create_dir_all(&target)?;
 
     let mut archive = zip::ZipArchive::new(Cursor::new(zip_bytes.as_ref()))
-        .map_err(|e| BridgeError::Other(format!("zip parse failed: {e}")))?;
+        .map_err(|e| BifrostError::Other(format!("zip parse failed: {e}")))?;
 
     for i in 0..archive.len() {
         let mut entry = archive
             .by_index(i)
-            .map_err(|e| BridgeError::Other(format!("zip entry {i}: {e}")))?;
+            .map_err(|e| BifrostError::Other(format!("zip entry {i}: {e}")))?;
         let Some(name) = entry.enclosed_name() else {
             // Reject path traversal / absolute paths.
             continue;
@@ -258,7 +258,7 @@ pub async fn install(app_data: &Path, release: &ReleaseInfo) -> Result<()> {
         let mut buf = Vec::with_capacity(entry.size() as usize);
         entry
             .read_to_end(&mut buf)
-            .map_err(|e| BridgeError::Other(format!("zip entry read: {e}")))?;
+            .map_err(|e| BifrostError::Other(format!("zip entry read: {e}")))?;
         std::fs::write(&out_path, &buf)?;
     }
 
@@ -283,8 +283,8 @@ fn hex_encode(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     //! Version marker + popup-filename + hex-encoding round-trips.
-    //! Same cascading pattern as `chromium.rs::tests` — a fresh
-    //! app-data dir → simulate install → read back → uninstall →
+    //! Same cascading pattern as `chromium.rs::tests` â€” a fresh
+    //! app-data dir â†’ simulate install â†’ read back â†’ uninstall â†’
     //! reads as gone.
     use super::*;
     use tempfile::TempDir;
@@ -336,7 +336,7 @@ mod tests {
 
     /// `popup_filename` parses the extension's `manifest.json` to find
     /// the popup HTML the wallet button should land on. This pins the
-    /// MV3 (`action.default_popup`) shape — if upstream EVE Vault
+    /// MV3 (`action.default_popup`) shape â€” if upstream EVE Vault
     /// switches manifests, this test surfaces it.
     #[test]
     fn popup_filename_reads_mv3_action_default_popup() {
@@ -370,7 +370,7 @@ mod tests {
     }
 
     /// No manifest = no popup, no panic. The wallet button then opens
-    /// a regular new-tab page on first launch — that's the documented
+    /// a regular new-tab page on first launch â€” that's the documented
     /// fallback in `commands::browser`.
     #[test]
     fn popup_filename_returns_none_without_manifest() {
@@ -381,7 +381,7 @@ mod tests {
     /// `hex_encode` is used to render the downloaded ZIP's SHA-256
     /// for comparison against `checksums.txt`. Lower-case hex,
     /// fixed-width per byte. Bugs here mean every verified install
-    /// silently fails — high-leverage to test.
+    /// silently fails â€” high-leverage to test.
     #[test]
     fn hex_encode_matches_known_vectors() {
         // SHA-256("") = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

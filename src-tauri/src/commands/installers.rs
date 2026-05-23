@@ -1,7 +1,7 @@
 //! Status + install + uninstall commands for the three managed
 //! components: Sandboxie-Plus, the portable Brave browser, and the
 //! EVE Vault extension. Status calls accept an optional
-//! `force_refresh` boolean which bypasses the 30-min release cache —
+//! `force_refresh` boolean which bypasses the 30-min release cache â€”
 //! wired to the "Check for updates" buttons.
 //!
 //! The heavy lifting (download, verify, extract, run installer) lives
@@ -13,8 +13,8 @@ use std::path::PathBuf;
 
 use tauri::State;
 
-use crate::config::BridgeConfig;
-use crate::error::{BridgeError, Result};
+use crate::config::BifrostConfig;
+use crate::error::{BifrostError, Result};
 use crate::sandboxie::Sandboxie;
 use crate::state::AppState;
 use crate::{chromium, evevault, sandboxie_installer};
@@ -23,7 +23,7 @@ use crate::{chromium, evevault, sandboxie_installer};
 
 /// Combined status for the EVE Vault Chromium extension: installed
 /// version, latest on GitHub, etc. `force_refresh` bypasses the 30-min
-/// in-process cache and re-fetches from GitHub — wired to the "Check
+/// in-process cache and re-fetches from GitHub â€” wired to the "Check
 /// for updates" button so explicit clicks always hit the live API
 /// while passive panel mounts stay cache-friendly.
 #[tauri::command]
@@ -73,7 +73,7 @@ pub async fn install_chromium(state: State<'_, AppState>) -> Result<()> {
 
 /// Remove the portable browser install. Per-pilot browser profiles
 /// under `<app-data>/pilots/*/browser/` are intentionally left
-/// untouched — they survive a browser reinstall so wallet sessions
+/// untouched â€” they survive a browser reinstall so wallet sessions
 /// aren't blown away. The frontend confirms with the user before
 /// invoking this.
 #[tauri::command]
@@ -112,7 +112,7 @@ pub async fn get_sandboxie_installer_status(
 
 /// Download + silently install the latest Sandboxie release for the
 /// requested variant (Plus or Classic). One UAC prompt is unavoidable
-/// — the installer drops a kernel driver (`SbieDrv.sys`) and a service
+/// â€” the installer drops a kernel driver (`SbieDrv.sys`) and a service
 /// into `Program Files\Sandboxie-Plus\` (or `Sandboxie\` for Classic),
 /// both of which Windows hard-requires admin elevation to write. After
 /// the installer exits we re-resolve the install path so subsequent
@@ -127,8 +127,8 @@ pub async fn install_sandboxie(
     sandboxie_installer::install(&state.app_data_dir, &release).await?;
 
     // Re-resolve the sandboxie path now that the installer has placed
-    // files on disk. `BridgeConfig::defaults()` re-runs the host probe.
-    let defaults = BridgeConfig::defaults();
+    // files on disk. `BifrostConfig::defaults()` re-runs the host probe.
+    let defaults = BifrostConfig::defaults();
     if let Some(path) = defaults.sandboxie_path {
         let mut cfg = state.config();
         cfg.sandboxie_path = Some(path.clone());
@@ -144,13 +144,13 @@ pub async fn install_sandboxie(
 }
 
 /// Run Sandboxie-Plus's bundled Inno-Setup uninstaller silently. Same
-/// UAC requirement as installation — there's no way around the admin
+/// UAC requirement as installation â€” there's no way around the admin
 /// elevation for kernel-driver removal. After the uninstaller exits we
 /// also clear the cached `sandboxie_path` so the next host probe
 /// correctly reports it missing. The frontend confirms with the user
 /// (and warns about orphaned pilots) before invoking this.
 ///
-/// Refuses to proceed if any sandbox has live processes — the Inno
+/// Refuses to proceed if any sandbox has live processes â€” the Inno
 /// uninstaller can't tear down `SbieDrv.sys` while the driver is held
 /// open, and a half-failed uninstall typically leaves an orphaned
 /// service and a stuck driver that needs a reboot + manual cleanup. We
@@ -163,13 +163,13 @@ pub async fn uninstall_sandboxie(state: State<'_, AppState>) -> Result<()> {
 
     // Pre-flight: if the engine is currently usable, ask it which boxes
     // have live processes. Skipping the check when Sandboxie isn't
-    // resolvable is fine — the uninstall is just a marker-scrub at that
+    // resolvable is fine â€” the uninstall is just a marker-scrub at that
     // point anyway (see `sandboxie_installer::uninstall`).
     if let Some(root_path) = root.as_deref() {
         if let Ok(sb) = Sandboxie::at(root_path) {
             let busy = sb.busy_box_names().await;
             if !busy.is_empty() {
-                return Err(BridgeError::Other(format!(
+                return Err(BifrostError::Other(format!(
                     "Can't uninstall Sandboxie while a sandbox is active. \
                      Close the running app{plural} (e.g. EVE Frontier launcher / game) \
                      and try again. Active sandbox{plural}: {names}.",

@@ -4,7 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   AppStatus,
-  BridgeConfig,
+  BifrostConfig,
   ChromiumStatus,
   DiscoveredBox,
   EveVaultStatus,
@@ -16,14 +16,14 @@ import type {
 export const api = {
   // --- system / config ---
   getStatus: () => invoke<AppStatus>("get_status"),
-  getConfig: () => invoke<BridgeConfig>("get_config"),
-  setConfig: (config: BridgeConfig) =>
+  getConfig: () => invoke<BifrostConfig>("get_config"),
+  setConfig: (config: BifrostConfig) =>
     invoke<void>("set_config", { config }),
-  setUiZoom: (zoom: number) => invoke<BridgeConfig>("set_ui_zoom", { zoom }),
+  setUiZoom: (zoom: number) => invoke<BifrostConfig>("set_ui_zoom", { zoom }),
   setRosterColumns: (columns: number) =>
-    invoke<BridgeConfig>("set_roster_columns", { columns }),
+    invoke<BifrostConfig>("set_roster_columns", { columns }),
   setRosterWindowSize: (width: number, height: number) =>
-    invoke<BridgeConfig>("set_roster_window_size", { width, height }),
+    invoke<BifrostConfig>("set_roster_window_size", { width, height }),
 
   // --- pilots ---
   listPilots: () => invoke<Pilot[]>("list_pilots"),
@@ -74,13 +74,13 @@ export const api = {
   openPilotApp: (id: string, url: string) =>
     invoke<void>("open_pilot_app", { id, url }),
   addCompanionSite: (name: string, url: string, icon?: string) =>
-    invoke<BridgeConfig>("add_companion_site", { name, url, icon }),
+    invoke<BifrostConfig>("add_companion_site", { name, url, icon }),
   removeCompanionSite: (url: string) =>
-    invoke<BridgeConfig>("remove_companion_site", { url }),
+    invoke<BifrostConfig>("remove_companion_site", { url }),
   setCompanionSiteDisabled: (url: string, disabled: boolean) =>
-    invoke<BridgeConfig>("set_companion_site_disabled", { url, disabled }),
+    invoke<BifrostConfig>("set_companion_site_disabled", { url, disabled }),
 
-  /** Resolve a companion-site URL to a `data:image/png;base64,…`
+  /** Resolve a companion-site URL to a `data:image/png;base64,â€¦`
    *  string, or null when no favicon could be retrieved. Rust handles
    *  caching + negative-caching, so calling this freely from any
    *  effect is cheap after the first hit. */

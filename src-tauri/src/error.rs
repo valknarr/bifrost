@@ -3,7 +3,7 @@ use serde::{Serialize, Serializer};
 /// Unified error type for Bifrost. Serialises as a plain string for the
 /// frontend so `invoke()` errors are easy to display.
 #[derive(Debug, thiserror::Error)]
-pub enum BridgeError {
+pub enum BifrostError {
     #[error("Sandboxie is not installed or could not be found")]
     SandboxieMissing,
 
@@ -29,7 +29,7 @@ pub enum BridgeError {
     Other(String),
 }
 
-impl Serialize for BridgeError {
+impl Serialize for BifrostError {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -38,4 +38,4 @@ impl Serialize for BridgeError {
     }
 }
 
-pub type Result<T> = std::result::Result<T, BridgeError>;
+pub type Result<T> = std::result::Result<T, BifrostError>;

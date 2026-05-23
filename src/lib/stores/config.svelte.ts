@@ -4,20 +4,20 @@
 
 import { api } from "../tauri";
 import { formatBackendError } from "../error";
-import type { BridgeConfig, CompanionSite } from "../types";
+import type { BifrostConfig, CompanionSite } from "../types";
 import { applyZoom, applyRosterWindowSize } from "../zoom";
 
 class ConfigStore {
-  config = $state<BridgeConfig | null>(null);
+  config = $state<BifrostConfig | null>(null);
   error = $state<string | null>(null);
 
-  /** Full list, including disabled entries — used by SettingsView so the
+  /** Full list, including disabled entries â€” used by SettingsView so the
    *  user can toggle disabled state. */
   get sites(): CompanionSite[] {
     return this.config?.companionSites ?? [];
   }
 
-  /** Only enabled sites — what PilotCard's Apps row consumes. */
+  /** Only enabled sites â€” what PilotCard's Apps row consumes. */
   get enabledSites(): CompanionSite[] {
     return this.sites.filter((s) => !s.disabled);
   }
@@ -61,7 +61,7 @@ class ConfigStore {
    *  the next launch. Order matters: apply first so the user sees
    *  the change instantly, persist second so a backend save error
    *  doesn't leave the UI mismatched with the saved config. Both
-   *  steps surface their errors to `this.error` — the Settings
+   *  steps surface their errors to `this.error` â€” the Settings
    *  picker is the user-visible caller and shows them inline. */
   async setUiZoom(zoom: number) {
     this.error = null;
@@ -69,7 +69,7 @@ class ConfigStore {
       await applyZoom(zoom);
     } catch (e) {
       this.error =
-        "Couldn't change zoom — the webview permission may be missing. " +
+        "Couldn't change zoom â€” the webview permission may be missing. " +
         formatBackendError(e);
       return;
     }
@@ -81,7 +81,7 @@ class ConfigStore {
   }
 
   /** Persist the user's preferred roster-grid column count and snap
-   *  the window width to match. `0` = auto (responsive — leaves the
+   *  the window width to match. `0` = auto (responsive â€” leaves the
    *  window alone), `2` / `3` = explicit overrides that also resize
    *  the window so the new layout is visible without the user having
    *  to drag the edge themselves. PilotsView reacts to
@@ -96,7 +96,7 @@ class ConfigStore {
       this.error = formatBackendError(e);
       return;
     }
-    // Second step — window resize. Done AFTER the persist succeeds
+    // Second step â€” window resize. Done AFTER the persist succeeds
     // so a transient backend error doesn't move the window around
     // for an unsaved choice. Resize failures are non-fatal: the
     // setting still saves, and the user can drag the edge manually.
@@ -104,7 +104,7 @@ class ConfigStore {
       await applyRosterWindowSize(columns);
     } catch (e) {
       this.error =
-        "Layout saved, but couldn't resize the window — drag the edge to fit. " +
+        "Layout saved, but couldn't resize the window â€” drag the edge to fit. " +
         formatBackendError(e);
     }
   }

@@ -7,12 +7,12 @@ use std::path::PathBuf;
 use tauri::State;
 
 use crate::browser;
-use crate::error::{BridgeError, Result};
+use crate::error::{BifrostError, Result};
 use crate::pilot::{self, Pilot, PilotStatus};
 
 /// Statuses that allow `delete_pilot` to bypass the "must be archived
 /// first" guard. A pilot whose Sandboxie box has been deleted externally
-/// is already half-broken — forcing the user to archive-then-delete
+/// is already half-broken â€” forcing the user to archive-then-delete
 /// just adds friction. The archive guard exists to protect *running*
 /// pilots from being nuked by an accidental click; that concern doesn't
 /// apply when the sandbox is already gone.
@@ -27,7 +27,7 @@ pub fn list_pilots(state: State<'_, AppState>) -> Result<Vec<Pilot>> {
 
 /// Create a new managed pilot. Eagerly provisions the Sandboxie box so
 /// Bifrost's view of the world matches Sandboxie's. Provisioning
-/// failure is non-fatal — the pilot record is saved either way, and
+/// failure is non-fatal â€” the pilot record is saved either way, and
 /// the next Launch click retries.
 #[tauri::command]
 pub async fn create_pilot(state: State<'_, AppState>, name: String) -> Result<Pilot> {
@@ -41,7 +41,7 @@ pub async fn create_pilot(state: State<'_, AppState>, name: String) -> Result<Pi
             .iter()
             .any(|p| !p.archived && p.name.eq_ignore_ascii_case(&name))
         {
-            return Err(BridgeError::PilotExists(name));
+            return Err(BifrostError::PilotExists(name));
         }
         let taken: Vec<String> = pilots.iter().map(|p| p.accent.clone()).collect();
         let taken_refs: Vec<&str> = taken.iter().map(|s| s.as_str()).collect();
@@ -54,7 +54,7 @@ pub async fn create_pilot(state: State<'_, AppState>, name: String) -> Result<Pi
     };
     state.save_pilots()?;
 
-    // Eager provisioning. Failure is non-fatal — log + carry on, the
+    // Eager provisioning. Failure is non-fatal â€” log + carry on, the
     // user can retry by clicking Launch.
     if let Some(sb_path) = cfg.sandboxie_path.as_deref() {
         if let Ok(sb) = Sandboxie::at(sb_path) {
@@ -70,7 +70,7 @@ pub async fn create_pilot(state: State<'_, AppState>, name: String) -> Result<Pi
     Ok(pilot)
 }
 
-/// Generate a unique Sandboxie box name. Format: `Bifrost<8 hex>` —
+/// Generate a unique Sandboxie box name. Format: `Bifrost<8 hex>` â€”
 /// alphanumeric only (Sandboxie's name constraint), short enough to
 /// fit in the UI without truncation, and prefixed so a quick glance at
 /// Sandboxie-Plus's own UI tells the user which boxes Bifrost owns.
@@ -110,12 +110,12 @@ pub async fn archive_pilot(state: State<'_, AppState>, id: String) -> Result<()>
         let p = pilots
             .iter()
             .find(|p| p.id == id)
-            .ok_or_else(|| BridgeError::PilotNotFound(id.clone()))?;
+            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?;
         (state.config(), p.sandbox.clone())
     };
 
     // Best-effort terminate. If it fails (box doesn't exist, already
-    // empty) we still archive — the user's intent is to put this
+    // empty) we still archive â€” the user's intent is to put this
     // pilot aside.
     if let Some(sb_path) = cfg.sandboxie_path.as_deref() {
         if let Ok(sb) = Sandboxie::at(sb_path) {
@@ -130,7 +130,7 @@ pub async fn archive_pilot(state: State<'_, AppState>, id: String) -> Result<()>
         let p = pilots
             .iter_mut()
             .find(|p| p.id == id)
-            .ok_or_else(|| BridgeError::PilotNotFound(id.clone()))?;
+            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?;
         p.archived = true;
         p.status = PilotStatus::Stopped;
     }
@@ -139,7 +139,7 @@ pub async fn archive_pilot(state: State<'_, AppState>, id: String) -> Result<()>
 }
 
 /// Restore an archived pilot back to the Managed list. Refuses if a
-/// managed pilot with the same display name already exists — the user
+/// managed pilot with the same display name already exists â€” the user
 /// has to rename one or the other before restoring.
 #[tauri::command]
 pub fn restore_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
@@ -151,19 +151,19 @@ pub fn restore_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
         let target_name = pilots
             .iter()
             .find(|p| p.id == id)
-            .ok_or_else(|| BridgeError::PilotNotFound(id.clone()))?
+            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?
             .name
             .clone();
         if pilots
             .iter()
             .any(|p| !p.archived && p.id != id && p.name.eq_ignore_ascii_case(&target_name))
         {
-            return Err(BridgeError::PilotExists(target_name));
+            return Err(BifrostError::PilotExists(target_name));
         }
         // Re-find with proper error propagation. The unwrap that
         // used to live here was technically unreachable today
         // because we hold the lock from the initial find through
-        // this mutation — but if anyone ever inserts a yield point
+        // this mutation â€” but if anyone ever inserts a yield point
         // (e.g. an async pre-check) between the two finds, a
         // concurrent delete could leave us with `None` and panic
         // the whole runtime. Propagating `PilotNotFound` is cheap
@@ -171,7 +171,7 @@ pub fn restore_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
         let p = pilots
             .iter_mut()
             .find(|p| p.id == id)
-            .ok_or_else(|| BridgeError::PilotNotFound(id.clone()))?;
+            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?;
         p.archived = false;
     }
     state.save_pilots()?;
@@ -186,12 +186,12 @@ pub fn restore_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
 pub fn set_pilot_accent(state: State<'_, AppState>, id: String, accent: String) -> Result<()> {
     let trimmed = accent.trim();
     if trimmed.len() != 7 || !trimmed.starts_with('#') {
-        return Err(BridgeError::Other(
+        return Err(BifrostError::Other(
             "Accent must be a 7-character hex code like #F39034.".into(),
         ));
     }
     if !trimmed[1..].chars().all(|c| c.is_ascii_hexdigit()) {
-        return Err(BridgeError::Other(
+        return Err(BifrostError::Other(
             "Accent must be a 6-digit hex code after the #.".into(),
         ));
     }
@@ -200,7 +200,7 @@ pub fn set_pilot_accent(state: State<'_, AppState>, id: String, accent: String) 
         let p = pilots
             .iter_mut()
             .find(|p| p.id == id)
-            .ok_or_else(|| BridgeError::PilotNotFound(id.clone()))?;
+            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?;
         p.accent = trimmed.to_string();
     }
     state.save_pilots()?;
@@ -226,9 +226,9 @@ pub async fn delete_pilot(state: State<'_, AppState>, id: String) -> Result<()> 
         let p = pilots
             .iter()
             .find(|p| p.id == id)
-            .ok_or_else(|| BridgeError::PilotNotFound(id.clone()))?;
+            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?;
         if !p.archived && !ARCHIVE_BYPASS_STATUSES.contains(&p.status) {
-            return Err(BridgeError::Other(
+            return Err(BifrostError::Other(
                 "Archive the pilot before deleting it.".into(),
             ));
         }
@@ -257,7 +257,7 @@ pub async fn delete_pilot(state: State<'_, AppState>, id: String) -> Result<()> 
     // once `taskkill /F /T` has done its work; the longer waits cover
     // the slow tail of Brave shutdown on hard-pressed machines (heavy
     // antivirus scanners, indexing services). Total worst-case wait
-    // is 1.7 s — short enough that the delete feels responsive even
+    // is 1.7 s â€” short enough that the delete feels responsive even
     // on the slow path.
     const HANDLE_RELEASE_DELAYS_MS: &[u64] = &[200, 500, 1000];
 

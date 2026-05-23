@@ -1,6 +1,6 @@
 //! Process-wide app state managed by Tauri.
 //!
-//! Bifrost persists two things to disk: the [`BridgeConfig`] (user
+//! Bifrost persists two things to disk: the [`BifrostConfig`] (user
 //! settings, last-known Sandboxie path, companion sites) and the list
 //! of [`Pilot`] records. Both live behind their own `Mutex` so command
 //! handlers can hold a lock briefly, snapshot what they need, and drop
@@ -12,14 +12,14 @@ use std::sync::Mutex;
 
 use tauri::{AppHandle, Manager};
 
-use crate::config::BridgeConfig;
-use crate::error::{BridgeError, Result};
+use crate::config::BifrostConfig;
+use crate::error::{BifrostError, Result};
 use crate::pilot::{Pilot, PilotStatus};
 
 /// Mutex-wrapped app state. Owned by Tauri; commands receive it as
 /// `State<'_, AppState>`.
 pub struct AppState {
-    pub config: Mutex<BridgeConfig>,
+    pub config: Mutex<BifrostConfig>,
     pub pilots: Mutex<Vec<Pilot>>,
     pub config_path: PathBuf,
     pub pilots_path: PathBuf,
@@ -33,13 +33,13 @@ impl AppState {
         let app_data = app
             .path()
             .app_data_dir()
-            .map_err(|e| BridgeError::Config(format!("no app data dir: {e}")))?;
+            .map_err(|e| BifrostError::Config(format!("no app data dir: {e}")))?;
         std::fs::create_dir_all(&app_data).ok();
 
         let config_path = app_data.join("config.json");
         let pilots_path = app_data.join("pilots.json");
 
-        let config = BridgeConfig::load_or_default(&config_path)?;
+        let config = BifrostConfig::load_or_default(&config_path)?;
         let pilots = load_pilots(&pilots_path)?;
 
         Ok(Self {
@@ -54,12 +54,12 @@ impl AppState {
     /// Clone the current config. Most commands only need a snapshot;
     /// they can mutate the clone freely and call [`save_config`] to
     /// persist.
-    pub fn config(&self) -> BridgeConfig {
+    pub fn config(&self) -> BifrostConfig {
         self.config.lock().unwrap().clone()
     }
 
     /// Replace the in-memory config and write it to disk.
-    pub fn save_config(&self, new: BridgeConfig) -> Result<()> {
+    pub fn save_config(&self, new: BifrostConfig) -> Result<()> {
         *self.config.lock().unwrap() = new.clone();
         new.save(&self.config_path)
     }
@@ -84,7 +84,7 @@ impl AppState {
 }
 
 /// Read `pilots.json`. Returns an empty Vec when the file doesn't
-/// exist yet. Resets all pilots to Stopped on load — runtime state
+/// exist yet. Resets all pilots to Stopped on load â€” runtime state
 /// never survives a restart since the sandboxes/processes are gone.
 fn load_pilots(path: &Path) -> Result<Vec<Pilot>> {
     if !path.exists() {
@@ -100,7 +100,7 @@ fn load_pilots(path: &Path) -> Result<Vec<Pilot>> {
 
 fn save_pilots(path: &Path, pilots: &[Pilot]) -> Result<()> {
     // pilots.json is the source of truth for the user's entire
-    // roster — a power loss / crash mid-write previously left a
+    // roster â€” a power loss / crash mid-write previously left a
     // zero-byte file and `load_or_default` silently falling back to
     // an empty pilot list. Now goes through write_atomic (tmp +
     // rename), which is atomic on every platform we support.

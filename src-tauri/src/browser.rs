@@ -1,6 +1,6 @@
 //! Per-pilot browser launcher.
 //!
-//! Bifrost ships its own portable Chromium build — Brave Browser
+//! Bifrost ships its own portable Chromium build â€” Brave Browser
 //! (chosen for built-in tracker / ad blocking that pairs well with
 //! the wallet-extension workflow and an actively maintained Windows
 //! portable release on GitHub). The bundled Brave is used
@@ -10,7 +10,7 @@
 //! Brave profile is never touched.
 //!
 //! - `--user-data-dir=<path>` for a fully isolated profile (cookies,
-//!   localStorage, extension state — Chromium's first-class multi-
+//!   localStorage, extension state â€” Chromium's first-class multi-
 //!   profile support gives us the same kind of isolation Sandboxie
 //!   gives us for the game client).
 //! - `--load-extension=<unpacked-extension-dir>` to side-load EVE Vault
@@ -115,7 +115,7 @@ fn cmdline_holds_profile(cmdline_lower: &str, profile_lower: &str) -> bool {
 /// Generate (or refresh) a tiny Chromium **theme extension** that
 /// colours the browser frame with the given pilot's accent. Side-loaded
 /// alongside EVE Vault on every browser launch so the user can tell at
-/// a glance which pilot owns each Chromium window — Airikr's wallet
+/// a glance which pilot owns each Chromium window â€” Airikr's wallet
 /// windows have an orange frame, Tal'Ra's are green, etc., matching
 /// the pilot card accent in Bifrost itself.
 ///
@@ -133,7 +133,7 @@ pub fn ensure_pilot_theme(
 
     let manifest = serde_json::json!({
         "manifest_version": 3,
-        "name": format!("Bifrost — {pilot_name}"),
+        "name": format!("Bifrost â€” {pilot_name}"),
         "version": "1.0.0",
         "description": "Per-pilot Chromium frame colour for visual identification (set by Bifrost).",
         "theme": {
@@ -176,7 +176,7 @@ fn hex_to_rgb(hex: &str) -> Option<[u8; 3]> {
 /// On first ever launch we drop a `First Run` sentinel so Chromium
 /// skips its welcome wizard, and a minimal `Default/Preferences` JSON
 /// with a stack of "behave quietly" defaults. We deliberately do NOT
-/// try to pre-pin extensions here — Chromium's path → extension-ID
+/// try to pre-pin extensions here â€” Chromium's path â†’ extension-ID
 /// hashing differs subtly from any reproducible Rust implementation
 /// we've tried, and pinning with the wrong ID silently fails. Use
 /// `ensure_extension_pinned` after the first launch instead, which
@@ -210,7 +210,7 @@ pub fn prepare_profile(profile_dir: &Path) -> Result<()> {
             "session": {
                 "restore_on_startup": 5,  // 5 = open NTP
             },
-            // Brave-specific prefs — silence the toolbar / onboarding
+            // Brave-specific prefs â€” silence the toolbar / onboarding
             // noise that ships on by default. Each pilot's profile is
             // a single-purpose EVE Frontier wallet session, none of
             // these surfaces are relevant.
@@ -251,7 +251,7 @@ pub fn prepare_profile(profile_dir: &Path) -> Result<()> {
 /// applies even to profiles created by older Bifrost versions, before
 /// Brave reads any user prefs.
 ///
-/// Documentation for each Brave feature flag is sparse — names lifted
+/// Documentation for each Brave feature flag is sparse â€” names lifted
 /// from the `brave/brave-core` source. We err on the side of "disable
 /// anything that paints UI a pilot wouldn't expect to see on their
 /// EVE-Frontier wallet window".
@@ -305,7 +305,7 @@ pub fn read_extension_id(profile_dir: &Path, install_dir_hint: &str) -> Option<S
 /// the given extension ID, persisting the change to disk. Takes effect
 /// on the next Chromium startup. Safe no-op if already pinned, if the
 /// Preferences file doesn't exist, or if Chromium is currently running
-/// (its in-memory state will overwrite our edits on shutdown — that's
+/// (its in-memory state will overwrite our edits on shutdown â€” that's
 /// OK, we'll re-try on the next launch).
 pub fn ensure_extension_pinned(profile_dir: &Path, extension_id: &str) -> Result<()> {
     let prefs_path = profile_dir.join("Default").join("Preferences");
@@ -324,7 +324,7 @@ pub fn ensure_extension_pinned(profile_dir: &Path, extension_id: &str) -> Result
         None => {
             // Insert an `extensions` object so we can add the pin.
             let root = json.as_object_mut().ok_or_else(|| {
-                crate::error::BridgeError::Other("prefs root is not an object".into())
+                crate::error::BifrostError::Other("prefs root is not an object".into())
             })?;
             root.insert(
                 "extensions".to_string(),
@@ -382,7 +382,7 @@ impl BrowserLauncher {
     /// containing a `manifest.json`) loaded via `--load-extension`.
     ///
     /// When `startup_url` is provided AND `app_mode` is true, the URL is
-    /// launched via `--app=URL` — a standalone window with no Chrome
+    /// launched via `--app=URL` â€” a standalone window with no Chrome
     /// chrome (URL bar, tabs, menu all hidden). Used for our per-pilot
     /// "App" buttons so each ecosystem site feels like its own desktop
     /// app. When `app_mode` is false the URL just opens as a regular tab.
@@ -407,7 +407,7 @@ impl BrowserLauncher {
         cmd.arg("--no-default-browser-check");
         // Brave-specific toolbar / sidebar / onboarding noise (Rewards,
         // News, Talk, Leo AI, VPN, native wallet, etc.). See
-        // QUIET_BRAVE_FEATURES — this list is the engine-level companion
+        // QUIET_BRAVE_FEATURES â€” this list is the engine-level companion
         // to the `Preferences` writes in `prepare_profile`.
         cmd.arg(format!(
             "--disable-features={}",
@@ -436,7 +436,7 @@ impl BrowserLauncher {
         // Bifrost. We explicitly opt OUT of killing the child on
         // drop so the browser keeps running after this future
         // resolves. The `Child` handle is dropped immediately on
-        // the next line — that just means we stop watching it
+        // the next line â€” that just means we stop watching it
         // from Rust; the OS process continues independently.
         //
         // When Bifrost actually needs to terminate a pilot's browser
@@ -464,7 +464,7 @@ impl BrowserLauncher {
 #[cfg(test)]
 mod tests {
     //! Profile bootstrap is the contract the user actually sees: open
-    //! Brave with a fresh per-pilot profile and have it be quiet —
+    //! Brave with a fresh per-pilot profile and have it be quiet â€”
     //! no Rewards onboarding, no native wallet popup, no News feed,
     //! no Leo AI sidebar. These tests pin every preference key the
     //! Settings UI promises a pilot's window won't have. If a key
@@ -490,7 +490,7 @@ mod tests {
 
     /// The Preferences JSON must disable every Brave noise surface
     /// users would otherwise see on first launch. This is the
-    /// canonical contract — if any feature falls off the list, this
+    /// canonical contract â€” if any feature falls off the list, this
     /// test breaks loudly. Pin every key we promise to suppress.
     #[test]
     fn prepare_profile_writes_quieting_preferences() {
@@ -513,7 +513,7 @@ mod tests {
             false
         );
 
-        // Native Brave Wallet — must be off so EVE Vault owns the
+        // Native Brave Wallet â€” must be off so EVE Vault owns the
         // wallet-icon slot uncontested.
         assert_eq!(json["brave"]["wallet"]["default_wallet"], 0);
         assert_eq!(json["brave"]["wallet"]["default_solana_wallet"], 0);
@@ -528,7 +528,7 @@ mod tests {
         assert_eq!(json["brave"]["vpn"]["show_in_toolbar"], false);
     }
 
-    /// Calling `prepare_profile` twice must be idempotent — the
+    /// Calling `prepare_profile` twice must be idempotent â€” the
     /// second call neither errors nor clobbers the existing
     /// Preferences (we use `if !prefs_path.exists()` to avoid
     /// overwriting any tweaks the user made after first launch).
@@ -560,7 +560,7 @@ mod tests {
         assert!(!QUIET_BRAVE_FEATURES.is_empty());
         assert!(
             QUIET_BRAVE_FEATURES.contains(&"NativeBraveWallet"),
-            "NativeBraveWallet must be in the disable list — it competes \
+            "NativeBraveWallet must be in the disable list â€” it competes \
              with EVE Vault for the wallet-icon slot"
         );
         assert!(QUIET_BRAVE_FEATURES.contains(&"BraveRewards"));
@@ -645,7 +645,7 @@ mod tests {
         );
     }
 
-    /// Pinning is idempotent — calling twice doesn't double-insert.
+    /// Pinning is idempotent â€” calling twice doesn't double-insert.
     #[test]
     fn ensure_extension_pinned_is_idempotent() {
         let tmp = TempDir::new().expect("tempdir");
