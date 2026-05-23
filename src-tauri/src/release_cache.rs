@@ -120,7 +120,12 @@ where
         }
         Err(e) => {
             let msg = e.to_string();
-            if is_rate_limit_error(&msg) {
+            // Cache the failure when the answer won't change in the
+            // next backoff window — rate limits AND upstream-stable
+            // conditions (release exists but binary asset isn't
+            // uploaded yet). Transient transport failures stay
+            // un-cached so a Wi-Fi reconnect can retry immediately.
+            if is_cacheable_failure(&msg) {
                 write_cached_failure(key, msg.clone());
             }
             Err(e)
@@ -191,6 +196,31 @@ fn is_rate_limit_error(msg: &str) -> bool {
     lower.contains("403") || lower.contains("429") || lower.contains("rate limit")
 }
 
+/// True if the error reflects a stable upstream condition that
+/// won't change in the next few minutes — for example, a release
+/// tag exists on GitHub but the binary asset hasn't been uploaded
+/// yet (Brave's release flow often pushes the tag 30+ min before
+/// the win32-x64 ZIP appears). These deserve the same backoff
+/// treatment as rate-limit failures: retrying every UI re-render
+/// (HMR reload, Settings remount, statusStore refresh) burns
+/// GitHub quota for the same answer.
+fn is_upstream_stable_error(msg: &str) -> bool {
+    let lower = msg.to_ascii_lowercase();
+    lower.contains("has no win32-x64 portable zip")
+        || lower.contains("has no asset matching")
+        || lower.contains("no usable installer asset")
+        || lower.contains("response had no result and no error")
+}
+
+/// Either flavour of "the same answer for at least a few minutes".
+/// `fetch_with_cache` uses this to decide whether to cache the
+/// failure — see the failure-cache doc-comment above for the
+/// rationale ("don't burn quota re-asking when the answer won't
+/// change yet").
+fn is_cacheable_failure(msg: &str) -> bool {
+    is_rate_limit_error(msg) || is_upstream_stable_error(msg)
+}
+
 // -------------------------------------------------------------------------
 // Shared GitHub-fetch helpers used by chromium / evevault / sandboxie_installer.
 // Each module supplies its own asset-matcher predicate + release struct;
@@ -239,6 +269,19 @@ pub fn friendly_fetch_error(raw: &str) -> String {
             .to_string()
     } else if lower.contains("timed out") || lower.contains("timeout") {
         "GitHub request timed out. Check your connection and retry.".to_string()
+    } else if lower.contains("has no win32-x64 portable zip")
+        || lower.contains("has no asset matching")
+        || lower.contains("no usable installer asset")
+    {
+        // The release exists on GitHub but the upstream project hasn't
+        // uploaded the binary we need yet — common on Brave's release
+        // cadence where the tag is pushed minutes before the artifacts
+        // finish uploading. Don't blame GitHub for being unreachable.
+        format!(
+            "Upstream tagged a release but hasn't uploaded the Windows \
+             portable build yet. This usually resolves within an hour — \
+             try Check for updates later. ({raw})"
+        )
     } else {
         format!("Couldn't reach GitHub: {raw}")
     }
@@ -463,6 +506,59 @@ mod tests {
     /// re-firing fetches on every Settings panel mount. This is the
     /// fix for the "Settings opens → 3 fetches → all 403 → user
     /// switches tabs and back → 3 more fetches" loop.
+    ///
+    /// Upstream-stable failures (a release tag exists but the binary
+    /// asset isn't uploaded yet — Brave's release-flow norm) get
+    /// the same backoff treatment as rate-limit failures. Without
+    /// this, every HMR reload / Settings re-mount re-fetched the
+    /// same upstream and got the same error, burning quota for the
+    /// same answer.
+    #[test]
+    fn upstream_stable_failure_is_cached_and_short_circuits() {
+        let calls = Arc::new(AtomicUsize::new(0));
+
+        // First call: the exact wording chromium emits when the
+        // release tag exists but no portable ZIP asset is published.
+        let calls_c = calls.clone();
+        let first = block_on(fetch_with_cache::<StubRelease, _, _>(
+            "test_upstream_stable_cached",
+            false,
+            move || {
+                let n = calls_c.clone();
+                async move {
+                    n.fetch_add(1, Ordering::SeqCst);
+                    Err(BifrostError::Other(
+                        "release v1.90.125 has no win32-x64 portable ZIP".into(),
+                    ))
+                }
+            },
+        ));
+        assert!(first.is_err());
+
+        // Second call within the backoff window must NOT hit the
+        // fetcher — the upstream answer is stable for at least a
+        // few minutes (binary still uploading).
+        let calls_c2 = calls.clone();
+        let _second = block_on(fetch_with_cache::<StubRelease, _, _>(
+            "test_upstream_stable_cached",
+            false,
+            move || {
+                let n = calls_c2.clone();
+                async move {
+                    n.fetch_add(1, Ordering::SeqCst);
+                    Ok(StubRelease {
+                        tag: "should-not-run".to_string(),
+                    })
+                }
+            },
+        ));
+        assert_eq!(
+            calls.load(Ordering::SeqCst),
+            1,
+            "upstream-stable failure must short-circuit subsequent calls"
+        );
+    }
+
     #[test]
     fn rate_limit_failure_is_cached_and_short_circuits() {
         let calls = Arc::new(AtomicUsize::new(0));

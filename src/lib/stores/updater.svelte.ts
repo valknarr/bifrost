@@ -45,8 +45,15 @@ class UpdaterStore {
 
   /** Poll the updater endpoint for a newer signed release. No-op if
    *  already checking. Errors are stashed on `this.error` rather
-   *  than thrown — the banner is opt-in UI, never a hard failure. */
+   *  than thrown — the banner is opt-in UI, never a hard failure.
+   *
+   *  Skipped entirely in dev builds (`import.meta.env.DEV`): the
+   *  updater plugin logs every endpoint failure at ERROR level via
+   *  its own tracing subscriber, which spammed the dev console on
+   *  every HMR reload while the first signed release was still
+   *  pending. Production builds always check. */
   async check() {
+    if (import.meta.env.DEV) return;
     this.error = null;
     try {
       const { check } = await import("@tauri-apps/plugin-updater");
@@ -56,13 +63,11 @@ class UpdaterStore {
       }
     } catch (e) {
       // Common failure modes here:
-      //   - Pubkey placeholder still in tauri.conf.json (dev build)
+      //   - Pubkey placeholder still in tauri.conf.json
       //   - No network
       //   - Manifest not yet published (first release pending)
       // All non-fatal; the app keeps working at its current version.
       const msg = e instanceof Error ? e.message : String(e);
-      // Don't show the user a banner for these — log and move on.
-      // Dev builds will see the pubkey error every launch otherwise.
       console.warn("updater: check failed:", msg);
       this.error = msg;
     }

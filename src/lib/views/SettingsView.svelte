@@ -145,37 +145,37 @@
                 {tag(status?.sandboxieInstalled ?? false)}
                 {#if sandboxie?.installedVariant}
                   <span class="ml-1 text-[var(--color-text-dim)]">
-                    Â· {variantLabel}
+                    · {variantLabel}
                   </span>
                 {/if}
                 {#if sandboxie?.installedVersion}
                   <span class="ml-1 text-[var(--color-text-dim)]">
-                    Â· <VersionLink
+                    · <VersionLink
                       version={sandboxie.installedVersion}
                       url={externalLinks.sandboxie}
                     />
                     {#if sandboxie.updateAvailable && activeLatestVersion}
                       <span class="text-[var(--color-warn)]">
-                        Â· update available Â· <VersionLink
+                        · update available · <VersionLink
                           version={activeLatestVersion}
                           url={externalLinks.sandboxie}
                           class="text-[var(--color-warn)]"
                         />
                       </span>
                     {:else if sandboxie.detected}
-                      Â· up to date
+                      · up to date
                     {/if}
                   </span>
                 {:else if status?.sandboxieInstalled && activeLatestVersion}
                   <span class="ml-1 text-[var(--color-text-dim)]">
-                    Â· external Â· latest <VersionLink
+                    · external · latest <VersionLink
                       version={activeLatestVersion}
                       url={externalLinks.sandboxie}
                     />
                   </span>
                 {:else if installTargetLatest}
                   <span class="ml-1 text-[var(--color-text-dim)]">
-                    Â· latest {installTargetLabel} <VersionLink
+                    · latest {installTargetLabel} <VersionLink
                       version={installTargetLatest}
                       url={externalLinks.sandboxie}
                     />
@@ -363,7 +363,7 @@
               <span
                 class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] tracking-[0.15em] uppercase"
               >
-                Brave Â· {formatBytes(chromium?.latestSizeBytes)}
+                Brave · {formatBytes(chromium?.latestSizeBytes)}
               </span>
             </div>
             <!-- Single status line, matches Sandboxie row -->
@@ -374,25 +374,33 @@
                 {chromium?.installedVersion ? "● Installed" : "○ Not installed"}
                 {#if chromium?.installedVersion}
                   <span class="ml-1 text-[var(--color-text-dim)]">
-                    Â· <VersionLink
+                    · <VersionLink
                       version={chromium.installedVersion}
                       url={externalLinks.brave}
                     />
                     {#if chromium.updateAvailable && chromium.latestVersion}
                       <span class="text-[var(--color-warn)]">
-                        Â· update available Â· <VersionLink
+                        · update available · <VersionLink
                           version={chromium.latestVersion}
                           url={externalLinks.brave}
                           class="text-[var(--color-warn)]"
                         />
                       </span>
+                    {:else if chromium.latestVersion}
+                      · up to date
                     {:else}
-                      Â· up to date
+                      <!-- latest_version is null when the upstream
+                           release exists but the asset isn't uploaded
+                           yet, OR when the GitHub fetch failed. In
+                           both cases "up to date" would be a lie —
+                           we don't know. The error banner below tells
+                           the user what happened. -->
+                      · latest unknown
                     {/if}
                   </span>
                 {:else if chromium?.latestVersion}
                   <span class="ml-1 text-[var(--color-text-dim)]">
-                    Â· latest <VersionLink
+                    · latest <VersionLink
                       version={chromium.latestVersion}
                       url={externalLinks.brave}
                     />
@@ -483,7 +491,7 @@
               <span
                 class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] tracking-[0.15em] uppercase"
               >
-                Verified Â· SHA-256
+                Verified · SHA-256
               </span>
             </div>
             <!-- Single status line, matches Sandboxie + Brave rows -->
@@ -494,25 +502,27 @@
                 {vault?.installedVersion ? "● Installed" : "○ Not installed"}
                 {#if vault?.installedVersion}
                   <span class="ml-1 text-[var(--color-text-dim)]">
-                    Â· <VersionLink
+                    · <VersionLink
                       version={vault.installedVersion}
                       url={externalLinks.eveVault}
                     />
                     {#if vault.updateAvailable && vault.latestVersion}
                       <span class="text-[var(--color-warn)]">
-                        Â· update available Â· <VersionLink
+                        · update available · <VersionLink
                           version={vault.latestVersion}
                           url={externalLinks.eveVault}
                           class="text-[var(--color-warn)]"
                         />
                       </span>
+                    {:else if vault.latestVersion}
+                      · up to date
                     {:else}
-                      Â· up to date
+                      · latest unknown
                     {/if}
                   </span>
                 {:else if vault?.latestVersion}
                   <span class="ml-1 text-[var(--color-text-dim)]">
-                    Â· latest <VersionLink
+                    · latest <VersionLink
                       version={vault.latestVersion}
                       url={externalLinks.eveVault}
                     />
@@ -621,7 +631,7 @@
           <span
             class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] tracking-[0.2em] uppercase"
           >
-            UI scale Â· persists across launches
+            UI scale · persists across launches
           </span>
         </div>
 
@@ -633,9 +643,9 @@
             <span class="leader"></span>
             <span class="value text-[var(--color-text-muted)]">
               {#if activePreset === "custom"}
-                Custom Â· {(activeZoom * 100).toFixed(0)}%
+                Custom · {(activeZoom * 100).toFixed(0)}%
               {:else}
-                {ZOOM_PRESETS[activePreset].label} Â· {(
+                {ZOOM_PRESETS[activePreset].label} · {(
                   ZOOM_PRESETS[activePreset].value * 100
                 ).toFixed(0)}%
               {/if}
@@ -688,7 +698,7 @@
               <span class="leader"></span>
               <span class="value text-[var(--color-text-muted)]">
                 {#if (config?.rosterColumns ?? 0) === 0}
-                  Auto Â· fills the window
+                  Auto · fills the window
                 {:else}
                   {config?.rosterColumns} pilots per row
                 {/if}
