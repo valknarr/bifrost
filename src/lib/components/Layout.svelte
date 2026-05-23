@@ -51,12 +51,12 @@
           class="flex h-6 w-6 items-center justify-center border border-[var(--color-accent)]"
           style:box-shadow="0 0 10px -2px var(--color-accent)"
         >
-          <span class="mono text-[10px] font-bold text-[var(--color-accent)]"
+          <span class="mono text-[calc(10px*var(--text-scale,1))] font-bold text-[var(--color-accent)]"
             >B</span
           >
         </div>
         <span
-          class="text-[11px] tracking-[0.32em] uppercase text-[var(--color-text)]"
+          class="text-[calc(11px*var(--text-scale,1))] tracking-[0.32em] uppercase text-[var(--color-text)]"
         >
           Bifrost
         </span>
@@ -64,7 +64,7 @@
       <nav class="flex items-stretch">
         {#each navItems as item}
           <button
-            class="relative cursor-pointer px-5 text-[11px] tracking-[0.25em] uppercase transition-colors {routeStore.current ===
+            class="relative cursor-pointer px-5 text-[calc(11px*var(--text-scale,1))] tracking-[0.25em] uppercase transition-colors {routeStore.current ===
             item.id
               ? 'text-[var(--color-focus)]'
               : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'}"
@@ -74,7 +74,7 @@
               {item.label}
               {#if item.id === "settings" && settingsAlert}
                 <span
-                  class="flex h-[14px] w-[14px] items-center justify-center bg-[var(--color-danger)] text-[9px] font-bold text-[var(--color-bg)]"
+                  class="flex h-[14px] w-[14px] items-center justify-center bg-[var(--color-danger)] text-[calc(9px*var(--text-scale,1))] font-bold text-[var(--color-bg)]"
                   style:box-shadow="0 0 6px var(--color-danger)"
                   aria-label="Setup required"
                   title="Setup required — host dependencies missing"
@@ -101,7 +101,7 @@
          badge). The settings-tab `!` badge takes care of the
          actionable nudge; this one's the always-on at-a-glance. -->
     <div
-      class="flex items-center gap-3 px-4 text-[10px] tracking-[0.2em] uppercase"
+      class="flex items-center gap-3 px-4 text-[calc(10px*var(--text-scale,1))] tracking-[0.2em] uppercase"
     >
       <!-- Pilots state -->
       <div class="flex items-center gap-2">
@@ -152,7 +152,7 @@
 
   <!-- Bottom status strip — game-flavoured ticker -->
   <footer
-    class="flex items-center justify-between border-t border-[var(--color-border)] bg-[var(--color-surface)]/80 px-5 text-[10px] tracking-[0.2em] uppercase text-[var(--color-text-dim)]"
+    class="flex items-center justify-between border-t border-[var(--color-border)] bg-[var(--color-surface)]/80 px-5 text-[calc(10px*var(--text-scale,1))] tracking-[0.2em] uppercase text-[var(--color-text-dim)]"
   >
     <div class="flex items-center gap-3">
       <span class="text-[var(--color-text-muted)]"

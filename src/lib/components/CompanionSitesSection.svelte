@@ -53,7 +53,7 @@
   <div class="flex items-baseline justify-between">
     <h2 class="section-label">Companion sites</h2>
     <span
-      class="text-[10px] text-[var(--color-text-dim)] tracking-[0.2em] uppercase"
+      class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] tracking-[0.2em] uppercase"
     >
       Each pilot opens these with their wallet identity
     </span>
@@ -73,22 +73,22 @@
             : ''}"
         >
           <span
-            class="mono flex h-6 w-6 shrink-0 items-center justify-center border border-[var(--color-border-hi)] text-[10px] font-bold text-[var(--color-text-muted)]"
+            class="mono flex h-6 w-6 shrink-0 items-center justify-center border border-[var(--color-border-hi)] text-[calc(10px*var(--text-scale,1))] font-bold text-[var(--color-text-muted)]"
           >
             {site.icon}
           </span>
-          <span class="flex-1 text-[12px] text-[var(--color-text)]">
+          <span class="flex-1 text-[calc(12px*var(--text-scale,1))] text-[var(--color-text)]">
             {site.name}
           </span>
           <span
-            class="mono text-[10px] text-[var(--color-text-dim)] truncate max-w-[280px]"
+            class="mono text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] truncate max-w-[280px]"
             title={site.url}
           >
             {site.url}
           </span>
           {#if site.builtin}
             <span
-              class="text-[9px] tracking-[0.2em] text-[var(--color-text-dim)] uppercase shrink-0"
+              class="text-[calc(9px*var(--text-scale,1))] tracking-[0.2em] text-[var(--color-text-dim)] uppercase shrink-0"
             >
               Built-in
             </span>
@@ -108,7 +108,7 @@
             </button>
           {:else}
             <button
-              class="cursor-pointer border border-transparent px-2 py-0.5 text-[10px] tracking-[0.15em] text-[var(--color-text-muted)] uppercase hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]"
+              class="cursor-pointer border border-transparent px-2 py-0.5 text-[calc(10px*var(--text-scale,1))] tracking-[0.15em] text-[var(--color-text-muted)] uppercase hover:border-[var(--color-danger)] hover:text-[var(--color-danger)]"
               onclick={() => configStore.removeSite(site.url)}
               title="Remove this site"
             >
@@ -124,7 +124,7 @@
     <!-- Add new site -->
     <div class="flex flex-col gap-2">
       <span
-        class="text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase"
+        class="text-[calc(10px*var(--text-scale,1))] tracking-[0.2em] text-[var(--color-text-muted)] uppercase"
       >
         Add custom site
       </span>
@@ -134,14 +134,14 @@
           placeholder="Name"
           bind:value={newSiteName}
           onkeydown={(e) => e.key === "Enter" && handleAddSite()}
-          class="mono border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-[11px] text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-focus)] focus:outline-none"
+          class="mono border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-[calc(11px*var(--text-scale,1))] text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-focus)] focus:outline-none"
         />
         <input
           type="text"
           placeholder="https://example.com/"
           bind:value={newSiteUrl}
           onkeydown={(e) => e.key === "Enter" && handleAddSite()}
-          class="mono border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-[11px] text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-focus)] focus:outline-none"
+          class="mono border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-[calc(11px*var(--text-scale,1))] text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-focus)] focus:outline-none"
         />
         <input
           type="text"
@@ -149,7 +149,7 @@
           maxlength="2"
           bind:value={newSiteIcon}
           onkeydown={(e) => e.key === "Enter" && handleAddSite()}
-          class="mono border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-center text-[11px] text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-focus)] focus:outline-none"
+          class="mono border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-center text-[calc(11px*var(--text-scale,1))] text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-focus)] focus:outline-none"
         />
         <Button
           size="sm"
@@ -161,7 +161,7 @@
       </div>
       {#if configError}
         <div
-          class="border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/10 px-3 py-2 text-[10px] text-[var(--color-danger)]"
+          class="border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/10 px-3 py-2 text-[calc(10px*var(--text-scale,1))] text-[var(--color-danger)]"
         >
           {configError}
         </div>

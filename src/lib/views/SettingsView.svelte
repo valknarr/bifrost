@@ -120,7 +120,7 @@
 
   <div class="flex flex-col gap-8 px-6 pb-8">
     {#if loading}
-      <div class="text-[11px] text-[var(--color-text-muted)] tracking-[0.2em] uppercase">
+      <div class="text-[calc(11px*var(--text-scale,1))] text-[var(--color-text-muted)] tracking-[0.2em] uppercase">
         Reading state…
       </div>
     {:else}
@@ -128,7 +128,7 @@
       <div class="flex flex-col gap-3">
         <div class="flex items-baseline justify-between">
           <h2 class="section-label text-[var(--color-accent)]">Detection</h2>
-          <span class="text-[10px] text-[var(--color-text-dim)] tracking-[0.2em] uppercase">
+          <span class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] tracking-[0.2em] uppercase">
             Live probe of the host
           </span>
         </div>
@@ -186,7 +186,7 @@
 
             {#if sandboxie?.latestError && !sandboxie?.latestPlusVersion && !sandboxie?.latestClassicVersion}
               <p
-                class="border-l border-[var(--color-warn)]/50 pl-3 text-[10px] leading-snug text-[var(--color-warn)]"
+                class="border-l border-[var(--color-warn)]/50 pl-3 text-[calc(10px*var(--text-scale,1))] leading-snug text-[var(--color-warn)]"
               >
                 {sandboxie.latestError}
               </p>
@@ -218,7 +218,7 @@
                 <div class="flex justify-end">
                   <button
                     type="button"
-                    class="cursor-pointer text-[10px] tracking-[0.05em] text-[var(--color-text-muted)] underline-offset-2 hover:text-[var(--color-focus)] hover:underline disabled:opacity-30"
+                    class="cursor-pointer text-[calc(10px*var(--text-scale,1))] tracking-[0.05em] text-[var(--color-text-muted)] underline-offset-2 hover:text-[var(--color-focus)] hover:underline disabled:opacity-30"
                     disabled={sandboxieBusy}
                     onclick={() => (installTarget = otherVariant)}
                     title="Switch which Sandboxie variant the install button targets"
@@ -235,7 +235,7 @@
                        regardless. Surfacing this so users who pick
                        Classic aren't surprised by their log. -->
                   <p
-                    class="border-l border-[var(--color-warn)]/40 pl-3 text-[10px] leading-snug text-[var(--color-warn)]"
+                    class="border-l border-[var(--color-warn)]/40 pl-3 text-[calc(10px*var(--text-scale,1))] leading-snug text-[var(--color-warn)]"
                   >
                     ⓘ Classic logs benign
                     <span class="mono">SBIE2205 ConsoleInit</span>
@@ -287,7 +287,7 @@
 
             {#if sandboxieError}
               <div
-                class="border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/10 px-3 py-2 text-[10px] text-[var(--color-danger)]"
+                class="border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/10 px-3 py-2 text-[calc(10px*var(--text-scale,1))] text-[var(--color-danger)]"
               >
                 {sandboxieError}
               </div>
@@ -295,7 +295,7 @@
 
             {#if !(status?.sandboxieInstalled ?? false)}
               <p
-                class="text-[10px] leading-snug text-[var(--color-text-muted)]"
+                class="text-[calc(10px*var(--text-scale,1))] leading-snug text-[var(--color-text-muted)]"
               >
                 Bifrost installs Sandboxie-Plus by default. Sandboxie
                 Classic is also supported — same kernel driver, lighter
@@ -322,12 +322,12 @@
               <div
                 class="flex items-center justify-between gap-3 border-l border-[var(--color-danger)]/40 pl-3"
               >
-                <span class="text-[10px] text-[var(--color-text-muted)] leading-snug">
+                <span class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-muted)] leading-snug">
                   The official game launcher. Bifrost will launch it inside
                   each pilot's sandbox.
                 </span>
                 <button
-                  class="mono shrink-0 cursor-pointer border border-[var(--color-border-hi)] px-2.5 py-1 text-[10px] tracking-[0.18em] text-[var(--color-text-muted)] uppercase transition-colors hover:border-[var(--color-focus)] hover:text-[var(--color-focus)]"
+                  class="mono shrink-0 cursor-pointer border border-[var(--color-border-hi)] px-2.5 py-1 text-[calc(10px*var(--text-scale,1))] tracking-[0.18em] text-[var(--color-text-muted)] uppercase transition-colors hover:border-[var(--color-focus)] hover:text-[var(--color-focus)]"
                   onclick={() => openExternal(externalLinks.eveFrontier)}
                   title={externalLinks.eveFrontier}
                 >
@@ -346,7 +346,7 @@
       <div class="flex flex-col gap-3">
         <div class="flex items-baseline justify-between">
           <h2 class="section-label">EVE Vault Integration</h2>
-          <span class="text-[10px] text-[var(--color-text-dim)] tracking-[0.2em] uppercase">
+          <span class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] tracking-[0.2em] uppercase">
             Per-pilot browser + wallet
           </span>
         </div>
@@ -356,12 +356,12 @@
           <div class="flex flex-col gap-2">
             <div class="flex items-baseline justify-between">
               <span
-                class="text-[10px] tracking-[0.25em] text-[var(--color-accent)] uppercase"
+                class="text-[calc(10px*var(--text-scale,1))] tracking-[0.25em] text-[var(--color-accent)] uppercase"
               >
                 Portable browser
               </span>
               <span
-                class="text-[10px] text-[var(--color-text-dim)] tracking-[0.15em] uppercase"
+                class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] tracking-[0.15em] uppercase"
               >
                 Brave · {formatBytes(chromium?.latestSizeBytes)}
               </span>
@@ -402,14 +402,14 @@
             </div>
             {#if chromium?.latestError && !chromium?.latestVersion}
               <p
-                class="border-l border-[var(--color-warn)]/50 pl-3 text-[10px] leading-snug text-[var(--color-warn)]"
+                class="border-l border-[var(--color-warn)]/50 pl-3 text-[calc(10px*var(--text-scale,1))] leading-snug text-[var(--color-warn)]"
               >
                 {chromium.latestError}
               </p>
             {/if}
             {#if chromiumError}
               <div
-                class="border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/10 px-3 py-2 text-[10px] text-[var(--color-danger)]"
+                class="border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/10 px-3 py-2 text-[calc(10px*var(--text-scale,1))] text-[var(--color-danger)]"
               >
                 {chromiumError}
               </div>
@@ -476,12 +476,12 @@
           <div class="flex flex-col gap-2">
             <div class="flex items-baseline justify-between">
               <span
-                class="text-[10px] tracking-[0.25em] text-[var(--color-accent)] uppercase"
+                class="text-[calc(10px*var(--text-scale,1))] tracking-[0.25em] text-[var(--color-accent)] uppercase"
               >
                 EVE Vault extension
               </span>
               <span
-                class="text-[10px] text-[var(--color-text-dim)] tracking-[0.15em] uppercase"
+                class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] tracking-[0.15em] uppercase"
               >
                 Verified · SHA-256
               </span>
@@ -522,14 +522,14 @@
             </div>
             {#if vault?.latestError && !vault?.latestVersion}
               <p
-                class="border-l border-[var(--color-warn)]/50 pl-3 text-[10px] leading-snug text-[var(--color-warn)]"
+                class="border-l border-[var(--color-warn)]/50 pl-3 text-[calc(10px*var(--text-scale,1))] leading-snug text-[var(--color-warn)]"
               >
                 {vault.latestError}
               </p>
             {/if}
             {#if vaultError}
               <div
-                class="border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/10 px-3 py-2 text-[10px] text-[var(--color-danger)]"
+                class="border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/10 px-3 py-2 text-[calc(10px*var(--text-scale,1))] text-[var(--color-danger)]"
               >
                 {vaultError}
               </div>
@@ -590,7 +590,7 @@
             {/if}
           </div>
 
-          <p class="text-[10px] tracking-[0.04em] text-[var(--color-text-dim)] leading-relaxed">
+          <p class="text-[calc(10px*var(--text-scale,1))] tracking-[0.04em] text-[var(--color-text-dim)] leading-relaxed">
             Bifrost downloads the official EVE Vault Chromium extension from
             <span class="mono">github.com/evefrontier/evevault</span>
             (verified by SHA-256) and stores it under Bifrost's app-data.
@@ -598,7 +598,7 @@
             standalone Chromium window with EVE Vault preloaded as that
             pilot's identity.
           </p>
-          <p class="text-[10px] tracking-[0.04em] text-[var(--color-text-dim)] leading-relaxed">
+          <p class="text-[calc(10px*var(--text-scale,1))] tracking-[0.04em] text-[var(--color-text-dim)] leading-relaxed">
             <span class="text-[var(--color-warn)]">One-time setup per pilot:</span>
             the first browser launch shows a Chromium window with EVE
             Vault pinned to the toolbar. Click the wallet icon → sign in
@@ -619,7 +619,7 @@
         <div class="flex items-baseline justify-between">
           <h2 class="section-label">Display</h2>
           <span
-            class="text-[10px] text-[var(--color-text-dim)] tracking-[0.2em] uppercase"
+            class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] tracking-[0.2em] uppercase"
           >
             UI scale · persists across launches
           </span>
@@ -661,21 +661,20 @@
 
           {#if configError}
             <p
-              class="border-l border-[var(--color-danger)]/50 pl-3 text-[10px] leading-snug text-[var(--color-danger)]"
+              class="border-l border-[var(--color-danger)]/50 pl-3 text-[calc(10px*var(--text-scale,1))] leading-snug text-[var(--color-danger)]"
             >
               {configError}
             </p>
           {/if}
 
           <p
-            class="text-[10px] leading-snug text-[var(--color-text-muted)]"
+            class="text-[calc(10px*var(--text-scale,1))] leading-snug text-[var(--color-text-muted)]"
           >
-            Bifrost is a desktop app and can't rely on browser zoom.
-            These presets call Tauri's <span class="mono">setZoom()</span>
-            on the underlying webview so every pixel — text, padding,
-            icons, the background drift — scales together. Pick what
-            reads comfortably on your monitor; the choice survives
-            restarts.
+            Scales text only — button hit-targets, padding, and grid
+            gaps stay at their natural pixel sizes regardless of
+            preset. Compact reads as denser type in the same chrome;
+            Comfortable as bigger type in the same chrome. The choice
+            survives restarts.
           </p>
 
           <!-- Roster layout. Lets the user lock the pilot grid to a
@@ -712,7 +711,7 @@
               {/each}
             </div>
             <p
-              class="text-[10px] leading-snug text-[var(--color-text-muted)]"
+              class="text-[calc(10px*var(--text-scale,1))] leading-snug text-[var(--color-text-muted)]"
             >
               Picks how many pilot cards line up per row. Auto adds
               columns as you drag the window wider — 3, 4, 5, as many
@@ -731,7 +730,7 @@
       <div class="flex flex-col gap-3">
         <div class="flex items-baseline justify-between">
           <h2 class="section-label">Paths</h2>
-          <span class="text-[10px] text-[var(--color-text-dim)] tracking-[0.2em] uppercase">
+          <span class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] tracking-[0.2em] uppercase">
             Edit in a later milestone
           </span>
         </div>
@@ -739,21 +738,21 @@
           <div class="field">
             <span class="label">Sandboxie root</span>
             <span class="leader"></span>
-            <span class="value mono text-[10px] text-[var(--color-text-muted)]">
+            <span class="value mono text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-muted)]">
               {config?.sandboxiePath ?? "—"}
             </span>
           </div>
           <div class="field">
             <span class="label">Frontier exe</span>
             <span class="leader"></span>
-            <span class="value mono text-[10px] text-[var(--color-text-muted)]">
+            <span class="value mono text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-muted)]">
               {config?.frontierExe ?? "—"}
             </span>
           </div>
           <div class="field">
             <span class="label">Pilots dir</span>
             <span class="leader"></span>
-            <span class="value mono text-[10px] text-[var(--color-text-muted)]">
+            <span class="value mono text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-muted)]">
               {config?.pilotsDir ?? "—"}
             </span>
           </div>

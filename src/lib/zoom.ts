@@ -1,14 +1,19 @@
-// Thin wrapper around Tauri's webview zoom so the rest of the code
-// doesn't have to know about `getCurrentWebview()`. Two callers:
+// UI-scale helpers. `applyZoom` (kept for name-stability with the
+// previous Tauri-webview-zoom implementation) now writes a
+// `--text-scale` CSS variable on the document root — see app.css.
+// The rest of this file is unrelated window-resize machinery shared
+// with the Settings › Display › Roster layout picker.
 //
-//   1. App.svelte on mount — applies the persisted zoom before the
+// Two `applyZoom` callers:
+//
+//   1. App.svelte on mount — applies the persisted scale before the
 //      user sees the UI.
 //   2. SettingsView when a preset is clicked — pairs with
 //      `api.setUiZoom()` so the change is visible immediately AND
 //      saved to disk for next launch.
 //
-// We import lazily to keep the cold path off the main bundle: the
-// webview module is only needed when zoom actually changes.
+// `@tauri-apps/api/window` is imported lazily inside the window-size
+// helpers below to keep that cold path off the main bundle.
 
 /**
  * Three canonical presets surfaced in the Settings UI. Kept as a
@@ -16,9 +21,21 @@
  * label without a separate lookup.
  */
 export const ZOOM_PRESETS = {
-  compact: { value: 0.9, label: "Compact", description: "Denser layout, more info per screen" },
-  default: { value: 1.0, label: "Default", description: "Bifrost's reference design" },
-  comfortable: { value: 1.15, label: "Comfortable", description: "Bigger text, easier on the eyes" },
+  compact: {
+    value: 0.9,
+    label: "Compact",
+    description: "Smaller text in the same chrome — denser reading",
+  },
+  default: {
+    value: 1.0,
+    label: "Default",
+    description: "Bifrost's reference design",
+  },
+  comfortable: {
+    value: 1.15,
+    label: "Comfortable",
+    description: "Bigger text, button hit-targets unchanged",
+  },
 } as const;
 
 export type ZoomPreset = keyof typeof ZOOM_PRESETS;
@@ -35,20 +52,29 @@ export function presetFor(zoom: number): ZoomPreset | "custom" {
 }
 
 /**
- * Apply a zoom factor to the running webview. Wraps the dynamic
- * import so callers don't need to know about `@tauri-apps/api`.
+ * Apply the text scale by writing the `--text-scale` CSS variable
+ * on `:root`. Drives:
+ *   - `html { font-size: calc(16px * var(--text-scale)) }` in
+ *     app.css, so every rem-based size (Tailwind `text-base`,
+ *     `text-lg`, custom `0.7rem` labels, etc.) scales together
+ *   - Every `text-[calc(Npx*var(--text-scale,1))]` arbitrary value
+ *     scattered across the .svelte files
  *
- * Throws on failure — historically this swallowed errors silently,
- * which masked a missing-permission regression for an entire commit
- * cycle. Callers who genuinely want best-effort behaviour (e.g.
- * App.svelte's startup application of the persisted value, where a
- * silent fallback to 1.0 is acceptable) should wrap in their own
- * try/catch. The Settings picker re-throws so the user sees the
- * error in the panel.
+ * Pixel-based chrome (button mins, padding, gaps) DOESN'T scale —
+ * that's the whole point of the text-scale model vs. the previous
+ * Tauri webview-zoom approach, where everything scaled uniformly
+ * and hit targets shrunk in Compact / grew in Comfortable.
+ *
+ * Synchronous and side-effect-only on the DOM; returns void to
+ * keep the call-site shape identical to the old `applyZoom`.
+ * Async signature retained because callers `await` it; trivially
+ * resolves.
  */
 export async function applyZoom(zoom: number): Promise<void> {
-  const { getCurrentWebview } = await import("@tauri-apps/api/webview");
-  await getCurrentWebview().setZoom(zoom);
+  if (!Number.isFinite(zoom) || zoom <= 0) {
+    throw new Error(`applyZoom: invalid scale ${zoom}`);
+  }
+  document.documentElement.style.setProperty("--text-scale", String(zoom));
 }
 
 /**

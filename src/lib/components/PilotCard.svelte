@@ -143,7 +143,7 @@
     class="flex items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-bg)]/60 px-4 py-2"
   >
     <h3
-      class="title-bracket text-[13px] tracking-[0.04em] text-[var(--color-text)]"
+      class="title-bracket text-[calc(13px*var(--text-scale,1))] tracking-[0.04em] text-[var(--color-text)]"
     >
       {pilot.name}
     </h3>
@@ -159,7 +159,7 @@
     >
       <span class="text-[var(--color-warn)] leading-tight">⚠</span>
       <p
-        class="text-[10px] leading-[1.4] tracking-[0.04em] text-[var(--color-warn)]"
+        class="text-[calc(10px*var(--text-scale,1))] leading-[1.4] tracking-[0.04em] text-[var(--color-warn)]"
       >
         <span class="mono tracking-[0.18em] uppercase">Sandbox no longer exists.</span><br>
         The Sandboxie box this pilot was using has been deleted outside of
@@ -175,7 +175,7 @@
     >
       <span class="text-[var(--color-warn)] leading-tight">⚠</span>
       <p
-        class="text-[10px] leading-[1.4] tracking-[0.04em] text-[var(--color-warn)]"
+        class="text-[calc(10px*var(--text-scale,1))] leading-[1.4] tracking-[0.04em] text-[var(--color-warn)]"
       >
         <span class="mono tracking-[0.18em] uppercase">The
         sandbox will inherit your default EVE Frontier launcher's account.</span><br>
@@ -212,7 +212,7 @@
           ></button>
         {/each}
         <button
-          class="mono ml-1 text-[10px] tracking-[0.15em] text-[var(--color-text-dim)] uppercase hover:text-[var(--color-text-muted)]"
+          class="mono ml-1 text-[calc(10px*var(--text-scale,1))] tracking-[0.15em] text-[var(--color-text-dim)] uppercase hover:text-[var(--color-text-muted)]"
           onclick={() => (pickingAccent = false)}
         >
           esc
@@ -237,7 +237,7 @@
     {#if editingWallet}
       <div class="flex flex-col gap-2 px-4 py-3">
         <label
-          class="text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase"
+          class="text-[calc(10px*var(--text-scale,1))] tracking-[0.2em] text-[var(--color-text-muted)] uppercase"
         >
           Wallet address
           <input
@@ -248,7 +248,7 @@
               if (e.key === "Enter") saveWallet();
               if (e.key === "Escape") cancelEditWallet();
             }}
-            class="mono mt-2 w-full border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-[11px] normal-case tracking-normal text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-focus)] focus:outline-none"
+            class="mono mt-2 w-full border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-[calc(11px*var(--text-scale,1))] normal-case tracking-normal text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-focus)] focus:outline-none"
           />
         </label>
         <div class="flex gap-2 mt-1">
@@ -274,36 +274,36 @@
       <!-- Stats grid: 3 columns, each [big value] / [tiny label] -->
       <div class="grid grid-cols-3 divide-x divide-[var(--color-border)]">
         <div class="flex flex-col items-start gap-0.5 px-3 py-2.5">
-          <span class="mono text-[15px] leading-none text-[var(--color-text)]">
+          <span class="mono text-[calc(15px*var(--text-scale,1))] leading-none text-[var(--color-text)]">
             {pilot.eveBalance ?? "—"}
           </span>
           <span
-            class="mono text-[9px] tracking-[0.22em] text-[var(--color-text-dim)] uppercase"
+            class="mono text-[calc(9px*var(--text-scale,1))] tracking-[0.22em] text-[var(--color-text-dim)] uppercase"
           >
             EVE
           </span>
         </div>
         <div class="flex flex-col items-start gap-0.5 px-3 py-2.5">
           <span
-            class="mono text-[15px] leading-none text-[var(--color-text-muted)]"
+            class="mono text-[calc(15px*var(--text-scale,1))] leading-none text-[var(--color-text-muted)]"
           >
             {pilot.walletBalance ?? "—"}
           </span>
           <span
-            class="mono text-[9px] tracking-[0.22em] text-[var(--color-text-dim)] uppercase"
+            class="mono text-[calc(9px*var(--text-scale,1))] tracking-[0.22em] text-[var(--color-text-dim)] uppercase"
           >
             Gas
           </span>
         </div>
         <div class="flex flex-col items-start gap-0.5 px-3 py-2.5">
           <span
-            class="mono truncate w-full text-[12px] leading-none text-[var(--color-text-muted)]"
+            class="mono truncate w-full text-[calc(12px*var(--text-scale,1))] leading-none text-[var(--color-text-muted)]"
             title={pilot.sandbox}
           >
             {shortSandbox}
           </span>
           <span
-            class="mono text-[9px] tracking-[0.22em] text-[var(--color-text-dim)] uppercase"
+            class="mono text-[calc(9px*var(--text-scale,1))] tracking-[0.22em] text-[var(--color-text-dim)] uppercase"
           >
             Box
           </span>
@@ -317,15 +317,15 @@
         title="Click to edit wallet address"
       >
         {#if pilot.walletAddress}
-          <span class="mono text-[11px] text-[var(--color-text-muted)]"
+          <span class="mono text-[calc(11px*var(--text-scale,1))] text-[var(--color-text-muted)]"
             >{shortAddr}</span
           >
           <span
-            class="mono text-[9px] tracking-[0.2em] text-[var(--color-text-dim)] uppercase"
+            class="mono text-[calc(9px*var(--text-scale,1))] tracking-[0.2em] text-[var(--color-text-dim)] uppercase"
             >Edit</span
           >
         {:else}
-          <span class="mono text-[11px] text-[var(--color-accent)]"
+          <span class="mono text-[calc(11px*var(--text-scale,1))] text-[var(--color-accent)]"
             >+ Set wallet address</span
           >
           <span class="text-[var(--color-text-dim)]">›</span>
@@ -350,7 +350,7 @@
       {#each configStore.enabledSites as site (site.url)}
         {@const favicon = faviconStore.cache.get(site.url)}
         <button
-          class="mono group flex h-11 w-11 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] bg-transparent text-[12px] font-bold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-focus)] hover:text-[var(--color-focus)]"
+          class="mono group flex h-11 w-11 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] bg-transparent text-[calc(12px*var(--text-scale,1))] font-bold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-focus)] hover:text-[var(--color-focus)]"
           onclick={() => openApp(site.url)}
           title="{site.name} — {site.url}"
           aria-label="Open {site.name} as {pilot.name}"
@@ -372,9 +372,15 @@
 
   <!-- Action footer.
        The primary CTA (Launch / Stop) is sized `lg` and `flex-1` so it
-       dominates the row. Archive is a quiet icon-button on the RIGHT
-       — less weight, hints at a non-destructive "stash" action
-       (sandbox is preserved). Disabled while the pilot is running. -->
+       dominates the row on narrow cards, but capped at `max-w-[260px]`
+       so it doesn't sprawl across the full width of a card in the
+       2- or 3-pilot fixed layouts (where the card stretches to fit
+       half / a third of the window). Excess footer space sits as
+       calm gap between Launch and the Archive icon — feels less
+       "button bar", more "primary action, quiet utility". Archive
+       is a quiet icon-button on the RIGHT — less weight, hints at a
+       non-destructive "stash" action (sandbox is preserved).
+       Disabled while the pilot is running. -->
   <footer
     class="flex items-center gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg)]/40 px-4 py-2.5"
   >
@@ -385,7 +391,7 @@
       <Button
         variant="danger"
         size="lg"
-        class="flex-1"
+        class="flex-1 max-w-[260px]"
         onclick={removeMissing}
       >
         Remove pilot
@@ -394,7 +400,7 @@
       <Button
         variant="danger"
         size="lg"
-        class="flex-1"
+        class="flex-1 max-w-[260px]"
         disabled={syncing}
         onclick={() => pilotStore.stop(pilot.id)}
       >
@@ -404,7 +410,7 @@
       <Button
         variant="primary"
         size="lg"
-        class="flex-1"
+        class="flex-1 max-w-[260px]"
         disabled={isBusy || syncing}
         onclick={() => pilotStore.start(pilot.id)}
       >

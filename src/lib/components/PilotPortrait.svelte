@@ -92,7 +92,7 @@
   <!-- Pen icon — change accent colour. Stays subtle until hovered. -->
   {#if onEditAccent}
     <button
-      class="absolute right-2 bottom-2 flex h-6 w-6 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] bg-[var(--color-bg)]/70 text-[11px] text-[var(--color-text-muted)] opacity-50 transition-all hover:border-[var(--color-focus)] hover:text-[var(--color-focus)] hover:opacity-100"
+      class="absolute right-2 bottom-2 flex h-6 w-6 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] bg-[var(--color-bg)]/70 text-[calc(11px*var(--text-scale,1))] text-[var(--color-text-muted)] opacity-50 transition-all hover:border-[var(--color-focus)] hover:text-[var(--color-focus)] hover:opacity-100"
       onclick={onEditAccent}
       title="Change accent colour"
       aria-label="Change accent colour"

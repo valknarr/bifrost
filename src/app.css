@@ -6,6 +6,16 @@
  * mono everywhere) without infringing on CCP brand assets directly.
  */
 @theme {
+  /* Tailwind v4 spacing token. Pinned to a fixed pixel value (was the
+     default `0.25rem`) so chrome — button paddings, grid gaps, header
+     min-heights — stays constant when the user changes UI scale.
+     Combined with the rem-based `--text-*` tokens, this gives us the
+     "text grows, hit targets don't" model the Settings › Display
+     picker is described as. Numerically the default (`0.25rem` at
+     16 px root) and `4px` produce the same layout at scale 1.0; the
+     override only diverges from default once text-scale ≠ 1. */
+  --spacing: 4px;
+
   /* Surfaces — pushed darker to match the game's near-black backdrop. */
   --color-bg: #04060a;
   --color-bg-grad-1: #07090e;
@@ -68,6 +78,15 @@
    translucent surface panels (`bg-surface/40`) reveal the canvas
    through their fills. */
 html {
+  /* Root font-size is the cornerstone of the text-scale model: every
+     rem-based size (Tailwind's `text-base`, `text-lg`, custom `0.7rem`
+     class labels) scales relative to this, while pixel-based chrome
+     (`min-h-[36px]`, `--spacing: 4px`) stays put. JS writes
+     `--text-scale` via `applyTextScale(...)` in zoom.ts when the user
+     picks a Settings › Display preset; default `1` keeps the scale at
+     1.0 if the variable is never set. */
+  font-size: calc(16px * var(--text-scale, 1));
+
   height: 100%;
   background: radial-gradient(
       ellipse at top,

@@ -23,13 +23,13 @@
     "inline-flex items-center justify-center gap-2 tracking-[0.2em] uppercase whitespace-nowrap font-medium transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-30 disabled:[box-shadow:none] cursor-pointer relative";
 
   const sizes: Record<Size, string> = {
-    sm: "px-3 py-1.5 text-[10px] min-h-[28px] min-w-[72px]",
-    md: "px-5 py-2.5 text-[11px] min-h-[36px] min-w-[96px]",
+    sm: "px-3 py-1.5 text-[calc(10px*var(--text-scale,1))] min-h-[28px] min-w-[72px]",
+    md: "px-5 py-2.5 text-[calc(11px*var(--text-scale,1))] min-h-[36px] min-w-[96px]",
     // lg is the "pilot card primary CTA" size — bigger hit-target +
     // beefier visual presence for Launch / Stop, where the user is
     // committing to a multi-second sandbox spin-up. Pairs with the
     // h-10/w-10 icon-button for Archive sitting next to it.
-    lg: "px-6 py-3 text-[12px] min-h-[44px] min-w-[120px]",
+    lg: "px-6 py-3 text-[calc(12px*var(--text-scale,1))] min-h-[44px] min-w-[120px]",
   };
 
   // Primary + danger are *filled* by default so the commit-this-action

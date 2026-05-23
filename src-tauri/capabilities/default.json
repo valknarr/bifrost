@@ -1,11 +1,10 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capability set for the Bifrost main window. Bifrost keeps the JS-side surface minimal: file I/O, process spawning, and Sandboxie / browser orchestration happen in Rust commands. The JS-callable surfaces granted are `shell:allow-open` (so external URLs like GitHub release pages can open in the host browser), `core:webview:allow-set-webview-zoom` (so the Settings UI-scale presets can call `webview.setZoom()`), and the trio of window read+resize permissions (`core:window:allow-inner-size`, `core:window:allow-scale-factor`, `core:window:allow-set-size`) used by the Settings roster-layout picker to snap the window width to fit 2 or 3 pilot cards. Everything else routes through our own tauri::commands which have their own validation.",
+  "description": "Default capability set for the Bifrost main window. Bifrost keeps the JS-side surface minimal: file I/O, process spawning, and Sandboxie / browser orchestration happen in Rust commands. The JS-callable surfaces granted are `shell:allow-open` (so external URLs like GitHub release pages can open in the host browser) and the trio of window read+resize permissions (`core:window:allow-inner-size`, `core:window:allow-scale-factor`, `core:window:allow-set-size`) used by the Settings roster-layout picker to snap the window width to fit 2 or 3 pilot cards. The previous `core:webview:allow-set-webview-zoom` is gone — Settings › UI scale now writes a `--text-scale` CSS variable rather than calling the webview's zoom API. Everything else routes through our own tauri::commands which have their own validation.",
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "core:webview:allow-set-webview-zoom",
     "core:window:allow-inner-size",
     "core:window:allow-scale-factor",
     "core:window:allow-set-size",

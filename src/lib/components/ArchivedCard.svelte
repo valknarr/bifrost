@@ -29,12 +29,12 @@
   <header class="flex items-start justify-between gap-3">
     <div class="flex flex-col gap-1">
       <h3
-        class="title-bracket text-[14px] text-[var(--color-text-muted)]"
+        class="title-bracket text-[calc(14px*var(--text-scale,1))] text-[var(--color-text-muted)]"
       >
         {pilot.name}
       </h3>
       <div
-        class="flex items-center gap-2 text-[10px] text-[var(--color-text-dim)] uppercase tracking-[0.2em]"
+        class="flex items-center gap-2 text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] uppercase tracking-[0.2em]"
       >
         <span class="mono normal-case tracking-normal">{pilot.sandbox}</span>
         <span>›</span>

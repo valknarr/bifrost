@@ -57,16 +57,16 @@
   ></div>
 
   <header class="flex flex-col gap-1">
-    <h3 class="title-bracket mono text-[14px] text-[var(--color-text-muted)]">
+    <h3 class="title-bracket mono text-[calc(14px*var(--text-scale,1))] text-[var(--color-text-muted)]">
       {box.name}
     </h3>
-    <p class="text-[10px] tracking-[0.2em] text-[var(--color-text-dim)] uppercase">
+    <p class="text-[calc(10px*var(--text-scale,1))] tracking-[0.2em] text-[var(--color-text-dim)] uppercase">
       Unmanaged sandbox
     </p>
   </header>
 
   <div class="flex flex-col gap-2">
-    <label class="flex flex-col gap-2 text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase">
+    <label class="flex flex-col gap-2 text-[calc(10px*var(--text-scale,1))] tracking-[0.2em] text-[var(--color-text-muted)] uppercase">
       Pilot name
       <input
         type="text"

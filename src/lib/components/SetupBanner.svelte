@@ -66,7 +66,7 @@
     <header class="flex items-center justify-between gap-4">
       <div class="flex items-center gap-3">
         <span
-          class="mono flex h-6 w-6 items-center justify-center border border-[var(--color-danger)] text-[12px] font-bold text-[var(--color-danger)]"
+          class="mono flex h-6 w-6 items-center justify-center border border-[var(--color-danger)] text-[calc(12px*var(--text-scale,1))] font-bold text-[var(--color-danger)]"
           style:box-shadow="0 0 8px -2px var(--color-danger)"
           aria-hidden="true"
         >
@@ -74,12 +74,12 @@
         </span>
         <div class="flex flex-col leading-tight">
           <span
-            class="mono text-[12px] tracking-[0.2em] text-[var(--color-text)] uppercase"
+            class="mono text-[calc(12px*var(--text-scale,1))] tracking-[0.2em] text-[var(--color-text)] uppercase"
           >
             Setup required
           </span>
           <span
-            class="text-[10px] tracking-[0.05em] text-[var(--color-text-muted)]"
+            class="text-[calc(10px*var(--text-scale,1))] tracking-[0.05em] text-[var(--color-text-muted)]"
           >
             Bifrost can't launch pilots until {missing.length === 1
               ? "this component is"
@@ -110,17 +110,17 @@
           ></span>
           <div class="flex flex-col leading-tight">
             <span
-              class="mono text-[11px] tracking-[0.18em] uppercase text-[var(--color-text)]"
+              class="mono text-[calc(11px*var(--text-scale,1))] tracking-[0.18em] uppercase text-[var(--color-text)]"
             >
               {row.label}
               <span
-                class="ml-2 text-[9px] tracking-[0.22em] text-[var(--color-danger)]"
+                class="ml-2 text-[calc(9px*var(--text-scale,1))] tracking-[0.22em] text-[var(--color-danger)]"
               >
                 ✕ Missing
               </span>
             </span>
             <span
-              class="text-[10px] text-[var(--color-text-muted)] leading-snug"
+              class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-muted)] leading-snug"
             >
               {row.detail}
             </span>

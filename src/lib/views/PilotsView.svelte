@@ -124,7 +124,7 @@
        hierarchy reads top-down.
        `min-h-[40px]` on the inner row is set HIGHER than the natural
        height of either constraint — the Add Pilot Button (~38 px
-       with text-[11px] leading + py-2.5 + border) and the h1 alone
+       with `text-[11px]` leading + py-2.5 + border) and the h1 alone
        (~28 px). Both this and the equivalent rule in SettingsView
        pin to the same value so the header doesn't grow / shrink by
        a pixel or two when the user tabs between the views. -->
@@ -139,7 +139,7 @@
           placeholder="New pilot designation…"
           bind:value={newName}
           onkeydown={(e) => e.key === "Enter" && handleCreate()}
-          class="mono w-[220px] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-[12px] text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-focus)] focus:outline-none"
+          class="mono w-[220px] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-[calc(12px*var(--text-scale,1))] text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] focus:border-[var(--color-focus)] focus:outline-none"
         />
         <Button onclick={handleCreate} disabled={creating || !newName.trim()}>
           {creating ? "Creating…" : "+ Add pilot"}
@@ -159,7 +159,7 @@
     {#if pilotStore.syncing && managedPilots.length > 0}
       <div class="flex items-center gap-3 border border-[var(--color-border)] bg-[var(--color-surface)]/40 px-4 py-2">
         <span
-          class="mono text-[10px] tracking-[0.22em] text-[var(--color-text-muted)] uppercase"
+          class="mono text-[calc(10px*var(--text-scale,1))] tracking-[0.22em] text-[var(--color-text-muted)] uppercase"
         >
           Validating sandboxes…
         </span>
@@ -172,17 +172,17 @@
     <!-- Managed -->
     <div class="flex flex-col gap-4">
       {#if pilotStore.loading && managedPilots.length === 0}
-        <div class="text-[11px] text-[var(--color-text-muted)] tracking-[0.2em] uppercase">
+        <div class="text-[calc(11px*var(--text-scale,1))] text-[var(--color-text-muted)] tracking-[0.2em] uppercase">
           Loading roster…
         </div>
       {:else if managedPilots.length === 0}
         <div
           class="flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/20 py-14 text-center"
         >
-          <p class="text-[11px] tracking-[0.2em] text-[var(--color-text-muted)] uppercase">
+          <p class="text-[calc(11px*var(--text-scale,1))] tracking-[0.2em] text-[var(--color-text-muted)] uppercase">
             No pilots assigned
           </p>
-          <p class="text-[11px] text-[var(--color-text-dim)]">
+          <p class="text-[calc(11px*var(--text-scale,1))] text-[var(--color-text-dim)]">
             Designate a new pilot above, or adopt an existing sandbox below.
           </p>
         </div>
@@ -201,11 +201,11 @@
         <div class="flex items-baseline justify-between">
           <div class="flex items-baseline gap-3">
             <h2 class="section-label">Discovered</h2>
-            <span class="text-[10px] tracking-[0.2em] text-[var(--color-text-dim)] uppercase">
+            <span class="text-[calc(10px*var(--text-scale,1))] tracking-[0.2em] text-[var(--color-text-dim)] uppercase">
               Sandboxes not yet under Bifrost control
             </span>
           </div>
-          <span class="mono text-[10px] text-[var(--color-text-dim)]">
+          <span class="mono text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)]">
             {String(pilotStore.discovered.length).padStart(2, "0")}
           </span>
         </div>
@@ -223,11 +223,11 @@
         <div class="flex items-baseline justify-between">
           <div class="flex items-baseline gap-3">
             <h2 class="section-label">Archived</h2>
-            <span class="text-[10px] tracking-[0.2em] text-[var(--color-text-dim)] uppercase">
+            <span class="text-[calc(10px*var(--text-scale,1))] tracking-[0.2em] text-[var(--color-text-dim)] uppercase">
               Stashed · sandbox preserved · restorable
             </span>
           </div>
-          <span class="mono text-[10px] text-[var(--color-text-dim)]">
+          <span class="mono text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)]">
             {String(archivedPilots.length).padStart(2, "0")}
           </span>
         </div>

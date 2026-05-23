@@ -52,7 +52,7 @@
 </script>
 
 <span
-  class="mono inline-flex items-center gap-2 text-[10px] tracking-[0.25em] uppercase {s.text}"
+  class="mono inline-flex items-center gap-2 text-[calc(10px*var(--text-scale,1))] tracking-[0.25em] uppercase {s.text}"
 >
   <span class="h-1.5 w-1.5 {s.dot}" style:box-shadow={s.glow}></span>
   {s.label}
