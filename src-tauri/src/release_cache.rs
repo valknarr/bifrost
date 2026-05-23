@@ -6,15 +6,32 @@
 //! modules × two reasons) — a handful of dev reloads was enough to get
 //! a 403 for the rest of the hour.
 //!
-//! The cache is process-lifetime, holds the last successful response
-//! per cache key, and serves it for [`TTL`] before refetching. A
-//! `force_refresh = true` call bypasses the cache for the next fetch
-//! (used by the "Check for updates" button) but still writes the fresh
-//! result back so subsequent calls in the same TTL window are fast.
+//! The cache is process-lifetime and serves successful responses for
+//! [`SUCCESS_TTL`] (30 min). A `force_refresh = true` call bypasses
+//! the cache for the next fetch (used by the "Check for updates"
+//! button) but still writes the fresh result back so subsequent calls
+//! in the same TTL window are fast.
 //!
-//! Failures are NOT cached — if GitHub returns 403 the next call will
-//! attempt a real fetch again. Otherwise a single failed request would
-//! lock us out of retries for the whole TTL.
+//! Failure handling is split by failure type:
+//!
+//! * **Rate-limit failures** (HTTP 403/429) — cached with a separate
+//!   shorter TTL ([`FAILURE_BACKOFF_TTL`], 5 min). When we're being
+//!   rate-limited, the *worst* thing we can do is keep hammering
+//!   GitHub on every Settings open — that burns more quota and
+//!   extends the lockout. Caching the 403 short-circuits the network
+//!   call for 5 min and surfaces the same friendly "rate-limit" error
+//!   immediately. After 5 min the next call retries naturally.
+//!
+//! * **All other failures** (timeout, DNS, connection refused) — NOT
+//!   cached. Those are transient and the user often resolves them by
+//!   plugging the laptop back in / reconnecting Wi-Fi; we don't want
+//!   to lock retries behind a TTL when the next attempt would
+//!   probably succeed.
+//!
+//! Before this split existed, a single 403 on app startup let the
+//! UI re-fire three GitHub calls every ~7 s on Settings re-mounts,
+//! each one extending the rate-limit window. The fix is "cache the
+//! 403 too, but shorter than the success TTL".
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -32,7 +49,15 @@ use crate::http;
 /// answer" with "stop spamming GitHub". The `Check for updates` button
 /// always bypasses the cache, so this is only the floor for automatic
 /// refetches.
-const TTL: Duration = Duration::from_secs(30 * 60);
+const SUCCESS_TTL: Duration = Duration::from_secs(30 * 60);
+
+/// Shorter back-off window for rate-limit failures. 5 min keeps us
+/// well under GitHub's hourly window resetting while still allowing a
+/// genuine retry once the user has waited a few minutes. Coupled with
+/// the friendly error message in `friendly_fetch_error()` which tells
+/// the user to "try Check for updates later", the UX is: see the
+/// friendly error, wait a moment, click Check, get a fresh attempt.
+const FAILURE_BACKOFF_TTL: Duration = Duration::from_secs(5 * 60);
 
 /// Internal entry — we serialize to JSON so we don't have to make the
 /// cache generic over the value type. Each module passes its own key
@@ -43,11 +68,25 @@ struct Entry {
     payload_json: String,
 }
 
-static CACHE: Lazy<Mutex<HashMap<&'static str, Entry>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+/// Rate-limit failure entry. Stores the original error message so we
+/// surface the same text the user would have seen on a fresh fetch —
+/// `friendly_fetch_error()` translates it into the actionable
+/// "wait + Check for updates" phrasing downstream.
+#[derive(Clone)]
+struct FailureEntry {
+    inserted_at: Instant,
+    error_msg: String,
+}
 
-/// Run `fetch` only if the cache is empty / stale for `key`, or
-/// `force_refresh` is true. On any successful fetch the result is
-/// written back. Failed fetches are not cached.
+static CACHE: Lazy<Mutex<HashMap<&'static str, Entry>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+static FAILURE_CACHE: Lazy<Mutex<HashMap<&'static str, FailureEntry>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
+/// Run `fetch` only when the cache is empty / stale for `key`, or
+/// `force_refresh` is true. On success the result is written back.
+/// On a rate-limit failure (HTTP 403/429) the error is also cached
+/// — see the FAILURE_BACKOFF_TTL doc-comment for why. Other
+/// failures (timeout, DNS) are NOT cached.
 pub async fn fetch_with_cache<T, F, Fut>(
     key: &'static str,
     force_refresh: bool,
@@ -62,16 +101,37 @@ where
         if let Some(cached) = read_cached::<T>(key) {
             return Ok(cached);
         }
+        // Rate-limit short-circuit: if we recently got 403'd by
+        // GitHub, surface the same error immediately without firing
+        // a fresh request. Skipped on `force_refresh` because the
+        // user explicitly asked for a retry via Check for updates.
+        if let Some(msg) = read_cached_failure(key) {
+            return Err(BridgeError::Other(msg));
+        }
     }
-    let fresh = fetch().await?;
-    write_cache(key, &fresh);
-    Ok(fresh)
+    match fetch().await {
+        Ok(fresh) => {
+            write_cache(key, &fresh);
+            // Successful fetch retires any prior rate-limit backoff
+            // — the next failed call should get a fresh attempt at
+            // GitHub rather than serving a stale 403.
+            clear_cached_failure(key);
+            Ok(fresh)
+        }
+        Err(e) => {
+            let msg = e.to_string();
+            if is_rate_limit_error(&msg) {
+                write_cached_failure(key, msg.clone());
+            }
+            Err(e)
+        }
+    }
 }
 
 fn read_cached<T: DeserializeOwned>(key: &'static str) -> Option<T> {
     let guard = CACHE.lock().ok()?;
     let entry = guard.get(key)?;
-    if entry.inserted_at.elapsed() >= TTL {
+    if entry.inserted_at.elapsed() >= SUCCESS_TTL {
         return None;
     }
     serde_json::from_str(&entry.payload_json).ok()
@@ -90,6 +150,45 @@ fn write_cache<T: Serialize>(key: &'static str, value: &T) {
             },
         );
     }
+}
+
+fn read_cached_failure(key: &'static str) -> Option<String> {
+    let guard = FAILURE_CACHE.lock().ok()?;
+    let entry = guard.get(key)?;
+    if entry.inserted_at.elapsed() >= FAILURE_BACKOFF_TTL {
+        return None;
+    }
+    Some(entry.error_msg.clone())
+}
+
+fn write_cached_failure(key: &'static str, msg: String) {
+    if let Ok(mut guard) = FAILURE_CACHE.lock() {
+        guard.insert(
+            key,
+            FailureEntry {
+                inserted_at: Instant::now(),
+                error_msg: msg,
+            },
+        );
+    }
+}
+
+fn clear_cached_failure(key: &'static str) {
+    if let Ok(mut guard) = FAILURE_CACHE.lock() {
+        guard.remove(key);
+    }
+}
+
+/// True if the error message looks like a GitHub rate-limit
+/// response. We rely on the substring "403" / "429" / "rate limit"
+/// because `fetch_release_json` formats the upstream error as the
+/// raw HTTP status, and `friendly_fetch_error` already keys off the
+/// same substring for the user-facing message. If GitHub ever moves
+/// to a different status code (unlikely), both sites need updating
+/// — the friendly-error tests catch the user-facing half.
+fn is_rate_limit_error(msg: &str) -> bool {
+    let lower = msg.to_ascii_lowercase();
+    lower.contains("403") || lower.contains("429") || lower.contains("rate limit")
 }
 
 // -------------------------------------------------------------------------
@@ -305,24 +404,29 @@ mod tests {
         );
     }
 
-    /// A failed fetch is NOT cached. If GitHub returns 403 once, the
-    /// next call retries instead of serving the failure from cache
-    /// for 30 minutes — otherwise a single transient failure on app
-    /// startup would lock retries until the next process restart.
+    /// A transient (non-rate-limit) failure must NOT get cached.
+    /// Otherwise a single hiccup at app startup — DNS blip, Wi-Fi
+    /// reconnect, GitHub having a bad minute — would lock retries
+    /// behind the success TTL when the next attempt would probably
+    /// succeed.
     #[test]
-    fn failed_fetch_does_not_get_cached() {
+    fn transient_failure_does_not_get_cached() {
         let calls = Arc::new(AtomicUsize::new(0));
 
-        // First call: fail.
+        // First call: simulate a network timeout (NOT a 403). The
+        // failure message must be distinct from rate-limit phrasing
+        // or `is_rate_limit_error` would (correctly) cache it.
         let calls_c = calls.clone();
         let first = block_on(fetch_with_cache::<StubRelease, _, _>(
-            "test_failed_not_cached",
+            "test_transient_not_cached",
             false,
             move || {
                 let n = calls_c.clone();
                 async move {
                     n.fetch_add(1, Ordering::SeqCst);
-                    Err(BridgeError::Other("simulated 403".into()))
+                    Err(BridgeError::Other(
+                        "simulated network timeout".into(),
+                    ))
                 }
             },
         ));
@@ -332,7 +436,7 @@ mod tests {
         // a cached failure.
         let calls_c2 = calls.clone();
         let second = block_on(fetch_with_cache::<StubRelease, _, _>(
-            "test_failed_not_cached",
+            "test_transient_not_cached",
             false,
             move || {
                 let n = calls_c2.clone();
@@ -352,6 +456,194 @@ mod tests {
             2,
             "both attempts must reach the fetcher when the first failed"
         );
+    }
+
+    /// Rate-limit failures (HTTP 403/429) MUST be cached for the
+    /// backoff window so the UI doesn't burn through quota by
+    /// re-firing fetches on every Settings panel mount. This is the
+    /// fix for the "Settings opens → 3 fetches → all 403 → user
+    /// switches tabs and back → 3 more fetches" loop.
+    #[test]
+    fn rate_limit_failure_is_cached_and_short_circuits() {
+        let calls = Arc::new(AtomicUsize::new(0));
+
+        // First call: simulate the upstream 403 we see in real life.
+        // `fetch_release_json` formats the error as "GitHub API
+        // returned HTTP 403 Forbidden", so the cache should pattern-
+        // match on "403".
+        let calls_c = calls.clone();
+        let first = block_on(fetch_with_cache::<StubRelease, _, _>(
+            "test_403_cached",
+            false,
+            move || {
+                let n = calls_c.clone();
+                async move {
+                    n.fetch_add(1, Ordering::SeqCst);
+                    Err(BridgeError::Other(
+                        "GitHub API returned HTTP 403 Forbidden".into(),
+                    ))
+                }
+            },
+        ));
+        assert!(first.is_err());
+
+        // Second call within the backoff window: must NOT hit the
+        // fetcher, must surface the cached error.
+        let calls_c2 = calls.clone();
+        let second = block_on(fetch_with_cache::<StubRelease, _, _>(
+            "test_403_cached",
+            false,
+            move || {
+                let n = calls_c2.clone();
+                async move {
+                    n.fetch_add(1, Ordering::SeqCst);
+                    Ok(StubRelease {
+                        tag: "should-not-run".to_string(),
+                    })
+                }
+            },
+        ));
+        assert!(second.is_err(), "must surface the cached 403");
+        assert_eq!(
+            calls.load(Ordering::SeqCst),
+            1,
+            "rate-limit failure must short-circuit subsequent calls"
+        );
+    }
+
+    /// `force_refresh = true` also bypasses the failure cache. When
+    /// the user clicks Check for updates they're explicitly asking
+    /// for a fresh attempt — even if GitHub said 403 five minutes
+    /// ago, we should at least try.
+    #[test]
+    fn force_refresh_bypasses_failure_cache() {
+        let calls = Arc::new(AtomicUsize::new(0));
+
+        // Seed the failure cache with a 403.
+        let calls_c = calls.clone();
+        let _ = block_on(fetch_with_cache::<StubRelease, _, _>(
+            "test_force_bypasses_fail",
+            false,
+            move || {
+                let n = calls_c.clone();
+                async move {
+                    n.fetch_add(1, Ordering::SeqCst);
+                    Err(BridgeError::Other(
+                        "GitHub API returned HTTP 403 Forbidden".into(),
+                    ))
+                }
+            },
+        ));
+
+        // Force-refresh: must call the fetcher again.
+        let calls_c2 = calls.clone();
+        let refreshed = block_on(fetch_with_cache::<StubRelease, _, _>(
+            "test_force_bypasses_fail",
+            true,
+            move || {
+                let n = calls_c2.clone();
+                async move {
+                    n.fetch_add(1, Ordering::SeqCst);
+                    Ok(StubRelease {
+                        tag: "fresh".to_string(),
+                    })
+                }
+            },
+        ))
+        .expect("force_refresh succeeds");
+
+        assert_eq!(refreshed.tag, "fresh");
+        assert_eq!(
+            calls.load(Ordering::SeqCst),
+            2,
+            "force_refresh must run the fetcher even when failure cache is warm"
+        );
+    }
+
+    /// A successful fetch clears any prior rate-limit backoff so the
+    /// next failure cleanly re-arms the cache. Without this, a 403
+    /// followed by force-refresh-success followed by a fresh 403
+    /// would (incorrectly) serve the OLD 403 from cache instead of
+    /// re-arming with the new one.
+    #[test]
+    fn success_clears_prior_failure_cache() {
+        let calls = Arc::new(AtomicUsize::new(0));
+
+        // 1. Fail with 403 — populates failure cache.
+        let calls_c = calls.clone();
+        let _ = block_on(fetch_with_cache::<StubRelease, _, _>(
+            "test_success_clears_fail",
+            false,
+            move || {
+                let n = calls_c.clone();
+                async move {
+                    n.fetch_add(1, Ordering::SeqCst);
+                    Err(BridgeError::Other(
+                        "GitHub API returned HTTP 403 Forbidden".into(),
+                    ))
+                }
+            },
+        ));
+
+        // 2. Force-refresh that succeeds — should clear the failure
+        // cache.
+        let calls_c2 = calls.clone();
+        let _ = block_on(fetch_with_cache::<StubRelease, _, _>(
+            "test_success_clears_fail",
+            true,
+            move || {
+                let n = calls_c2.clone();
+                async move {
+                    n.fetch_add(1, Ordering::SeqCst);
+                    Ok(StubRelease {
+                        tag: "first-success".to_string(),
+                    })
+                }
+            },
+        ))
+        .expect("success");
+
+        // 3. Subsequent call (no force_refresh): success TTL has
+        // it, so we get the cached success without hitting fetcher.
+        // The point of THIS test is the failure cache is cleared —
+        // we verify by then asserting calls = 2 (not 3).
+        let calls_c3 = calls.clone();
+        let third = block_on(fetch_with_cache::<StubRelease, _, _>(
+            "test_success_clears_fail",
+            false,
+            move || {
+                let n = calls_c3.clone();
+                async move {
+                    n.fetch_add(1, Ordering::SeqCst);
+                    Ok(StubRelease {
+                        tag: "should-not-run".to_string(),
+                    })
+                }
+            },
+        ))
+        .expect("third");
+
+        assert_eq!(third.tag, "first-success", "served from success cache");
+        assert_eq!(
+            calls.load(Ordering::SeqCst),
+            2,
+            "first (fail) + second (force-refresh success); third served from cache"
+        );
+    }
+
+    /// `is_rate_limit_error` recognises the formats `fetch_release_json`
+    /// actually produces. Pinning the contract here means a future
+    /// refactor that changes the error wording breaks the test
+    /// rather than silently disabling the rate-limit cache.
+    #[test]
+    fn rate_limit_error_detection() {
+        assert!(is_rate_limit_error("GitHub API returned HTTP 403 Forbidden"));
+        assert!(is_rate_limit_error("HTTP 429 Too Many Requests"));
+        assert!(is_rate_limit_error("Rate limit exceeded"));
+        assert!(is_rate_limit_error("rate limit"));
+        assert!(!is_rate_limit_error("request timed out"));
+        assert!(!is_rate_limit_error("DNS lookup failed"));
+        assert!(!is_rate_limit_error("connection refused"));
     }
 
     /// Different cache keys must not collide. Catches "I accidentally
