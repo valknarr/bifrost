@@ -21,9 +21,17 @@
   const RECONCILE_INTERVAL_MS = 30_000;
 
   onMount(() => {
-    // First-load probe: mirror the persistent on-disk state to what
-    // Sandboxie says is actually running right now.
-    pilotStore.reconcile();
+    // First-load probe in TWO phases:
+    //   1. `refresh()` (inside bootstrap) — fast in-memory read of
+    //      pilots.json, paints the roster in the first frame
+    //   2. `reconcile_pilots` (inside bootstrap) — slow Sandboxie
+    //      shellouts, runs in the background; `syncing` is true
+    //      during this window so the UI can disable Launch/Stop
+    //      and show a thin "Validating sandboxes…" bar
+    // The 30 s background tick keeps using plain reconcile() — it
+    // doesn't need to gate the UI because by then statuses are
+    // already trustworthy.
+    pilotStore.bootstrap();
     // Wallet integration is "ready" when BOTH Brave (the bundled
     // browser) AND the EVE Vault extension are installed. PilotCard
     // gates its Apps row on `integrationReady()`, which reads both
@@ -108,6 +116,26 @@
   </header>
 
   <div class="flex flex-col gap-8 px-6 pb-8">
+    <!-- Cold-start sync indicator. Visible only during the
+         `bootstrap()` second phase (cached roster already on screen,
+         reconcile in flight). Thin animated bar in the accent colour
+         + a single line of label text — present enough to explain
+         the brief Launch-button disable, quiet enough that it doesn't
+         compete with the roster itself. Hides automatically once
+         reconcile completes, typically within 1–3 s. -->
+    {#if pilotStore.syncing && managedPilots.length > 0}
+      <div class="flex items-center gap-3 border border-[var(--color-border)] bg-[var(--color-surface)]/40 px-4 py-2">
+        <span
+          class="mono text-[10px] tracking-[0.22em] text-[var(--color-text-muted)] uppercase"
+        >
+          Validating sandboxes…
+        </span>
+        <div class="relative h-[2px] flex-1 overflow-hidden bg-[var(--color-border)]">
+          <div class="sync-bar absolute top-0 left-0 h-full w-1/3" style:background="var(--color-accent)"></div>
+        </div>
+      </div>
+    {/if}
+
     <!-- Managed -->
     <div class="flex flex-col gap-4">
       {#if pilotStore.loading && managedPilots.length === 0}
@@ -180,3 +208,21 @@
   </div>
   </section>
 </div>
+
+<style>
+  /* Indeterminate progress bar: a 1/3-width sliver slides left-to-right
+     across the track on a 1.4 s loop. Keyframes go from -33 % (just off
+     the left edge) to 100 % (fully off the right), so the leading edge
+     enters and the trailing edge exits without ever sitting still. */
+  @keyframes sync-sweep {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(300%);
+    }
+  }
+  .sync-bar {
+    animation: sync-sweep 1.4s ease-in-out infinite;
+  }
+</style>

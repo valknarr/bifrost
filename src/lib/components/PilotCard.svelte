@@ -83,6 +83,10 @@
   const isRunning = $derived(pilot.status === "running");
   const isBusy = $derived(pilot.status === "starting");
   const isMissing = $derived(pilot.status === "missing");
+  /** While cold-start sync is in flight, gate Launch/Stop. The cached
+   *  status badge may be stale, and clicking Launch on a pilot whose
+   *  game is actually still running would spawn a second instance. */
+  const syncing = $derived(pilotStore.syncing);
   const showFirstLaunchHint = $derived(
     !pilot.launchedAtLeastOnce && !isRunning && !isMissing,
   );
@@ -391,19 +395,20 @@
         variant="danger"
         size="lg"
         class="flex-1"
+        disabled={syncing}
         onclick={() => pilotStore.stop(pilot.id)}
       >
-        Stop
+        {syncing ? "Syncing…" : "Stop"}
       </Button>
     {:else}
       <Button
         variant="primary"
         size="lg"
         class="flex-1"
-        disabled={isBusy}
+        disabled={isBusy || syncing}
         onclick={() => pilotStore.start(pilot.id)}
       >
-        ▶ {isBusy ? "Initialising…" : "Launch"}
+        ▶ {isBusy ? "Initialising…" : syncing ? "Syncing…" : "Launch"}
       </Button>
     {/if}
     {#if !isMissing}

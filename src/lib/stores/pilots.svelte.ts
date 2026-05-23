@@ -11,6 +11,25 @@ class PilotStore {
   loading = $state(false);
   error = $state<string | null>(null);
 
+  /** True while the cold-start `bootstrap()` is in its slow phase —
+   *  i.e. the cached roster is already on screen but
+   *  `reconcile_pilots` hasn't returned yet, so per-pilot statuses
+   *  may be stale.
+   *
+   *  Drives two UI affordances:
+   *    1. A thin "Validating sandboxes…" indicator above the roster
+   *       so the user understands why they're seeing a moment of
+   *       UI quiet.
+   *    2. Launch / Stop buttons disable while syncing — clicking
+   *       Launch on a cached-stopped pilot that's actually running
+   *       would spawn a second game instance, which is hard to
+   *       recover from. The brief disable is a cheap safety net.
+   *
+   *  Only flips during the cold-start `bootstrap()`; the 30 s
+   *  background `reconcile()` tick deliberately leaves it false so
+   *  the UI doesn't twitch every half-minute. */
+  syncing = $state(false);
+
   /** Run a backend mutation, clear the previous error on entry, refresh on
    *  success, capture the error on failure. Avoids the "stale error stays
    *  visible after a later successful action" bug. */
@@ -54,6 +73,31 @@ class PilotStore {
   reconcile = () => this.run(() => api.reconcilePilots());
   adopt = (boxName: string, displayName: string) =>
     this.run(() => api.adoptSandbox(boxName, displayName));
+
+  /** Cold-start bootstrap. Shows the cached roster from `pilots.json`
+   *  immediately (fast — just an in-memory `listPilots` call), then
+   *  validates statuses against Sandboxie's actual runtime state in
+   *  the background.
+   *
+   *  Splitting these into two phases is the whole point: before this
+   *  existed, `PilotsView` awaited `reconcile_pilots` (one Start.exe
+   *  shellout per pilot + tasklist parsing + a Sui balance refresh)
+   *  before rendering anything, leaving the user staring at an empty
+   *  panel for 1–3 s on every app open. Now the cards appear in the
+   *  first frame; only the per-pilot status badges are briefly
+   *  authoritative-on-disk rather than authoritative-right-now. */
+  async bootstrap() {
+    await this.refresh();
+    this.syncing = true;
+    try {
+      await api.reconcilePilots();
+      await this.refresh();
+    } catch (e) {
+      this.error = formatBackendError(e);
+    } finally {
+      this.syncing = false;
+    }
+  }
 
   /** Permanently delete an unmanaged Sandboxie box (one that's in the
    *  Discovered list, not associated with a Bifrost pilot). Re-runs the
