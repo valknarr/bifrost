@@ -258,6 +258,79 @@ pub async fn fetch_release_json(repo: &str) -> Result<serde_json::Value> {
         .map_err(|e| BifrostError::Other(format!("GitHub API response parse failed: {e}")))
 }
 
+/// GET `repos/{repo}/releases` (the LIST endpoint, not `/latest`),
+/// then iterate top-N most-recent releases — including prereleases
+/// — to find the first one whose assets satisfy `is_match`. Returns
+/// the matching release's full JSON value.
+///
+/// Why not just use `/releases/latest`: GitHub's "latest" filter
+/// excludes both drafts and prereleases. Brave's release flow tags
+/// most Windows-bearing builds as prereleases (their stable cadence
+/// is mostly Android-only), so a naïve `/releases/latest` call
+/// returns a release with no Windows ZIP at all. Iterating the
+/// list and matching by ASSET PRESENCE rather than tag-metadata
+/// flags side-steps the upstream-flavour issue.
+///
+/// `per_page` is capped at 30 — the GitHub default. If the matching
+/// release is older than that, the caller should bump the parameter
+/// or document the upper bound as a known limitation.
+pub async fn fetch_latest_release_with_asset<F>(
+    repo: &str,
+    per_page: u32,
+    is_match: F,
+) -> Result<serde_json::Value>
+where
+    F: Fn(&str) -> bool,
+{
+    let url = format!(
+        "https://api.github.com/repos/{repo}/releases?per_page={per_page}"
+    );
+
+    let resp = http::client()
+        .get(&url)
+        .header("Accept", "application/vnd.github+json")
+        .timeout(Duration::from_secs(15))
+        .send()
+        .await
+        .map_err(|e| BifrostError::Other(format!("GitHub API request failed: {e}")))?;
+
+    let status = resp.status();
+    if !status.is_success() {
+        return Err(BifrostError::Other(format!(
+            "GitHub API returned HTTP {status}"
+        )));
+    }
+
+    let body: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| BifrostError::Other(format!("GitHub API response parse failed: {e}")))?;
+
+    let releases = body
+        .as_array()
+        .ok_or_else(|| BifrostError::Other("releases list was not an array".into()))?;
+
+    // GitHub returns releases in reverse chronological order
+    // (most-recent first). We walk in that order and pick the
+    // first one whose assets include a matching name.
+    for release in releases {
+        if let Some(assets) = release["assets"].as_array() {
+            if assets.iter().any(|a| {
+                a["name"]
+                    .as_str()
+                    .map(&is_match)
+                    .unwrap_or(false)
+            }) {
+                return Ok(release.clone());
+            }
+        }
+    }
+
+    Err(BifrostError::Other(format!(
+        "no recent release of {repo} (in the last {per_page} listed) has an asset matching the predicate"
+    )))
+}
+
 /// Translate a raw fetch-error string into something a non-technical
 /// user can act on. Used by every status() function so the UI shows the
 /// same actionable phrasing regardless of which module hit the wall.
@@ -269,21 +342,15 @@ pub fn friendly_fetch_error(raw: &str) -> String {
             .to_string()
     } else if lower.contains("timed out") || lower.contains("timeout") {
         "GitHub request timed out. Check your connection and retry.".to_string()
-    } else if lower.contains("has no win32-x64 portable zip")
-        || lower.contains("has no asset matching")
-        || lower.contains("no usable installer asset")
-    {
-        // The release exists on GitHub but the upstream project hasn't
-        // uploaded the binary we need yet — common on Brave's release
-        // cadence where the tag is pushed minutes before the artifacts
-        // finish uploading. Don't blame GitHub for being unreachable.
-        format!(
-            "Upstream tagged a release but hasn't uploaded the Windows \
-             portable build yet. This usually resolves within an hour — \
-             try Check for updates later. ({raw})"
-        )
     } else {
-        format!("Couldn't reach GitHub: {raw}")
+        // Pass the raw upstream message through unchanged. Earlier
+        // we wrapped some sub-cases ("release X has no portable
+        // ZIP") with a "friendly" rephrase — that turned out to
+        // hide the actual signal (which release, which asset name
+        // was expected) from the user when something genuinely
+        // broke in the matcher. Raw beats friendly when you're
+        // diagnosing.
+        format!("GitHub: {raw}")
     }
 }
 

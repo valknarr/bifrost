@@ -31,8 +31,17 @@ const REPO: &str = "brave/brave-browser";
 /// in the same release; we want only the Windows x64 portable ZIP and
 /// must reject the symbols ZIP (1.4 GB of pdb files) plus the
 /// installer EXEs.
+///
+/// Brave uses TWO portable-ZIP naming forms across recent releases:
+///   - `brave-v1.92.85-win32-x64.zip` (older / occasional)
+///   - `brave-origin-v1.91.159-win32-x64.zip` (post-2026 default)
+/// Both are valid portable builds — the `origin` prefix differentiates
+/// the Chromium-origin build chain from variant builds, but for our
+/// purposes (run-the-browser-in-a-sandbox) they're interchangeable.
+/// Accept either prefix so we don't reject the newer naming.
 fn is_portable_zip(name: &str) -> bool {
-    name.starts_with("brave-v") && name.ends_with("-win32-x64.zip") && !name.contains("symbols")
+    let prefix_ok = name.starts_with("brave-v") || name.starts_with("brave-origin-v");
+    prefix_ok && name.ends_with("-win32-x64.zip") && !name.contains("symbols")
 }
 
 #[cfg(test)]
@@ -44,9 +53,24 @@ mod tests {
         assert!(is_portable_zip("brave-v1.90.124-win32-x64.zip"));
     }
 
+    /// Brave's post-2026 release flow emits the `brave-origin-v…`
+    /// prefix for most builds (an internal-build-chain label that
+    /// has no behavioural effect for our use case). The matcher
+    /// MUST accept this — otherwise `fetch_latest_release` finds
+    /// no asset and the Settings panel errors "release X has no
+    /// win32-x64 portable ZIP" on every check.
+    #[test]
+    fn portable_zip_matcher_accepts_brave_origin_prefix() {
+        assert!(is_portable_zip("brave-origin-v1.91.159-win32-x64.zip"));
+        assert!(is_portable_zip("brave-origin-v1.92.89-win32-x64.zip"));
+    }
+
     #[test]
     fn portable_zip_matcher_rejects_symbols_zip() {
         assert!(!is_portable_zip("brave-v1.90.124-win32-x64-symbols.zip"));
+        assert!(!is_portable_zip(
+            "brave-origin-v1.92.89-win32-x64-symbols.zip"
+        ));
     }
 
     #[test]
@@ -180,9 +204,16 @@ pub struct ChromiumStatus {
     pub latest_error: Option<String>,
 }
 
-/// Query the GitHub Releases API for the latest Brave release and
-/// pick the Windows-x64 portable ZIP asset. Returns the metadata only;
-/// no download yet.
+/// Query the GitHub Releases API for the most recent Brave release
+/// that carries a Windows-x64 portable ZIP asset, and return its
+/// metadata. No download yet.
+///
+/// Uses `fetch_latest_release_with_asset` (which lists `/releases`)
+/// rather than `/releases/latest` because Brave tags most of their
+/// Windows-bearing builds as PRERELEASES — GitHub's `/latest` filter
+/// excludes those, returning Android-only stable builds with no
+/// win32-x64.zip. Scanning the top-30 list and matching by asset
+/// presence is the only reliable strategy for Brave specifically.
 ///
 /// This is the raw / uncached path. Callers SHOULD wrap it via
 /// [`release_cache::fetch_with_cache`] with key `"chromium"` so
@@ -191,7 +222,17 @@ pub struct ChromiumStatus {
 /// install_chromium` both do that. Don't call this directly from
 /// anywhere new.
 pub async fn fetch_latest_release() -> Result<ChromiumRelease> {
-    let body = release_cache::fetch_release_json(REPO).await?;
+    // Scan the 30 most recent releases (GitHub default page size)
+    // for the first one with a matching asset. Brave publishes
+    // multiple Windows-bearing releases per week so 30 is plenty
+    // of headroom even when several consecutive releases are
+    // Android-only.
+    let body = release_cache::fetch_latest_release_with_asset(
+        REPO,
+        30,
+        is_portable_zip,
+    )
+    .await?;
 
     let tag = body["tag_name"]
         .as_str()
