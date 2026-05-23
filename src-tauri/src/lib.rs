@@ -44,6 +44,17 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        // Updater plugin: checks a signed JSON manifest on GitHub
+        // Releases for a newer .exe (see `tauri.conf.json` ->
+        // `plugins.updater.endpoints`). The frontend polls via
+        // `@tauri-apps/plugin-updater` and surfaces an "Update
+        // available" banner — the user opts in to the relaunch.
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        // Process plugin: only `relaunch()` is granted in the
+        // capability set. The updater calls it after the new
+        // installer has run so the user lands back on the new
+        // version automatically.
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let state = AppState::new(app.handle())?;
             app.manage(state);

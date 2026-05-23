@@ -46,5 +46,16 @@
         "displayLanguageSelector": false
       }
     }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "PUBKEY_PLACEHOLDER_SEE_DOCS_RELEASING",
+      "endpoints": [
+        "https://github.com/valknarr/bifrost/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

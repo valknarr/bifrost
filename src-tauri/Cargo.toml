@@ -26,6 +26,19 @@ tauri = { version = "2", features = [] }
 # (used by external.ts when surfacing GitHub-release links). Permissions
 # are restricted in capabilities/default.json to `shell:allow-open` only.
 tauri-plugin-shell = "2"
+# Updater plugin: lets Bifrost check a signed JSON manifest on
+# GitHub Releases for a newer .exe, verify the signature against
+# the bundled pubkey in tauri.conf.json, download, and prompt the
+# user to restart into the new version. This is the desktop-app
+# equivalent of "ship UI tweaks without users re-downloading the
+# installer" — every modern app (Brave, Discord, VS Code) uses
+# the same pattern. Setup steps are in `docs/RELEASING.md`.
+tauri-plugin-updater = "2"
+# Process plugin: needed by the updater flow to gracefully relaunch
+# Bifrost after the new installer has run. Used solely for
+# `relaunch()`; the rest of the plugin is gated to that one
+# permission via `capabilities/default.json`.
+tauri-plugin-process = "2"
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

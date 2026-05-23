@@ -1,17 +1,21 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import type { Component } from "svelte";
   import type { Pilot } from "../types";
   import { pilotStore } from "../stores/pilots.svelte";
   import { integrationReady } from "../stores/vault.svelte";
   import { configStore } from "../stores/config.svelte";
-  import { faviconStore } from "../stores/favicons.svelte";
   import { clockStore, useClockTick } from "../stores/clock.svelte";
   import { api } from "../tauri";
-  import { formatBackendError } from "../error";
   import Button from "./Button.svelte";
   import StatusBadge from "./StatusBadge.svelte";
   import PilotPortrait from "./PilotPortrait.svelte";
   import IconArchive from "./IconArchive.svelte";
+  // PilotAppsRow is intentionally NOT statically imported — its
+  // companion-site icon + favicon-fetch code (the `faviconStore`
+  // + IPC pipeline + `open_pilot_app` flow) is only valuable when
+  // Brave AND EVE Vault are both installed. For pilots-only users
+  // the chunk never loads. See the dynamic-import `$effect` below.
 
   // Subscribe to the shared clock tick so `balanceAge` re-derives
   // every 15 s. Without this the "Updated 5m ago" label would be
@@ -43,13 +47,28 @@
     pickingAccent = false;
   }
 
-  async function openApp(url: string) {
-    try {
-      await api.openPilotApp(pilot.id, url);
-    } catch (e) {
-      pilotStore.error = formatBackendError(e);
+  /** Lazily-imported `PilotAppsRow.svelte` component, populated by
+   *  the `$effect` below the first time wallet integration becomes
+   *  available. Until then this stays `null` and the entire
+   *  companion-site + favicon code path is unloaded. */
+  let AppsRowComponent = $state<Component<{ pilot: Pilot }> | null>(null);
+
+  /** Trigger the Apps-row chunk download the moment integration
+   *  becomes ready AND there's at least one enabled companion site.
+   *  Both checks gate the import together so a user with Brave +
+   *  EVE Vault installed but every site disabled still doesn't pay
+   *  the bytes. */
+  $effect(() => {
+    if (
+      !AppsRowComponent &&
+      integrationReady() &&
+      configStore.enabledSites.length > 0
+    ) {
+      import("./PilotAppsRow.svelte").then((m) => {
+        AppsRowComponent = m.default;
+      });
     }
-  }
+  });
 
   const shortAddr = $derived(
     pilot.walletAddress
@@ -146,15 +165,11 @@
     await pilotStore.deletePermanently(pilot.id);
   }
 
-  // Lazy-load favicons for each enabled companion site. The store
-  // dedupes by URL so repeat calls across pilot cards collapse to a
-  // single IPC per host. Failed fetches cache as `null` and don't
-  // retry within the session.
-  $effect(() => {
-    for (const site of configStore.enabledSites) {
-      faviconStore.load(site.url);
-    }
-  });
+  // Favicon prefetching used to live here as a `$effect` over
+  // `configStore.enabledSites`. It moved into `PilotAppsRow.svelte`
+  // along with the rest of the wallet-integration UI so the
+  // `faviconStore` IPC pipeline is only loaded when the user
+  // actually has the wallet workflow installed.
 </script>
 
 <article
@@ -394,40 +409,16 @@
     {/if}
   </div>
 
-  <!-- Apps row — companion site shortcuts. Renders only when wallet
-       integration is ready (Brave + EVE Vault installed) AND there's
-       at least one enabled site to show. Clicking a site launches a
-       new per-pilot browser window with EVE Vault preloaded; on first
-       use the user logs in via the extension's own flow, after which
-       subsequent clicks just open the site as that pilot. We used to
-       expose a separate ⚙ "Configure" button that opened a blank
-       browser purely to walk through the EVE Vault setup, but that's
-       redundant — opening any app does the same thing. -->
-  {#if integrationReady() && configStore.enabledSites.length > 0}
-    <div
-      class="flex flex-wrap items-center gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg)]/20 px-4 py-2"
-    >
-      {#each configStore.enabledSites as site (site.url)}
-        {@const favicon = faviconStore.cache.get(site.url)}
-        <button
-          class="mono group flex h-11 w-11 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] bg-transparent text-[calc(12px*var(--text-scale,1))] font-bold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-focus)] hover:text-[var(--color-focus)]"
-          onclick={() => openApp(site.url)}
-          title="{site.name} — {site.url}"
-          aria-label="Open {site.name} as {pilot.name}"
-        >
-          {#if favicon}
-            <img
-              src={favicon}
-              alt=""
-              class="h-6 w-6 object-contain"
-              draggable="false"
-            />
-          {:else}
-            {site.icon}
-          {/if}
-        </button>
-      {/each}
-    </div>
+  <!-- Apps row — companion site shortcuts (lazy-loaded chunk).
+       Renders only when wallet integration is actually ready
+       (Brave + EVE Vault installed) AND there's at least one
+       enabled site. The component itself is dynamically imported
+       so users who haven't set up the wallet workflow never load
+       the favicon-fetch code path. See the `$effect` in the
+       script block. -->
+  {#if AppsRowComponent && integrationReady() && configStore.enabledSites.length > 0}
+    {@const Comp = AppsRowComponent}
+    <Comp {pilot} />
   {/if}
 
   <!-- Action footer.

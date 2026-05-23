@@ -70,6 +70,13 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Updater signing — see docs/RELEASING.md for one-time
+          # setup. Both secrets MUST be configured in the repo's
+          # Actions settings before the first signed release;
+          # without them, tauri-action will skip the latest.json
+          # generation and existing installs can't auto-update.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ steps.tag.outputs.tag }}
           releaseName: "Bifrost ${{ steps.tag.outputs.tag }}"
@@ -80,5 +87,15 @@ jobs:
             **Install:** download `Bifrost_*_x64-setup.exe`, run, accept
             the one Windows UAC prompt for the bundled Sandboxie
             install if you don't already have it.
+
+            **Auto-update:** existing Bifrost installs that have this
+            release's pubkey baked in will pick this up automatically
+            via the in-app banner.
           releaseDraft: true
           prerelease: false
+          # `--bundles` + the env-var presence above is what tells
+          # tauri-action to produce the `.sig` + `latest.json`
+          # artifacts the in-app updater consumes. Without
+          # signing-env-vars set, this just builds the .exe and the
+          # latest.json step silently no-ops.
+          args: --bundles nsis,updater

@@ -1,11 +1,16 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import type { Component } from "svelte";
   import BackgroundField from "./lib/components/BackgroundField.svelte";
   import Layout from "./lib/components/Layout.svelte";
   import PilotsView from "./lib/views/PilotsView.svelte";
-  import SettingsView from "./lib/views/SettingsView.svelte";
+  // SettingsView is loaded on demand — see the `$effect` below.
+  // Cold-start frame skips parsing ~30 KB of Settings code (UI scale
+  // picker, roster layout, companion-site CRUD, installer panels) for
+  // every user, even the ones who never open Settings in a session.
   import { routeStore } from "./lib/stores/route.svelte";
   import { configStore } from "./lib/stores/config.svelte";
+  import { updaterStore } from "./lib/stores/updater.svelte";
   import { api } from "./lib/tauri";
   import {
     applyZoom,
@@ -19,6 +24,25 @@
    *  short enough that the saved value tracks reality if the user
    *  closes the app right after letting go of the resize handle. */
   const RESIZE_PERSIST_DELAY_MS = 500;
+
+  /** Lazy-loaded `SettingsView` component. `null` until the user
+   *  first navigates to the Settings tab; the dynamic `import`
+   *  resolves the chunk, populates this state, and Svelte renders
+   *  it. Once loaded, stays cached for the rest of the session. */
+  let SettingsViewComponent = $state<Component | null>(null);
+
+  /** Lazy-load the Settings code chunk the first time the user
+   *  navigates there. After this `$effect` fires once, subsequent
+   *  visits use the cached module. The brief delay (a few hundred
+   *  ms over the IPC bridge on cold disks) is acceptable — Settings
+   *  isn't on the critical path of app launch. */
+  $effect(() => {
+    if (routeStore.current === "settings" && !SettingsViewComponent) {
+      import("./lib/views/SettingsView.svelte").then((m) => {
+        SettingsViewComponent = m.default;
+      });
+    }
+  });
 
   // Re-apply the persisted zoom + Auto-mode window size as soon as
   // we have a config in hand. The Layout's own mount hook already
@@ -82,6 +106,13 @@
         console.warn("setRosterWindowSize failed:", e);
       }
     });
+
+    // Background: ask GitHub Releases (via the bundled pubkey) if a
+    // newer signed Bifrost is available. Fire-and-forget; the
+    // `UpdateBanner` component reacts to `updaterStore.available`
+    // landing. On dev builds (pubkey placeholder) this fails
+    // silently — see updater.svelte.ts for the warning log.
+    updaterStore.check();
   });
 </script>
 
@@ -94,6 +125,22 @@
   {#if routeStore.current === "pilots"}
     <PilotsView />
   {:else if routeStore.current === "settings"}
-    <SettingsView />
+    <!-- SettingsView is dynamically imported on first navigation
+         (see the `$effect` above). The brief null-state renders a
+         lightweight loading hint instead of a hard blank. -->
+    {#if SettingsViewComponent}
+      {@const Comp = SettingsViewComponent}
+      <Comp />
+    {:else}
+      <div
+        class="mx-auto flex w-full max-w-6xl items-center justify-center px-6 py-12"
+      >
+        <span
+          class="mono text-[calc(11px*var(--text-scale,1))] tracking-[0.22em] text-[var(--color-text-muted)] uppercase"
+        >
+          Loading settings…
+        </span>
+      </div>
+    {/if}
   {/if}
 </Layout>

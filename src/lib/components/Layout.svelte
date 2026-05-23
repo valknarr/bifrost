@@ -3,6 +3,7 @@
   import { pilotStore } from "../stores/pilots.svelte";
   import { routeStore, type Route } from "../stores/route.svelte";
   import { statusStore } from "../stores/status.svelte";
+  import UpdateBanner from "./UpdateBanner.svelte";
 
   interface Props {
     children: Snippet;
@@ -144,6 +145,13 @@
       </div>
     </div>
   </header>
+
+  <!-- Update advisory: renders only when the updater store has a
+       new signed release pending. Sits above the main content so
+       it's the first thing the user sees on cold launch when an
+       update is ready. Self-hides when the user clicks Later or
+       finishes the upgrade flow. -->
+  <UpdateBanner />
 
   <!-- Main content -->
   <main class="overflow-y-auto px-8 py-6">
