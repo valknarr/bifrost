@@ -5,7 +5,7 @@
 import { api } from "../tauri";
 import { formatBackendError } from "../error";
 import type { BridgeConfig, CompanionSite } from "../types";
-import { applyZoom } from "../zoom";
+import { applyZoom, applyRosterWindowSize } from "../zoom";
 
 class ConfigStore {
   config = $state<BridgeConfig | null>(null);
@@ -77,6 +77,35 @@ class ConfigStore {
       this.config = await api.setUiZoom(zoom);
     } catch (e) {
       this.error = formatBackendError(e);
+    }
+  }
+
+  /** Persist the user's preferred roster-grid column count and snap
+   *  the window width to match. `0` = auto (responsive — leaves the
+   *  window alone), `2` / `3` = explicit overrides that also resize
+   *  the window so the new layout is visible without the user having
+   *  to drag the edge themselves. PilotsView reacts to
+   *  `config.rosterColumns` to switch its grid template, so this
+   *  one call covers both the persistent state and the immediate
+   *  visual change. */
+  async setRosterColumns(columns: number) {
+    this.error = null;
+    try {
+      this.config = await api.setRosterColumns(columns);
+    } catch (e) {
+      this.error = formatBackendError(e);
+      return;
+    }
+    // Second step — window resize. Done AFTER the persist succeeds
+    // so a transient backend error doesn't move the window around
+    // for an unsaved choice. Resize failures are non-fatal: the
+    // setting still saves, and the user can drag the edge manually.
+    try {
+      await applyRosterWindowSize(columns);
+    } catch (e) {
+      this.error =
+        "Layout saved, but couldn't resize the window — drag the edge to fit. " +
+        formatBackendError(e);
     }
   }
 }

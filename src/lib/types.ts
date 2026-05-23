@@ -71,6 +71,21 @@ export interface BridgeConfig {
    *  1.15 (Comfortable); persisted as the raw float for forward
    *  compat with future keyboard-driven zoom. */
   uiZoom: number;
+  /** Preferred pilot-card column count in the roster grid. `0` = auto
+   *  (responsive — as many cards as the window can hold); `2` and
+   *  `3` are explicit overrides surfaced under Settings › Display
+   *  for multiboxers who want a locked layout. */
+  rosterColumns: number;
+  /** Last user-chosen window width in CSS pixels, captured while the
+   *  user was in Auto roster mode. `null` for fresh installs or for
+   *  users who have never tweaked the window in Auto. Restored on
+   *  cold start so a 1600 × 1000 Auto layout reopens at exactly
+   *  that geometry. */
+  rosterWindowWidth: number | null;
+  /** Last user-chosen window height in CSS pixels. Paired with
+   *  `rosterWindowWidth` — both are written together by the
+   *  debounced resize listener, so they never desync. */
+  rosterWindowHeight: number | null;
 }
 
 /** EVE Vault extension install + update state. */

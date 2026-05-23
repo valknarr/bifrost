@@ -20,6 +20,10 @@ export const api = {
   setConfig: (config: BridgeConfig) =>
     invoke<void>("set_config", { config }),
   setUiZoom: (zoom: number) => invoke<BridgeConfig>("set_ui_zoom", { zoom }),
+  setRosterColumns: (columns: number) =>
+    invoke<BridgeConfig>("set_roster_columns", { columns }),
+  setRosterWindowSize: (width: number, height: number) =>
+    invoke<BridgeConfig>("set_roster_window_size", { width, height }),
 
   // --- pilots ---
   listPilots: () => invoke<Pilot[]>("list_pilots"),

@@ -64,6 +64,39 @@
     pilotStore.pilots.filter((p) => p.archived),
   );
 
+  /** Pilot-card grid template, driven by Settings › Display › Roster
+   *  layout. Auto (0) keeps the original `auto-fit` behaviour where
+   *  cards stay at 280–320 px and wrap freely; 2 / 3 lock the row
+   *  count and let cards stretch to fill the window so the user gets
+   *  consistent geometry across resizes. Same value is reused for
+   *  Discovered + Archived grids so all three sections stay in sync.
+   *  `minmax(0, 1fr)` (not `minmax(280px, 1fr)`) so the locked layouts
+   *  remain valid when the window is narrower than the natural
+   *  280 px × N — better to compress cards than to overflow. */
+  const rosterGridStyle = $derived.by(() => {
+    const cols = configStore.config?.rosterColumns ?? 0;
+    if (cols === 2 || cols === 3) {
+      return `grid-template-columns: repeat(${cols}, minmax(0, 1fr));`;
+    }
+    return "grid-template-columns: repeat(auto-fit, minmax(280px, 320px));";
+  });
+
+  /** Outer-container width cap, also driven by the Roster layout
+   *  setting. When the user picks Auto we drop the `max-w-6xl`
+   *  (1152 px) ceiling so dragging the window wider keeps adding
+   *  columns — 4, 5, 6 pilots per row, as far as their monitor goes.
+   *  The fixed presets (2 / 3) keep the ceiling because the whole
+   *  point of those choices is a stable layout the user has tuned
+   *  the window to fit; letting them expand unbounded would defeat
+   *  the lock.
+   *
+   *  Returns a Tailwind class string rather than a style attribute
+   *  so the rest of the container's utility classes stay in the
+   *  same idiom. */
+  const containerWidthClass = $derived(
+    (configStore.config?.rosterColumns ?? 0) === 0 ? "" : "max-w-6xl",
+  );
+
   async function handleCreate() {
     if (!newName.trim()) return;
     creating = true;
@@ -78,7 +111,7 @@
 
 <!-- View-level stack: setup banner (when applicable) + main panel.
      Same max-width as Settings so both pages feel like one product. -->
-<div class="mx-auto flex w-full max-w-6xl flex-col gap-4">
+<div class="mx-auto flex w-full {containerWidthClass} flex-col gap-4">
   <SetupBanner />
 
   <!-- Window-style container, mirrors in-game panel chrome -->
@@ -154,7 +187,7 @@
           </p>
         </div>
       {:else}
-        <div class="grid justify-center gap-4 grid-cols-[repeat(auto-fit,minmax(280px,320px))]">
+        <div class="grid justify-center gap-4" style={rosterGridStyle}>
           {#each managedPilots as pilot (pilot.id)}
             <PilotCard {pilot} />
           {/each}
@@ -176,7 +209,7 @@
             {String(pilotStore.discovered.length).padStart(2, "0")}
           </span>
         </div>
-        <div class="grid justify-center gap-4 grid-cols-[repeat(auto-fit,minmax(280px,320px))]">
+        <div class="grid justify-center gap-4" style={rosterGridStyle}>
           {#each pilotStore.discovered as box (box.name)}
             <DiscoveredCard {box} />
           {/each}
@@ -198,7 +231,7 @@
             {String(archivedPilots.length).padStart(2, "0")}
           </span>
         </div>
-        <div class="grid justify-center gap-4 grid-cols-[repeat(auto-fit,minmax(280px,320px))]">
+        <div class="grid justify-center gap-4" style={rosterGridStyle}>
           {#each archivedPilots as pilot (pilot.id)}
             <ArchivedCard {pilot} />
           {/each}

@@ -54,6 +54,8 @@ pub fn run() {
             commands::get_config,
             commands::set_config,
             commands::set_ui_zoom,
+            commands::set_roster_columns,
+            commands::set_roster_window_size,
             // Pilots (CRUD)
             commands::list_pilots,
             commands::create_pilot,

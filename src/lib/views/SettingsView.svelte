@@ -677,6 +677,51 @@
             reads comfortably on your monitor; the choice survives
             restarts.
           </p>
+
+          <!-- Roster layout. Lets the user lock the pilot grid to a
+               fixed column count instead of the responsive default.
+               Stored as `rosterColumns` in BridgeConfig (0 = auto,
+               2 = two cards per row, 3 = three). PilotsView reacts
+               to the value via configStore — no extra view-glue. -->
+          <div class="mt-2 flex flex-col gap-2 border-t border-[var(--color-border)] pt-3">
+            <div class="field">
+              <span class="label">Roster layout</span>
+              <span class="leader"></span>
+              <span class="value text-[var(--color-text-muted)]">
+                {#if (config?.rosterColumns ?? 0) === 0}
+                  Auto · fills the window
+                {:else}
+                  {config?.rosterColumns} pilots per row
+                {/if}
+              </span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              {#each [
+                { value: 0, label: "Auto", title: "Responsive — as many pilots per row as the window can hold." },
+                { value: 2, label: "2 pilots", title: "Lock the grid to two pilots per row. Best for narrower windows." },
+                { value: 3, label: "3 pilots", title: "Lock the grid to three pilots per row. Best for wider windows." },
+              ] as option (option.value)}
+                <Button
+                  variant={(config?.rosterColumns ?? 0) === option.value ? "primary" : "ghost"}
+                  size="sm"
+                  onclick={() => configStore.setRosterColumns(option.value)}
+                  title={option.title}
+                >
+                  {option.label}
+                </Button>
+              {/each}
+            </div>
+            <p
+              class="text-[10px] leading-snug text-[var(--color-text-muted)]"
+            >
+              Picks how many pilot cards line up per row. Auto adds
+              columns as you drag the window wider — 3, 4, 5, as many
+              as fit at the natural card width. The fixed options (2
+              or 3) snap the window to that layout and lock it,
+              regardless of how you resize afterwards. The choice
+              persists, so the same layout reopens next launch.
+            </p>
+          </div>
         </div>
       </div>
 

@@ -99,17 +99,64 @@ pub struct BridgeConfig {
     /// up to 10×.
     #[serde(default = "default_ui_zoom")]
     pub ui_zoom: f32,
+    /// Preferred number of pilot cards per row in the roster grid.
+    /// `0` means "auto" (the responsive `repeat(auto-fit, minmax(...))`
+    /// default — as many cards per row as the window can hold);
+    /// `2` and `3` are explicit overrides surfaced in Settings ›
+    /// Display so users who multibox at a fixed count can lock the
+    /// layout to match.
+    #[serde(default = "default_roster_columns")]
+    pub roster_columns: u8,
+    /// Last user-chosen window width (CSS pixels). Persisted only
+    /// while the user is in Auto roster mode — the fixed presets
+    /// snap the window to a known width on pick and don't need a
+    /// separate memory. Frontend debounces 500 ms after a resize
+    /// before calling `set_roster_window_size` so we don't write
+    /// to disk on every pixel of a drag.
+    #[serde(default)]
+    pub roster_window_width: Option<u32>,
+    /// Last user-chosen window height (CSS pixels). Saved together
+    /// with `roster_window_width` so the roster reopens at the same
+    /// vertical extent the user tuned for their pilot count.
+    #[serde(default)]
+    pub roster_window_height: Option<u32>,
 }
 
 /// 0.5–2.0 covers every reasonable presbyopia-correction / hi-DPI
-/// case. Higher than 2.0 starts overflowing our 960-px minimum window
-/// in inconvenient ways; lower than 0.5 makes the UI unreadable.
+/// case. Higher than 2.0 starts overflowing the configured minimum
+/// window width (720 px after the roster-layout work — was 960 px
+/// before) in inconvenient ways; lower than 0.5 makes the UI
+/// unreadable.
 pub const MIN_UI_ZOOM: f32 = 0.5;
 pub const MAX_UI_ZOOM: f32 = 2.0;
 
 fn default_ui_zoom() -> f32 {
     1.0
 }
+
+/// 0 = auto (responsive `auto-fit, minmax(...)` — current behaviour).
+/// Stored as a small int rather than an enum so adding more presets
+/// later (4? a custom value?) doesn't require a schema migration.
+fn default_roster_columns() -> u8 {
+    0
+}
+
+/// Allowed values for `roster_columns`. `0` = auto (responsive),
+/// `2` and `3` = explicit overrides. Validated at the command
+/// boundary so a corrupted config can't render the roster invisible
+/// or crash the grid layout.
+pub const VALID_ROSTER_COLUMNS: &[u8] = &[0, 2, 3];
+
+/// Sanity bounds for persisted window sizes. The lower bound matches
+/// `tauri.conf.json`'s minWidth/minHeight; the upper bound is
+/// generous enough for ultrawide monitors (5120-wide) without
+/// allowing a corrupted/malicious config to ask Windows for a
+/// 50 000 px window. Validated in `set_roster_window_size` so the
+/// frontend can't accidentally write nonsense.
+pub const MIN_ROSTER_WINDOW_WIDTH: u32 = 720;
+pub const MAX_ROSTER_WINDOW_WIDTH: u32 = 5120;
+pub const MIN_ROSTER_WINDOW_HEIGHT: u32 = 600;
+pub const MAX_ROSTER_WINDOW_HEIGHT: u32 = 5120;
 
 /// Compile-time sanity check on the zoom bounds. Catches refactors
 /// that accidentally flip `MIN_UI_ZOOM > MAX_UI_ZOOM` or set
@@ -130,6 +177,9 @@ impl BridgeConfig {
             launch_all_on_start: false,
             companion_sites: default_companion_sites(),
             ui_zoom: default_ui_zoom(),
+            roster_columns: default_roster_columns(),
+            roster_window_width: None,
+            roster_window_height: None,
         }
     }
 
@@ -263,6 +313,9 @@ mod tests {
             launch_all_on_start: true,
             companion_sites: default_companion_sites(),
             ui_zoom: 1.15,
+            roster_columns: 3,
+            roster_window_width: Some(1120),
+            roster_window_height: Some(900),
         };
         original.save(&path).expect("save");
 
@@ -333,6 +386,9 @@ mod tests {
             launch_all_on_start: false,
             companion_sites: default_companion_sites(),
             ui_zoom: 1.0,
+            roster_columns: 0,
+            roster_window_width: None,
+            roster_window_height: None,
         };
         cfg.save(&path_a).expect("save a");
 
@@ -371,6 +427,37 @@ mod tests {
     fn defaults_ship_zoom_one() {
         let d = BridgeConfig::defaults();
         assert_eq!(d.ui_zoom, 1.0);
+    }
+
+    /// Default roster layout is "auto" (responsive). Pre-existing
+    /// configs that pre-date this field also load as auto thanks to
+    /// `#[serde(default)]`. Pinning the contract here so a refactor
+    /// that flips the default to "2" (or anything else) shows up in
+    /// review rather than as a silent UX change after upgrade.
+    #[test]
+    fn defaults_ship_roster_columns_auto() {
+        let d = BridgeConfig::defaults();
+        assert_eq!(d.roster_columns, 0);
+    }
+
+    /// Legacy configs without `rosterColumns` must load with the auto
+    /// default. Mirrors the `load_pre_zoom_config_defaults_to_1_0`
+    /// test for the same forward-compat reasons.
+    #[test]
+    fn load_pre_roster_columns_config_defaults_to_auto() {
+        let tmp = TempDir::new().expect("tempdir");
+        let path = tmp.path().join("legacy.json");
+        let legacy = r#"{
+            "sandboxiePath": null,
+            "frontierExe": null,
+            "pilotsDir": "C:\\BifrostPilots",
+            "launchAllOnStart": false,
+            "companionSites": [],
+            "uiZoom": 1.0
+        }"#;
+        std::fs::write(&path, legacy).expect("write");
+        let loaded = BridgeConfig::load_or_default(&path).expect("legacy load");
+        assert_eq!(loaded.roster_columns, 0);
     }
 
     /// The Settings panel offers three preset zoom values. They must
