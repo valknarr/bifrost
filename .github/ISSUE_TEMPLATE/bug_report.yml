@@ -44,7 +44,7 @@ body:
     attributes:
       label: What happened?
       description: One paragraph. Skip preamble — start with the symptom.
-      placeholder: "Clicking Launch on a freshly-created pilot fails with '…'"
+      placeholder: "Clicking Launch on a freshly-created rider fails with '…'"
     validations:
       required: true
 

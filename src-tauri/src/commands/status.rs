@@ -1,5 +1,5 @@
 //! Host-detection probe shown in the Settings panel "Detection" row +
-//! Pilots view "Setup required" banner.
+//! Riders view "Setup required" banner.
 
 use serde::Serialize;
 use tauri::State;
@@ -10,7 +10,7 @@ use crate::state::AppState;
 
 /// Top-level snapshot of what's installed on the host. The frontend
 /// renders this into the Settings panel's Detection rows and the
-/// Pilots view's "Setup required" banner; both decide what's missing
+/// Riders view's "Setup required" banner; both decide what's missing
 /// from these booleans.
 ///
 /// The Bifrost-tracked installed version (and which Sandboxie variant)

@@ -80,11 +80,11 @@ export async function applyZoom(zoom: number): Promise<void> {
 
 /**
  * Inner-window widths (in CSS pixels) that match each roster-column
- * preset comfortably. Computed once and shared so the "2 pilots"
+ * preset comfortably. Computed once and shared so the "2 riders"
  * choice in Settings always snaps to the same width across launches.
  *
  * Math:
- *   - Each pilot card targets ~320 px content width
+ *   - Each rider card targets ~320 px content width
  *   - 16 px grid gap between cards
  *   - 48 px horizontal padding inside the section (`px-6`)
  *   - ~24 px slack for scrollbar + window-chrome variance
@@ -107,7 +107,7 @@ export const ROSTER_WINDOW_WIDTHS: Record<2 | 3, number> = {
  * the window width should be", not "reset to default".
  *
  * Keeps the current window height intact: the user may have grown
- * the window vertically to see more pilots and we'd rather not undo
+ * the window vertically to see more riders and we'd rather not undo
  * that on a horizontal-layout pick. Failures bubble up so the
  * caller can surface them in the settings error banner.
  */

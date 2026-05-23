@@ -334,7 +334,7 @@ pub async fn fetch_latest_release() -> Result<ChromiumRelease> {
 }
 
 /// Where the portable browser lives on disk. Stable path so upgrades
-/// replace in-place and so `pilot.browser_profile_dir` doesn't have
+/// replace in-place and so `rider.browser_profile_dir` doesn't have
 /// to track the install location.
 pub fn install_dir(app_data: &Path) -> PathBuf {
     app_data.join("chromium").join("current")
@@ -345,7 +345,7 @@ pub fn install_dir(app_data: &Path) -> PathBuf {
 /// `remove_dir_all` because the portable build doesn't drop anything
 /// outside this directory — no kernel driver, no service, no registry
 /// hooks. Callers must ensure no Brave processes are holding handles
-/// (the Settings UI does this only when no pilots have a browser
+/// (the Settings UI does this only when no riders have a browser
 /// open).
 pub fn uninstall(app_data: &Path) -> Result<()> {
     let dir = install_dir(app_data);

@@ -4,8 +4,8 @@
 // Note: there's no longer an explicit "enable integration" toggle. The
 // wallet integration is automatically active whenever both Brave and
 // the EVE Vault extension are installed — see `integrationReady()`
-// below, which the PilotCard reads to decide whether to render the
-// per-pilot Apps row.
+// below, which the RiderCard reads to decide whether to render the
+// per-rider Apps row.
 
 import { api } from "../tauri";
 import { formatBackendError } from "../error";
@@ -67,7 +67,7 @@ export const vaultStore = new VaultStore();
 
 /**
  * The wallet integration is "ready" — meaning Bifrost can actually
- * launch a per-pilot browser with the EVE Vault extension preloaded —
+ * launch a per-rider browser with the EVE Vault extension preloaded —
  * only when BOTH the portable browser and the extension itself are
  * installed. Component code reads this instead of any single flag so
  * the UI auto-syncs the moment either dependency lands or is removed.

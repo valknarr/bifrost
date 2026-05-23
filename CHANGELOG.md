@@ -9,8 +9,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
-- **Pilot roster** — designate, launch, archive, restore, and delete EVE
-  Frontier pilots. Each pilot is backed by a Sandboxie box and a Brave
+- **Rider roster** — designate, launch, archive, restore, and delete EVE
+  Frontier riders. Each rider is backed by a Sandboxie box and a Brave
   profile that survive across sessions. Boxes the user already has on
   disk surface in a "Discovered" section and can be adopted into Bifrost
   with one click.
@@ -28,31 +28,31 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
     News / Leo / VPN, no "set as default" first-run nudges.
   - **EVE Vault** Chromium extension. Downloaded from upstream
     `evefrontier/evevault` releases, SHA-256 verified, side-loaded
-    into every per-pilot browser session.
-- **Per-pilot browser launch** — each pilot opens its own Brave window
+    into every per-rider browser session.
+- **Per-rider browser launch** — each rider opens its own Brave window
   inside its sandbox, with the EVE Vault extension preloaded and a
   small generated theme extension that tints the window frame with the
-  pilot's accent colour. Multiple pilots can have their wallet sessions
+  rider's accent colour. Multiple riders can have their wallet sessions
   open simultaneously without overlapping.
 - **Companion sites** — built-in EVE Map link and a custom-site
-  manager. Each pilot's card has an Apps row that opens these sites
-  using the pilot's wallet identity. Built-ins can be hidden but not
+  manager. Each rider's card has an Apps row that opens these sites
+  using the rider's wallet identity. Built-ins can be hidden but not
   removed; custom sites can be added and removed at will.
 - **Sui mainnet wallet readout** — Bifrost reads SUI + EVE token
-  balances for each pilot's wallet via the public `suix_getBalance`
+  balances for each rider's wallet via the public `suix_getBalance`
   JSON-RPC endpoint. Read-only — Bifrost never signs or submits a
   transaction.
-- **Setup banner + dual-state HUD** — the Pilots view warns when host
+- **Setup banner + dual-state HUD** — the Riders view warns when host
   dependencies are missing (Sandboxie not installed, EVE Frontier
   client not found) with one-click links into Settings. The top-right
-  header shows a two-dot indicator: pilot lifecycle (Online · N/N)
+  header shows a two-dot indicator: rider lifecycle (Online · N/N)
   plus system health (System / Setup).
 - **EVE-Frontier-aligned visual language** — sharp rectangles, mono
   type, red-orange accent, `[#]`-bracketed window titles. Sparse
   procedural multi-galaxy background renders three slowly-spinning
   spiral galaxies that drift toward each other over many sessions
   (floored at 50 % of initial separation so they never actually
-  merge). Pilot cards carry corner brackets, an "energy" bar in the
+  merge). Rider cards carry corner brackets, an "energy" bar in the
   accent colour, and a halftone portrait placeholder.
 - **UI text scale** in Settings — Compact (0.9×), Default (1.0×),
   Comfortable (1.15×) drive a `--text-scale` CSS variable on `:root`
@@ -61,7 +61,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   zoom on a desktop app. Persisted across launches.
 - **Roster layout** in Settings — pick Auto (responsive
   `auto-fit, minmax(280px, 320px)` — grows columns as the window
-  widens), 2 pilots locked, or 3 pilots locked. Auto-mode window
+  widens), 2 riders locked, or 3 riders locked. Auto-mode window
   size persists across launches; fixed-mode snaps the window to a
   width that fits the chosen column count.
 - **Auto-updater** via `tauri-plugin-updater`. Cold start polls a
@@ -73,28 +73,28 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   install → relaunch. The user never re-downloads manually. See
   `docs/RELEASING.md` for the one-time keygen + signed-release
   workflow.
-- **Code-split chunks** — `SettingsView` and `PilotAppsRow`
+- **Code-split chunks** — `SettingsView` and `RiderAppsRow`
   (companion-site icons + favicon-fetch pipeline) ship as separate
   bundles loaded on demand. The main `index.js` is ~37 KB gzipped;
   users who only use Bifrost to launch the game (no wallet
   workflow) never pay the wallet-integration bytes.
-- **Stale-balance indicator** under each pilot's stats — "Updated
+- **Stale-balance indicator** under each rider's stats — "Updated
   5 m ago / stale" computed from a `wallet_balance_fetched_at`
-  timestamp written on every successful Sui RPC refresh. Pilots
+  timestamp written on every successful Sui RPC refresh. Riders
   whose RPC is failing don't silently show stale figures as
   "fresh"; the user can tell at a glance.
 - **Missing-sandbox state + one-click remove**. If a user deletes
-  a pilot's box externally (via Sandboxie's own "Delete Content"
-  menu), the pilot card flips to a `Missing` state with a warning
-  ribbon and a single "Remove pilot" button that bypasses the
+  a rider's box externally (via Sandboxie's own "Delete Content"
+  menu), the rider card flips to a `Missing` state with a warning
+  ribbon and a single "Remove rider" button that bypasses the
   archive-first guard. No more orphaned records; no more Sandboxie
   "Invalid box name parameter" popups every reconcile tick.
 - **Reconcile tick gates on window visibility** — the 30 s
-  background pilot-status refresh skips when
+  background rider-status refresh skips when
   `document.visibilityState === "hidden"` and fires immediately
   on refocus. No wasted Sandboxie shellouts + Sui RPC calls while
   the window is backgrounded.
-- **Atomic file persistence** — `pilots.json` and `config.json`
+- **Atomic file persistence** — `riders.json` and `config.json`
   now write through a temp-file-plus-atomic-rename helper so a
   power loss or hard crash mid-write can't leave a zero-byte file
   that erases the user's whole roster on next launch. On parse
@@ -120,7 +120,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   upstream-probe layers (was 93 at the start of pre-public
   polish). Includes a cross-boundary drift test that asserts every
   Rust `#[tauri::command]` has a matching TypeScript wrapper in
-  `src/lib/tauri.ts`, plus a `PilotStatus` variant-set test that
+  `src/lib/tauri.ts`, plus a `RiderStatus` variant-set test that
   pins the enum against the TS string union.
 
 ### Changed
@@ -135,8 +135,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   devDependency for Vite 8's rolldown transition), Svelte plugin
   5 → 7, TypeScript 5 → 6 (tsconfig `baseUrl` removed per TS 6
   deprecation; `paths` migrated to relative form).
-- **Sui RPC fetches go concurrent** — each pilot's SUI + EVE
-  balance call pair runs via `tokio::join!`; pilots themselves
+- **Sui RPC fetches go concurrent** — each rider's SUI + EVE
+  balance call pair runs via `tokio::join!`; riders themselves
   fan out via `FuturesUnordered` with a max-4 concurrency cap.
 - **Chromium asset matcher** broadened to accept both
   `brave-v…-win32-x64.zip` and `brave-origin-v…-win32-x64.zip`

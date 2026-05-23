@@ -916,7 +916,7 @@ pub async fn uninstall(app_data: &Path, sandboxie_root: Option<&Path>) -> Result
 /// Silence Sandboxie's "Program Compatibility" wizard.
 ///
 /// Without this, the first time SbieSvc spins up after install — which
-/// for Bifrost users is right when they click "Add pilot" — Sandboxie
+/// for Bifrost users is right when they click "Add rider" — Sandboxie
 /// scans the host for installed apps with known compat templates
 /// (Office licensing, Edge, Windows Live, etc.) and prompts the user
 /// to apply them globally. The dialog is harmless but it shatters

@@ -3,9 +3,9 @@ use std::path::PathBuf;
 
 use crate::error::Result;
 
-/// One ecosystem app the user can launch into a pilot's browser session.
+/// One ecosystem app the user can launch into a rider's browser session.
 /// "Built-in" sites ship with Bifrost and can't be removed; they can be
-/// hidden (`disabled = true`) so they stop appearing in the per-pilot
+/// hidden (`disabled = true`) so they stop appearing in the per-rider
 /// Apps row without losing the canonical URL. User-added sites are
 /// fully removable and don't surface the disable toggle.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,7 +22,7 @@ pub struct CompanionSite {
     pub builtin: bool,
     /// True when the user has hidden this site. Hidden sites are kept
     /// in the config (so re-enabling restores the original entry) but
-    /// don't render on pilot cards.
+    /// don't render on rider cards.
     #[serde(default)]
     pub disabled: bool,
 }
@@ -83,9 +83,9 @@ pub fn default_companion_sites() -> Vec<CompanionSite> {
 pub struct BifrostConfig {
     pub sandboxie_path: Option<String>,
     pub frontier_exe: Option<String>,
-    pub pilots_dir: String,
+    pub riders_dir: String,
     pub launch_all_on_start: bool,
-    /// Ordered list of ecosystem apps the user can launch into a pilot's
+    /// Ordered list of ecosystem apps the user can launch into a rider's
     /// browser. Bifrost ships with a set of built-ins (see
     /// `default_companion_sites()`); users can append / remove their own.
     #[serde(default = "default_companion_sites")]
@@ -103,7 +103,7 @@ pub struct BifrostConfig {
     /// absurd sizes.
     #[serde(default = "default_ui_zoom")]
     pub ui_zoom: f32,
-    /// Preferred number of pilot cards per row in the roster grid.
+    /// Preferred number of rider cards per row in the roster grid.
     /// `0` means "auto" (the responsive `repeat(auto-fit, minmax(...))`
     /// default — as many cards per row as the window can hold);
     /// `2` and `3` are explicit overrides surfaced in Settings ›
@@ -121,7 +121,7 @@ pub struct BifrostConfig {
     pub roster_window_width: Option<u32>,
     /// Last user-chosen window height (CSS pixels). Saved together
     /// with `roster_window_width` so the roster reopens at the same
-    /// vertical extent the user tuned for their pilot count.
+    /// vertical extent the user tuned for their rider count.
     #[serde(default)]
     pub roster_window_height: Option<u32>,
 }
@@ -177,7 +177,7 @@ impl BifrostConfig {
         Self {
             sandboxie_path: detect_sandboxie_path(),
             frontier_exe: detect_frontier_exe(),
-            pilots_dir: default_pilots_dir(),
+            riders_dir: default_riders_dir(),
             launch_all_on_start: false,
             companion_sites: default_companion_sites(),
             ui_zoom: default_ui_zoom(),
@@ -202,7 +202,7 @@ impl BifrostConfig {
     ///    error they can't diagnose without devtools.
     ///
     /// This mirrors the same "graceful fallback" shape we'd want on
-    /// `pilots.json` (see `state::load_pilots`).
+    /// `riders.json` (see `state::load_riders`).
     pub fn load_or_default(path: &PathBuf) -> Result<Self> {
         if !path.exists() {
             return Ok(Self::defaults());
@@ -270,11 +270,11 @@ fn detect_frontier_exe() -> Option<String> {
         .then(|| candidate.to_string_lossy().into_owned())
 }
 
-fn default_pilots_dir() -> String {
+fn default_riders_dir() -> String {
     dirs::data_local_dir()
-        .map(|d| d.join("Bifrost").join("pilots"))
+        .map(|d| d.join("Bifrost").join("riders"))
         .map(|p| p.to_string_lossy().into_owned())
-        .unwrap_or_else(|| String::from(r"C:\BifrostPilots"))
+        .unwrap_or_else(|| String::from(r"C:\BifrostRiders"))
 }
 
 #[cfg(test)]
@@ -353,7 +353,7 @@ mod tests {
         let original = BifrostConfig {
             sandboxie_path: Some(r"C:\Program Files\Sandboxie-Plus".into()),
             frontier_exe: Some(r"C:\Games\EVE Frontier\EVE Frontier.exe".into()),
-            pilots_dir: r"C:\BifrostPilots".into(),
+            riders_dir: r"C:\BifrostRiders".into(),
             launch_all_on_start: true,
             companion_sites: default_companion_sites(),
             ui_zoom: 1.15,
@@ -369,7 +369,7 @@ mod tests {
         // `#[serde(default)]` shim would otherwise survive this test.
         assert_eq!(loaded.sandboxie_path, original.sandboxie_path);
         assert_eq!(loaded.frontier_exe, original.frontier_exe);
-        assert_eq!(loaded.pilots_dir, original.pilots_dir);
+        assert_eq!(loaded.riders_dir, original.riders_dir);
         assert_eq!(loaded.launch_all_on_start, original.launch_all_on_start);
         assert_eq!(loaded.companion_sites.len(), original.companion_sites.len());
         // The four "newer" fields that the test previously didn't
@@ -414,7 +414,7 @@ mod tests {
         let legacy = r#"{
             "sandboxiePath": "C:\\Program Files\\Sandboxie-Plus",
             "frontierExe": null,
-            "pilotsDir": "C:\\BifrostPilots",
+            "ridersDir": "C:\\BifrostRiders",
             "launchAllOnStart": false,
             "enableWalletIntegration": true,
             "chromeExe": "C:\\Old\\Chrome\\chrome.exe",
@@ -441,7 +441,7 @@ mod tests {
         let cfg = BifrostConfig {
             sandboxie_path: None,
             frontier_exe: None,
-            pilots_dir: "x".into(),
+            riders_dir: "x".into(),
             launch_all_on_start: false,
             companion_sites: default_companion_sites(),
             ui_zoom: 1.0,
@@ -469,7 +469,7 @@ mod tests {
         let legacy = r#"{
             "sandboxiePath": null,
             "frontierExe": null,
-            "pilotsDir": "C:\\BifrostPilots",
+            "ridersDir": "C:\\BifrostRiders",
             "launchAllOnStart": false,
             "companionSites": []
         }"#;
@@ -509,7 +509,7 @@ mod tests {
         let legacy = r#"{
             "sandboxiePath": null,
             "frontierExe": null,
-            "pilotsDir": "C:\\BifrostPilots",
+            "ridersDir": "C:\\BifrostRiders",
             "launchAllOnStart": false,
             "companionSites": [],
             "uiZoom": 1.0

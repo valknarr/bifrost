@@ -1,7 +1,7 @@
 # Contributing to Bifrost
 
 Thanks for considering a contribution. Bifrost is small and intentionally
-focused — a clear, friendly multi-pilot session manager for EVE Frontier
+focused — a clear, friendly multi-rider session manager for EVE Frontier
 that respects the game's official APIs. Patches that hold that line are
 welcome.
 
@@ -31,8 +31,8 @@ a cold machine. Subsequent runs are fast.
 - **Bug reports** with reproducible steps. Bifrost has a small surface
   but Sandboxie's runtime behaviour can be subtle; concrete traces are
   gold.
-- **EVE-Frontier-specific** quality-of-life features: per-pilot session
-  insights, better wallet/balance presentation, pilot grouping, etc.
+- **EVE-Frontier-specific** quality-of-life features: per-rider session
+  insights, better wallet/balance presentation, rider grouping, etc.
 - **Polishing existing flows** — first-launch hints, error messages
   that tell the user what to do next, accessibility (keyboard
   navigation, screen-reader labels).
@@ -46,7 +46,7 @@ a cold machine. Subsequent runs are fast.
   multiplexing, no reverse-engineered protocols. Bifrost drives only
   what CCP and Sandboxie have publicly documented.
 - **Host-browser integrations.** Bifrost ships its own portable Chromium
-  for per-pilot isolation; touching the user's day-to-day Chrome /
+  for per-rider isolation; touching the user's day-to-day Chrome /
   Edge / Firefox profile is out of scope.
 - **Telemetry or analytics.** Bifrost is a local app; it should stay
   local. The only network calls are to GitHub Releases for updates and
@@ -92,8 +92,8 @@ chore:    Tooling / housekeeping / dep bumps
 docs:     Documentation only
 ```
 
-Write the subject in the imperative ("add per-pilot accent picker"
-not "added per-pilot accent picker"), keep it under 72 chars, and use
+Write the subject in the imperative ("add per-rider accent picker"
+not "added per-rider accent picker"), keep it under 72 chars, and use
 the body to explain the **why** — what problem does this solve, what
 alternatives were rejected.
 

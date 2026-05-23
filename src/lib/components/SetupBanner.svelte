@@ -5,7 +5,7 @@
   import { routeStore } from "../stores/route.svelte";
   import Button from "./Button.svelte";
 
-  // Banner is shown above the pilot roster whenever a host dependency
+  // Banner is shown above the rider roster whenever a host dependency
   // is missing. We do NOT render the banner when status is still null
   // (initial probe in flight) to avoid a flash.
   const sandboxieOk = $derived(statusStore.status?.sandboxieInstalled ?? false);
@@ -32,13 +32,13 @@
         ok: sandboxieOk,
         label: "Sandboxie",
         detail:
-          "Required to run per-pilot game clients in isolation. Bifrost can install Plus or Classic for you.",
+          "Required to run per-rider game clients in isolation. Bifrost can install Plus or Classic for you.",
       },
       {
         ok: frontierOk,
         label: "EVE Frontier client",
         detail:
-          "The official game launcher. Install it once, then Bifrost will run it inside each pilot's sandbox.",
+          "The official game launcher. Install it once, then Bifrost will run it inside each rider's sandbox.",
       },
     ].filter((r) => !r.ok),
   );
@@ -81,7 +81,7 @@
           <span
             class="text-[calc(10px*var(--text-scale,1))] tracking-[0.05em] text-[var(--color-text-muted)]"
           >
-            Bifrost can't launch pilots until {missing.length === 1
+            Bifrost can't launch riders until {missing.length === 1
               ? "this component is"
               : "these components are"} installed.
           </span>

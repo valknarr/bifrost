@@ -1,39 +1,39 @@
 use serde::{Deserialize, Serialize};
 
-/// Lifecycle state of a pilot session. Mirrors the TS type in
+/// Lifecycle state of a rider session. Mirrors the TS type in
 /// `src/lib/types.ts` — keep them in sync.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub enum PilotStatus {
+pub enum RiderStatus {
     Stopped,
     Starting,
     Running,
     Error,
-    /// The pilot's Sandboxie box is no longer present in Sandboxie.ini
+    /// The rider's Sandboxie box is no longer present in Sandboxie.ini
     /// — the user (or another tool) deleted the sandbox externally,
-    /// leaving Bifrost's pilot record pointing at nothing. The UI
-    /// surfaces this with a "Sandbox missing — Remove pilot" action;
+    /// leaving Bifrost's rider record pointing at nothing. The UI
+    /// surfaces this with a "Sandbox missing — Remove rider" action;
     /// reconcile sets it via a pre-flight check before any Start.exe
-    /// call so a stale pilot doesn't trigger the native "Invalid box
+    /// call so a stale rider doesn't trigger the native "Invalid box
     /// name parameter" dialog every 30 s.
     Missing,
 }
 
-/// One pilot = (Sandboxie box, Chrome profile, optional wallet identity).
+/// One rider = (Sandboxie box, Chrome profile, optional wallet identity).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Pilot {
+pub struct Rider {
     /// Stable internal id, e.g. "frontier-1".
     pub id: String,
     /// Display name shown in the UI.
     pub name: String,
     /// Sandboxie box name, e.g. "Frontier1".
     pub sandbox: String,
-    /// Per-pilot Chromium `--user-data-dir`. Browser-agnostic; today
+    /// Per-rider Chromium `--user-data-dir`. Browser-agnostic; today
     /// Bifrost bundles Brave but the directory format is the standard
     /// Chromium profile layout.
     ///
-    /// `serde(alias)` keeps pilots.json files written by pre-v0.1
+    /// `serde(alias)` keeps riders.json files written by pre-v0.1
     /// builds (which used `chromeProfileDir`) readable without manual
     /// migration.
     #[serde(alias = "chromeProfileDir")]
@@ -46,15 +46,15 @@ pub struct Pilot {
     /// player-facing currency in EVE Frontier; SUI is just gas.
     #[serde(default)]
     pub eve_balance: Option<String>,
-    pub status: PilotStatus,
+    pub status: RiderStatus,
     /// Hex colour for the accent strip, e.g. "#F39034".
     pub accent: String,
-    /// When true, the pilot is hidden from the Managed list and shown in the
+    /// When true, the rider is hidden from the Managed list and shown in the
     /// Archived section. Sandbox contents are preserved. Restorable.
     #[serde(default)]
     pub archived: bool,
     /// Flips to true the first time Bifrost successfully spawns the game in
-    /// this pilot's sandbox. Drives the "first launch will inherit your
+    /// this rider's sandbox. Drives the "first launch will inherit your
     /// default-launcher account" hint ribbon in the UI.
     #[serde(default)]
     pub launched_at_least_once: bool,
@@ -66,14 +66,14 @@ pub struct Pilot {
     /// fields on success — but on RPC failure it silently keeps the
     /// previous value. Without this timestamp the user can't tell
     /// whether the figure on screen is current or 20 minutes stale.
-    /// PilotCard reads this and shows a "Updated 5m ago" / "Stale"
+    /// RiderCard reads this and shows a "Updated 5m ago" / "Stale"
     /// indicator so the staleness is never hidden.
     #[serde(default)]
     pub wallet_balance_fetched_at: Option<u64>,
 }
 
-/// The fixed palette Bifrost cycles pilots through. Each pilot keeps its
-/// own accent in `Pilot.accent` so the user can override via the UI.
+/// The fixed palette Bifrost cycles riders through. Each rider keeps its
+/// own accent in `Rider.accent` so the user can override via the UI.
 pub const PALETTE: &[&str] = &[
     "#F39034", // accent orange
     "#3FD17B", // ok green
@@ -83,11 +83,11 @@ pub const PALETTE: &[&str] = &[
     "#E26060", // danger red
 ];
 
-impl Pilot {
-    /// Build a new pilot stub from a name. The accent is picked as the
-    /// first palette colour not already taken by any other pilot
+impl Rider {
+    /// Build a new rider stub from a name. The accent is picked as the
+    /// first palette colour not already taken by any other rider
     /// (managed or archived). If the palette is exhausted we just wrap
-    /// around to the start — six pilots is more than most multiboxers
+    /// around to the start — six riders is more than most multiboxers
     /// will ever run and the user can override manually anyway.
     pub fn new(name: impl Into<String>, taken_accents: &[&str]) -> Self {
         let name: String = name.into();
@@ -103,14 +103,14 @@ impl Pilot {
         Self {
             id,
             name,
-            // Placeholder — `create_pilot` overrides with a hash name and
+            // Placeholder — `create_rider` overrides with a hash name and
             // `adopt_sandbox` overrides with the existing box name.
             sandbox: String::new(),
             browser_profile_dir: String::new(),
             wallet_address: None,
             wallet_balance: None,
             eve_balance: None,
-            status: PilotStatus::Stopped,
+            status: RiderStatus::Stopped,
             accent,
             archived: false,
             launched_at_least_once: false,
@@ -121,13 +121,13 @@ impl Pilot {
 
 /// Convert a display name to a filesystem-safe slug.
 ///
-/// Public so `commands::pilots` and `commands::sandboxes` can both
+/// Public so `commands::riders` and `commands::sandboxes` can both
 /// use it as their canonical name → id mapping. Returns an empty
 /// string for names that contain no alphanumeric characters (e.g.
 /// `"!!!"`, `"   "`, `""`) — the caller MUST treat an empty result
-/// as a validation failure rather than constructing a pilot with
-/// `id == ""` (which expands `<pilots_dir>/<id>` to the parent
-/// directory and lets `remove_dir_all` wipe every pilot at once).
+/// as a validation failure rather than constructing a rider with
+/// `id == ""` (which expands `<riders_dir>/<id>` to the parent
+/// directory and lets `remove_dir_all` wipe every rider at once).
 pub fn slugify(s: &str) -> String {
     s.trim()
         .to_lowercase()
@@ -138,7 +138,7 @@ pub fn slugify(s: &str) -> String {
         .to_string()
 }
 
-/// Produce a pilot id that doesn't collide with any existing pilot's
+/// Produce a rider id that doesn't collide with any existing rider's
 /// id. `slug` is the slugified display name; `existing_ids` is the
 /// set of ids already in use (archived + managed). If `slug` is
 /// already unique, returns it. Otherwise appends `-<8 hex>` derived
@@ -149,7 +149,7 @@ pub fn slugify(s: &str) -> String {
 /// display name before getting here, but `None` is a second line of
 /// defence that maps cleanly to a validation error at the command
 /// boundary.
-pub fn unique_pilot_id<I>(slug: &str, existing_ids: I) -> Option<String>
+pub fn unique_rider_id<I>(slug: &str, existing_ids: I) -> Option<String>
 where
     I: IntoIterator,
     I::Item: AsRef<str>,
@@ -191,53 +191,53 @@ where
 
 #[cfg(test)]
 mod tests {
-    //! Pilot model tests. These deliberately exercise multi-step
+    //! Rider model tests. These deliberately exercise multi-step
     //! sequences (build → serialize → deserialize → compare;
     //! pick-from-palette logic across edge cases) so a regression in
     //! any one piece — slugify, palette ordering, serde derives,
     //! backward-compat aliases — surfaces here rather than at runtime
-    //! when a user opens the app and their pilots disappear.
+    //! when a user opens the app and their riders disappear.
     use super::*;
 
-    /// Happy path: a freshly-built pilot round-trips through JSON
+    /// Happy path: a freshly-built rider round-trips through JSON
     /// without losing any field. Catches accidental
     /// non-Serialize/Deserialize fields, `#[serde(skip)]` mishaps,
     /// and `rename_all = "camelCase"` drift.
     #[test]
-    fn pilot_roundtrips_through_json_lossless() {
-        let mut pilot = Pilot::new("Airikr Tuoma", &[]);
-        pilot.sandbox = "BifrostABCDEF12".into();
-        pilot.browser_profile_dir = "C:/x/y/z".into();
-        pilot.wallet_address = Some("0x1234".into());
-        pilot.wallet_balance = Some("1.234".into());
-        pilot.eve_balance = Some("9999".into());
-        pilot.status = PilotStatus::Running;
-        pilot.launched_at_least_once = true;
-        pilot.archived = true;
+    fn rider_roundtrips_through_json_lossless() {
+        let mut rider = Rider::new("Airikr Tuoma", &[]);
+        rider.sandbox = "BifrostABCDEF12".into();
+        rider.browser_profile_dir = "C:/x/y/z".into();
+        rider.wallet_address = Some("0x1234".into());
+        rider.wallet_balance = Some("1.234".into());
+        rider.eve_balance = Some("9999".into());
+        rider.status = RiderStatus::Running;
+        rider.launched_at_least_once = true;
+        rider.archived = true;
 
-        let json = serde_json::to_string(&pilot).expect("serialize");
-        let decoded: Pilot = serde_json::from_str(&json).expect("deserialize");
+        let json = serde_json::to_string(&rider).expect("serialize");
+        let decoded: Rider = serde_json::from_str(&json).expect("deserialize");
 
-        assert_eq!(decoded.id, pilot.id);
-        assert_eq!(decoded.name, pilot.name);
-        assert_eq!(decoded.sandbox, pilot.sandbox);
-        assert_eq!(decoded.browser_profile_dir, pilot.browser_profile_dir);
-        assert_eq!(decoded.wallet_address, pilot.wallet_address);
-        assert_eq!(decoded.wallet_balance, pilot.wallet_balance);
-        assert_eq!(decoded.eve_balance, pilot.eve_balance);
-        assert_eq!(decoded.status, pilot.status);
-        assert_eq!(decoded.accent, pilot.accent);
-        assert_eq!(decoded.archived, pilot.archived);
-        assert_eq!(decoded.launched_at_least_once, pilot.launched_at_least_once);
+        assert_eq!(decoded.id, rider.id);
+        assert_eq!(decoded.name, rider.name);
+        assert_eq!(decoded.sandbox, rider.sandbox);
+        assert_eq!(decoded.browser_profile_dir, rider.browser_profile_dir);
+        assert_eq!(decoded.wallet_address, rider.wallet_address);
+        assert_eq!(decoded.wallet_balance, rider.wallet_balance);
+        assert_eq!(decoded.eve_balance, rider.eve_balance);
+        assert_eq!(decoded.status, rider.status);
+        assert_eq!(decoded.accent, rider.accent);
+        assert_eq!(decoded.archived, rider.archived);
+        assert_eq!(decoded.launched_at_least_once, rider.launched_at_least_once);
     }
 
-    /// Pre-v0.1 `pilots.json` files used `chromeProfileDir` for the
+    /// Pre-v0.1 `riders.json` files used `chromeProfileDir` for the
     /// field that's now `browserProfileDir`. The `#[serde(alias)]`
     /// shim on the struct keeps those files readable — if the alias
     /// is ever removed, this test fails before a user's saved
-    /// pilots ever vanish.
+    /// riders ever vanish.
     #[test]
-    fn pilot_with_legacy_chrome_profile_dir_alias_loads() {
+    fn rider_with_legacy_chrome_profile_dir_alias_loads() {
         let legacy_json = r##"{
             "id": "airikr",
             "name": "Airikr",
@@ -249,32 +249,32 @@ mod tests {
             "accent": "#F39034"
         }"##;
 
-        let pilot: Pilot = serde_json::from_str(legacy_json).expect("legacy load");
-        assert_eq!(pilot.browser_profile_dir, "C:/old/path");
+        let rider: Rider = serde_json::from_str(legacy_json).expect("legacy load");
+        assert_eq!(rider.browser_profile_dir, "C:/old/path");
     }
 
-    /// New pilots pick the first palette colour that nobody else is
+    /// New riders pick the first palette colour that nobody else is
     /// using. The previous bug was index-based assignment which
-    /// collided when archived pilots were counted; this test fixes
+    /// collided when archived riders were counted; this test fixes
     /// the regression.
     #[test]
-    fn pilot_new_picks_first_unused_palette_color() {
-        let p1 = Pilot::new("First", &[]);
+    fn rider_new_picks_first_unused_palette_color() {
+        let p1 = Rider::new("First", &[]);
         assert_eq!(p1.accent, PALETTE[0]);
 
-        let p2 = Pilot::new("Second", &[&p1.accent]);
+        let p2 = Rider::new("Second", &[&p1.accent]);
         assert_eq!(p2.accent, PALETTE[1]);
 
-        let p3 = Pilot::new("Third", &[&p1.accent, &p2.accent]);
+        let p3 = Rider::new("Third", &[&p1.accent, &p2.accent]);
         assert_eq!(p3.accent, PALETTE[2]);
     }
 
     /// Palette colours are compared case-insensitively so a user-
     /// typed lowercase override doesn't masquerade as a free slot.
     #[test]
-    fn pilot_new_palette_comparison_is_case_insensitive() {
+    fn rider_new_palette_comparison_is_case_insensitive() {
         let taken_lower = PALETTE[0].to_ascii_lowercase();
-        let next = Pilot::new("X", &[&taken_lower]);
+        let next = Rider::new("X", &[&taken_lower]);
         assert_eq!(next.accent, PALETTE[1]);
     }
 
@@ -283,15 +283,15 @@ mod tests {
     /// this is the deterministic fallback so we never panic / pick
     /// `None`.
     #[test]
-    fn pilot_new_cycles_when_palette_exhausted() {
+    fn rider_new_cycles_when_palette_exhausted() {
         let taken: Vec<&str> = PALETTE.to_vec();
-        let extra = Pilot::new("Extra", &taken);
+        let extra = Rider::new("Extra", &taken);
         assert_eq!(extra.accent, PALETTE[0]);
     }
 
-    /// The slug used as the pilot's stable id must be stripped of
+    /// The slug used as the rider's stable id must be stripped of
     /// punctuation / whitespace and lowercased. Used in file paths
-    /// (`<pilots_dir>/<id>/browser`), so it has to be filesystem-safe.
+    /// (`<riders_dir>/<id>/browser`), so it has to be filesystem-safe.
     #[test]
     fn slugify_makes_ids_filesystem_safe() {
         assert_eq!(slugify("Airikr Tuoma"), "airikr-tuoma");
@@ -299,11 +299,11 @@ mod tests {
         assert_eq!(slugify("Tal'Ra"), "tal-ra");
     }
 
-    /// Load-bearing: `commands::pilots::create_pilot` rejects a pilot
-    /// whose name slugifies to `""` precisely because `<pilots_dir>/""`
+    /// Load-bearing: `commands::riders::create_rider` rejects a rider
+    /// whose name slugifies to `""` precisely because `<riders_dir>/""`
     /// collapses to the parent directory — a subsequent delete would
-    /// then wipe every pilot's browser profile. The guard at
-    /// `commands/pilots.rs::create_pilot` depends on this function
+    /// then wipe every rider's browser profile. The guard at
+    /// `commands/riders.rs::create_rider` depends on this function
     /// returning empty for these three input shapes; if a refactor
     /// changes the contract (e.g. "always return at least one char"),
     /// the downstream guard becomes wrong without any compile-time
@@ -318,45 +318,45 @@ mod tests {
         assert_eq!(slugify("   - , ' ! "), "");
     }
 
-    /// The palette must have at least one entry — `Pilot::new` falls
+    /// The palette must have at least one entry — `Rider::new` falls
     /// back to `PALETTE[0]` if no unused colour is found, and
     /// indexing into an empty slice would panic. Six colours is the
-    /// current design minimum (matches the natural pilot count cap);
+    /// current design minimum (matches the natural rider count cap);
     /// asserting >= 5 pins the floor while leaving room for the
     /// design to drop one without breaking the test.
     #[test]
-    fn palette_meets_minimum_size_for_pilot_new_fallback() {
+    fn palette_meets_minimum_size_for_rider_new_fallback() {
         assert!(
             PALETTE.len() >= 5,
-            "PALETTE must keep at least 5 entries to support the design's pilot accent variety; \
-             also guards Pilot::new's PALETTE[0] indexing from panicking"
+            "PALETTE must keep at least 5 entries to support the design's rider accent variety; \
+             also guards Rider::new's PALETTE[0] indexing from panicking"
         );
     }
 
-    /// `unique_pilot_id` returns the slug unchanged when nothing
-    /// collides — the common case for the first pilot or a fresh
+    /// `unique_rider_id` returns the slug unchanged when nothing
+    /// collides — the common case for the first rider or a fresh
     /// display name.
     #[test]
-    fn unique_pilot_id_returns_slug_when_no_collision() {
+    fn unique_rider_id_returns_slug_when_no_collision() {
         let existing: Vec<&str> = vec!["other"];
-        let result = unique_pilot_id("airikr", existing);
+        let result = unique_rider_id("airikr", existing);
         assert_eq!(result.as_deref(), Some("airikr"));
     }
 
-    /// `unique_pilot_id` returns `None` for an empty slug. This is
-    /// load-bearing: `create_pilot` and `adopt_sandbox` propagate
+    /// `unique_rider_id` returns `None` for an empty slug. This is
+    /// load-bearing: `create_rider` and `adopt_sandbox` propagate
     /// the `None` to a validation error. If a future refactor makes
     /// this return `Some("")`, the empty-id data-loss bug
-    /// (every pilot's profile wiped on first delete) returns. See
-    /// `commands/pilots.rs::create_pilot` doc comment for context.
+    /// (every rider's profile wiped on first delete) returns. See
+    /// `commands/riders.rs::create_rider` doc comment for context.
     #[test]
-    fn unique_pilot_id_returns_none_for_empty_slug() {
-        let result = unique_pilot_id("", std::iter::empty::<&str>());
+    fn unique_rider_id_returns_none_for_empty_slug() {
+        let result = unique_rider_id("", std::iter::empty::<&str>());
         assert!(result.is_none(), "empty slug must short-circuit to None");
     }
 
-    /// `unique_pilot_id` appends a hex suffix when the slug collides
-    /// with ANY existing id (archived or active). Two pilots with
+    /// `unique_rider_id` appends a hex suffix when the slug collides
+    /// with ANY existing id (archived or active). Two riders with
     /// the same display name previously shared a browser-profile
     /// directory; this is what stops that. Tests two collision
     /// shapes:
@@ -365,9 +365,9 @@ mod tests {
     ///      filesystem we ultimately use is case-insensitive on
     ///      Windows, so we must dedup case-insensitively).
     #[test]
-    fn unique_pilot_id_appends_suffix_on_collision() {
+    fn unique_rider_id_appends_suffix_on_collision() {
         let existing = ["airikr"];
-        let result = unique_pilot_id("airikr", existing.iter().copied()).expect("non-empty slug");
+        let result = unique_rider_id("airikr", existing.iter().copied()).expect("non-empty slug");
         assert_ne!(result, "airikr", "must NOT return the colliding slug");
         assert!(
             result.starts_with("airikr-"),
@@ -376,7 +376,7 @@ mod tests {
         // Case-insensitive collision detection.
         let existing_upper = ["AIRIKR"];
         let result2 =
-            unique_pilot_id("airikr", existing_upper.iter().copied()).expect("non-empty slug");
+            unique_rider_id("airikr", existing_upper.iter().copied()).expect("non-empty slug");
         assert_ne!(
             result2.to_ascii_lowercase(),
             "airikr",
@@ -391,7 +391,7 @@ mod tests {
     /// future refactor that drops it doesn't silently let the
     /// function spin forever or return `None`.
     #[test]
-    fn unique_pilot_id_falls_back_to_ordinal_when_suffix_exhausted() {
+    fn unique_rider_id_falls_back_to_ordinal_when_suffix_exhausted() {
         // Construct an `existing` set containing the slug + 100
         // hex-suffix variants AND the first few ordinal fallbacks.
         // Use a contrived suffix space so we can guarantee
@@ -404,12 +404,12 @@ mod tests {
         // Even if the 16 hex attempts collide, the ordinal `x-2`
         // path eventually returns a non-colliding name. Just verify
         // we never return `None` and the result is unique.
-        let result = unique_pilot_id("x", taken.iter().map(|s| s.as_str())).expect("must return Some");
+        let result = unique_rider_id("x", taken.iter().map(|s| s.as_str())).expect("must return Some");
         assert_ne!(result, "x");
         assert!(!taken.iter().any(|t| t.eq_ignore_ascii_case(&result)));
     }
 
-    /// PilotStatus ↔ TypeScript string union drift. The TS side
+    /// RiderStatus ↔ TypeScript string union drift. The TS side
     /// (`src/lib/types.ts`) declares a hard-coded union of these
     /// status strings — adding a Rust variant without updating the
     /// TS type is silent at compile time on both sides but breaks
@@ -421,9 +421,9 @@ mod tests {
     /// The serde representation is `rename_all = "lowercase"`, so
     /// each variant becomes its name in lowercase.
     #[test]
-    fn pilot_status_variants_match_typescript_union() {
+    fn rider_status_variants_match_typescript_union() {
         // Hard-coded list: this MUST stay in sync with the
-        // `PilotStatus` type alias in src/lib/types.ts.
+        // `RiderStatus` type alias in src/lib/types.ts.
         let expected: std::collections::HashSet<&str> =
             ["stopped", "starting", "running", "error", "missing"]
                 .iter()
@@ -434,11 +434,11 @@ mod tests {
         // exhaustively here also means: if a new variant is added
         // to the enum, the contributor must touch this test.
         let variants = [
-            PilotStatus::Stopped,
-            PilotStatus::Starting,
-            PilotStatus::Running,
-            PilotStatus::Error,
-            PilotStatus::Missing,
+            RiderStatus::Stopped,
+            RiderStatus::Starting,
+            RiderStatus::Running,
+            RiderStatus::Error,
+            RiderStatus::Missing,
         ];
         let actual: std::collections::HashSet<String> = variants
             .iter()
@@ -454,7 +454,7 @@ mod tests {
 
         assert_eq!(
             actual_refs, expected,
-            "\nPilotStatus drift: the serde-serialised variant names \
+            "\nRiderStatus drift: the serde-serialised variant names \
              don't match the hard-coded TypeScript union in \
              src/lib/types.ts. Update BOTH this test AND types.ts \
              when adding / removing a variant.\n\

@@ -1,4 +1,4 @@
-//! Per-pilot wallet address + on-chain balance fetches via the public
+//! Per-rider wallet address + on-chain balance fetches via the public
 //! Sui mainnet RPC.
 
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -6,7 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::State;
 
 use crate::error::{BifrostError, Result};
-use crate::pilot::Pilot;
+use crate::rider::Rider;
 use crate::state::AppState;
 use crate::sui::{format_coin, is_address_rate_limited, SuiClient};
 
@@ -20,31 +20,31 @@ fn now_unix_ms() -> u64 {
         .unwrap_or(0)
 }
 
-/// Set or clear a pilot's wallet address, then immediately fetch its
+/// Set or clear a rider's wallet address, then immediately fetch its
 /// current SUI + EVE balances from the public Sui mainnet RPC. Empty
 /// / blank input clears both the address and the cached balances.
 #[tauri::command]
-pub async fn set_pilot_wallet(
+pub async fn set_rider_wallet(
     state: State<'_, AppState>,
     id: String,
     address: String,
-) -> Result<Pilot> {
+) -> Result<Rider> {
     let trimmed = address.trim().to_string();
 
     // Clearing case: empty input wipes both fields.
     if trimmed.is_empty() {
         let updated = {
-            let mut pilots = state.pilots_lock();
-            let p = pilots
+            let mut riders = state.riders_lock();
+            let p = riders
                 .iter_mut()
                 .find(|p| p.id == id)
-                .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?;
+                .ok_or_else(|| BifrostError::RiderNotFound(id.clone()))?;
             p.wallet_address = None;
             p.wallet_balance = None;
             p.eve_balance = None;
             p.clone()
         };
-        state.save_pilots()?;
+        state.save_riders()?;
         return Ok(updated);
     }
 
@@ -58,14 +58,14 @@ pub async fn set_pilot_wallet(
     // Persist the address before the network call so it survives even
     // if the RPC is unreachable.
     {
-        let mut pilots = state.pilots_lock();
-        let p = pilots
+        let mut riders = state.riders_lock();
+        let p = riders
             .iter_mut()
             .find(|p| p.id == id)
-            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?;
+            .ok_or_else(|| BifrostError::RiderNotFound(id.clone()))?;
         p.wallet_address = Some(trimmed.clone());
     }
-    state.save_pilots()?;
+    state.save_riders()?;
 
     // Best-effort balance fetches for both coins. Fan out concurrently
     // via `tokio::join` so the two RPC calls overlap (was sequential —
@@ -94,7 +94,7 @@ pub async fn set_pilot_wallet(
 
     // Stamp the fetch time only when AT LEAST ONE coin came back
     // successfully. If both failed we keep the previous timestamp
-    // (likely `None` since this is set_pilot_wallet's first attempt)
+    // (likely `None` since this is set_rider_wallet's first attempt)
     // so the UI staleness indicator stays accurate.
     let touched_at = if sui_fmt.is_some() || eve_fmt.is_some() {
         Some(now_unix_ms())
@@ -103,11 +103,11 @@ pub async fn set_pilot_wallet(
     };
 
     let updated = {
-        let mut pilots = state.pilots_lock();
-        let p = pilots
+        let mut riders = state.riders_lock();
+        let p = riders
             .iter_mut()
             .find(|p| p.id == id)
-            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?;
+            .ok_or_else(|| BifrostError::RiderNotFound(id.clone()))?;
         p.wallet_balance = sui_fmt;
         p.eve_balance = eve_fmt;
         if touched_at.is_some() {
@@ -115,11 +115,11 @@ pub async fn set_pilot_wallet(
         }
         p.clone()
     };
-    state.save_pilots()?;
+    state.save_riders()?;
     Ok(updated)
 }
 
-/// One pilot's just-fetched balances. `(pilot_id, sui_result,
+/// One rider's just-fetched balances. `(rider_id, sui_result,
 /// eve_result)` — kept as a `Result` per coin so the per-call error
 /// is visible to the caller even when the other coin succeeded.
 type BalanceResult = (
@@ -128,34 +128,34 @@ type BalanceResult = (
     std::result::Result<u128, BifrostError>,
 );
 
-/// Re-fetch SUI + EVE balances for every pilot that has a wallet
-/// address. Concurrent across the two coins for each pilot via
-/// `tokio::join`; pilots are still iterated sequentially because the
+/// Re-fetch SUI + EVE balances for every rider that has a wallet
+/// address. Concurrent across the two coins for each rider via
+/// `tokio::join`; riders are still iterated sequentially because the
 /// Sui RPC's per-IP throttling triggers on bursts, not on steady-
 /// state load — back-to-back-with-a-tiny-gap is friendlier than
-/// fanned-out-N-pilots-at-once.
+/// fanned-out-N-riders-at-once.
 ///
-/// Two pre-flight checks per pilot before any network call:
+/// Two pre-flight checks per rider before any network call:
 ///
 /// 1. `is_address_rate_limited(addr)` — if we recently got 429/503
 ///    for this address, skip both calls until the backoff window
 ///    expires. Without this the 30 s reconcile tick re-fires every
-///    pilot's pair of requests on every tick, extending the lockout.
+///    rider's pair of requests on every tick, extending the lockout.
 /// 2. (implicit, via `get_balance`) — even if 1. somehow passes a
 ///    stale flag, the inner cache check inside `get_balance` is the
 ///    second line of defence.
 ///
-/// Returns `true` if any pilot's balance or fetch-timestamp changed,
-/// so the caller can skip `save_pilots()` on a no-op tick. This is
-/// the second half of the "stop writing pilots.json every 30 s" fix
-/// — `reconcile_pilots` does the first half by tracking status
+/// Returns `true` if any rider's balance or fetch-timestamp changed,
+/// so the caller can skip `save_riders()` on a no-op tick. This is
+/// the second half of the "stop writing riders.json every 30 s" fix
+/// — `reconcile_riders` does the first half by tracking status
 /// changes; both signals together drive the save decision.
 ///
-/// Called by [`super::lifecycle::reconcile_pilots`].
+/// Called by [`super::lifecycle::reconcile_riders`].
 pub async fn refresh_balances(state: &State<'_, AppState>) -> bool {
     let targets: Vec<(String, String)> = {
-        let pilots = state.pilots_lock();
-        pilots
+        let riders = state.riders_lock();
+        riders
             .iter()
             .filter_map(|p| {
                 p.wallet_address
@@ -172,13 +172,13 @@ pub async fn refresh_balances(state: &State<'_, AppState>) -> bool {
     let mut results: Vec<BalanceResult> = Vec::new();
     for (id, addr) in targets {
         // Pre-flight backoff check. Without this, a single
-        // throttled pilot would still consume one round-trip every
+        // throttled rider would still consume one round-trip every
         // 30 s ("the inner cache will reject it"). The throughput
         // win is small but the symmetry with `release_cache` makes
         // the code easier to reason about.
         if is_address_rate_limited(&addr) {
             tracing::debug!(
-                "wallet refresh: skipping pilot {id} — Sui RPC backoff active"
+                "wallet refresh: skipping rider {id} — Sui RPC backoff active"
             );
             // Surface the skip as a "no fresh data this tick" pair
             // of synthetic errors so the timestamp stays unchanged
@@ -200,9 +200,9 @@ pub async fn refresh_balances(state: &State<'_, AppState>) -> bool {
 
     let now = now_unix_ms();
     let mut anything_changed = false;
-    let mut pilots = state.pilots_lock();
+    let mut riders = state.riders_lock();
     for (id, sui_res, eve_res) in results {
-        if let Some(p) = pilots.iter_mut().find(|p| p.id == id) {
+        if let Some(p) = riders.iter_mut().find(|p| p.id == id) {
             let mut any_success = false;
             match sui_res {
                 Ok(mist) => {
@@ -213,7 +213,7 @@ pub async fn refresh_balances(state: &State<'_, AppState>) -> bool {
                     }
                     any_success = true;
                 }
-                Err(e) => tracing::debug!("SUI refresh for pilot {id} failed: {e}"),
+                Err(e) => tracing::debug!("SUI refresh for rider {id} failed: {e}"),
             }
             match eve_res {
                 Ok(raw) => {
@@ -224,7 +224,7 @@ pub async fn refresh_balances(state: &State<'_, AppState>) -> bool {
                     }
                     any_success = true;
                 }
-                Err(e) => tracing::debug!("EVE refresh for pilot {id} failed: {e}"),
+                Err(e) => tracing::debug!("EVE refresh for rider {id} failed: {e}"),
             }
             // Stamp the refresh time only when SOMETHING came back —
             // a tick that failed both coins should leave the

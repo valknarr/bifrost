@@ -32,14 +32,14 @@ in-scope issues:
 
 - **Sandbox escape** — anything that causes Bifrost to write the wrong
   isolation rules to `Sandboxie.ini`, or that allows code inside a
-  pilot's sandbox to read or write data belonging to another pilot.
+  rider's sandbox to read or write data belonging to another rider.
 - **Privilege escalation** — Bifrost runs the Sandboxie installer
   under UAC; any path where untrusted input influences the installer
   command line or where the elevated process can be coerced into running
   arbitrary code.
-- **Wallet / identity leakage** — anything that allows one pilot's
+- **Wallet / identity leakage** — anything that allows one rider's
   Chromium profile (and therefore EVE Vault session) to leak into
-  another pilot's session, or to the host's day-to-day browser.
+  another rider's session, or to the host's day-to-day browser.
 - **Untrusted download paths** — if Bifrost can be tricked into
   downloading a substitute for Brave, EVE Vault, or the Sandboxie
   installer from somewhere other than the canonical GitHub releases.
@@ -63,8 +63,8 @@ in-scope issues:
   roadmap; the current `null` setting is acceptable for a v0.0.1
   desktop app with no remote-content surface, but tightening it
   before any plugin sandbox / extension hosting work is prudent.
-- **Per-pilot browser.** Brave runs *inside* a Sandboxie box AND under
-  its own per-pilot `--user-data-dir`. Cross-pilot session leakage
+- **Per-rider browser.** Brave runs *inside* a Sandboxie box AND under
+  its own per-rider `--user-data-dir`. Cross-rider session leakage
   would require either a Sandboxie escape or Bifrost writing the wrong
   profile path; the second is covered by the cascading integration
   tests pinning the `prepare_profile` contract.

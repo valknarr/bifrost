@@ -18,7 +18,7 @@ body:
         Describe the user-visible pain. What are you trying to do today
         that's slow / awkward / impossible?
       placeholder: |
-        When I'm running 3 pilots, switching between their wallet
+        When I'm running 3 riders, switching between their wallet
         dashboards means clicking through 3 different windows.
     validations:
       required: true

@@ -1,7 +1,7 @@
 //! Minimal Sui RPC client.
 //!
 //! We talk to the public Sui mainnet JSON-RPC endpoint to read on-chain
-//! state for a pilot's wallet address. Reads only — Bifrost never signs or
+//! state for a rider's wallet address. Reads only — Bifrost never signs or
 //! submits transactions. Strictly aligned with the "official APIs only"
 //! posture: this endpoint is publicly documented and requires no auth.
 //!
@@ -31,7 +31,7 @@ pub const DEFAULT_RPC: &str = "https://fullnode.mainnet.sui.io:443";
 /// The cache is keyed by address (NOT by `(address, coin)`) — when one
 /// coin call gets throttled, the other is almost certainly throttled
 /// too because they share the same RPC URL + IP. Per-address keying
-/// means N pilots × 1 entry, not N × 2.
+/// means N riders × 1 entry, not N × 2.
 const RATE_LIMIT_BACKOFF: Duration = Duration::from_secs(2 * 60);
 
 /// Per-address rate-limit backoff cache. When the Sui RPC throttles a
@@ -48,7 +48,7 @@ static RATE_LIMITED_UNTIL: Lazy<Mutex<HashMap<String, Instant>>> =
 /// Stale entries (older than the backoff TTL) are NOT pruned on read
 /// — we only inspect freshness — but they're naturally overwritten
 /// on the next failure for that address. The HashMap doesn't grow
-/// unbounded because the key space is bounded by the user's pilot
+/// unbounded because the key space is bounded by the user's rider
 /// count.
 pub fn is_address_rate_limited(address: &str) -> bool {
     let Ok(guard) = RATE_LIMITED_UNTIL.lock() else {
@@ -121,7 +121,7 @@ const MIST_PER_SUI: u64 = 1_000_000_000;
 /// [`http::client`] so the TLS + connection pool is shared with the
 /// GitHub fetches. This struct is now a thin namespace over the RPC
 /// URL; keeping it as a struct (vs. free functions) preserves
-/// extensibility for things like custom RPC URLs or per-pilot auth
+/// extensibility for things like custom RPC URLs or per-rider auth
 /// headers in the future.
 #[derive(Debug, Clone)]
 pub struct SuiClient {
@@ -151,7 +151,7 @@ impl SuiClient {
         // Rate-limit short-circuit: if a previous call for this
         // address recently hit a 429/503/etc., refuse to fire another
         // request until the backoff window expires. Returns the same
-        // error shape `is_rate_limit_error` matches so the per-pilot
+        // error shape `is_rate_limit_error` matches so the per-rider
         // skip logic upstream stays consistent.
         if is_address_rate_limited(address) {
             return Err(BifrostError::Other(
@@ -238,7 +238,7 @@ impl Default for SuiClient {
 }
 
 /// Maximum fractional digits surfaced in the UI. EVE Vault and the Sui
-/// explorer use 9, but pilot cards stay compact at 4.
+/// explorer use 9, but rider cards stay compact at 4.
 const MAX_FRACTIONAL_DIGITS: usize = 4;
 
 /// Render a coin amount (in smallest unit, 9 decimals — true for both

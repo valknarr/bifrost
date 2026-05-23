@@ -1,5 +1,5 @@
 // App-level configuration store. Shared by SettingsView (writes) and
-// any component that needs to read config-derived state (PilotCard reads
+// any component that needs to read config-derived state (RiderCard reads
 // the companion-sites list).
 
 import { api } from "../tauri";
@@ -17,7 +17,7 @@ class ConfigStore {
     return this.config?.companionSites ?? [];
   }
 
-  /** Only enabled sites — what PilotCard's Apps row consumes. */
+  /** Only enabled sites — what RiderCard's Apps row consumes. */
   get enabledSites(): CompanionSite[] {
     return this.sites.filter((s) => !s.disabled);
   }
@@ -90,7 +90,7 @@ class ConfigStore {
    *  the window width to match. `0` = auto (responsive — leaves the
    *  window alone), `2` / `3` = explicit overrides that also resize
    *  the window so the new layout is visible without the user having
-   *  to drag the edge themselves. PilotsView reacts to
+   *  to drag the edge themselves. RidersView reacts to
    *  `config.rosterColumns` to switch its grid template, so this
    *  one call covers both the persistent state and the immediate
    *  visual change. */

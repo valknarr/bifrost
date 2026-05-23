@@ -1,10 +1,10 @@
-//! Atomic file writes for state-of-truth files (`pilots.json`,
+//! Atomic file writes for state-of-truth files (`riders.json`,
 //! `config.json`).
 //!
 //! `std::fs::write` writes in-place: open the destination file,
 //! truncate, write bytes, close. A power loss or process crash
 //! between the truncate and the close leaves a zero-byte / partial
-//! file — corruption for the user's whole pilot roster or settings
+//! file — corruption for the user's whole rider roster or settings
 //! page. Empirically this was rare but the consequence is total
 //! data loss (Bifrost's `load_or_default` would silently fall back
 //! to defaults, hiding the actual stored data behind whatever the
@@ -44,9 +44,9 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
     }
 
     // Append `.tmp` to the FULL path (including extension) so
-    // `pilots.json.tmp` is unambiguously a temp sibling of
-    // `pilots.json`. The alternative (replacing extension) would
-    // produce `pilots.tmp` which is more ambiguous and could collide
+    // `riders.json.tmp` is unambiguously a temp sibling of
+    // `riders.json`. The alternative (replacing extension) would
+    // produce `riders.tmp` which is more ambiguous and could collide
     // with anything else using the stem.
     let tmp_path = {
         let mut p = path.as_os_str().to_owned();
@@ -130,7 +130,7 @@ mod tests {
     }
 
     /// Parent directories are created on demand — the first ever
-    /// `save_pilots()` call on a fresh install has to work before
+    /// `save_riders()` call on a fresh install has to work before
     /// the AppData directory exists.
     #[test]
     fn write_atomic_creates_parent_dirs() {

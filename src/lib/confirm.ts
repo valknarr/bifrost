@@ -28,7 +28,7 @@ export function confirmDelete(component: string, warning?: string): boolean {
 /**
  * Generic confirm prompt for destructive actions that don't fit the
  * "remove X now? you can reinstall" template — e.g. removing an
- * orphaned pilot whose sandbox is already gone, where reinstalling
+ * orphaned rider whose sandbox is already gone, where reinstalling
  * isn't a meaningful answer. Same migration story as `confirmDelete`:
  * when the in-app modal lands, both wrappers swap together so
  * call-sites don't need to change.

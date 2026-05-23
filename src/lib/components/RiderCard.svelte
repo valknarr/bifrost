@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { Component } from "svelte";
-  import type { Pilot } from "../types";
-  import { pilotStore } from "../stores/pilots.svelte";
+  import type { Rider } from "../types";
+  import { riderStore } from "../stores/riders.svelte";
   import { integrationReady } from "../stores/vault.svelte";
   import { configStore } from "../stores/config.svelte";
   import { clockStore, useClockTick } from "../stores/clock.svelte";
@@ -10,25 +10,25 @@
   import { confirmDestructive } from "../confirm";
   import Button from "./Button.svelte";
   import StatusBadge from "./StatusBadge.svelte";
-  import PilotPortrait from "./PilotPortrait.svelte";
+  import RiderPortrait from "./RiderPortrait.svelte";
   import IconArchive from "./IconArchive.svelte";
-  // PilotAppsRow is intentionally NOT statically imported — its
+  // RiderAppsRow is intentionally NOT statically imported — its
   // companion-site icon + favicon-fetch code (the `faviconStore`
-  // + IPC pipeline + `open_pilot_app` flow) is only valuable when
-  // Brave AND EVE Vault are both installed. For pilots-only users
+  // + IPC pipeline + `open_rider_app` flow) is only valuable when
+  // Brave AND EVE Vault are both installed. For riders-only users
   // the chunk never loads. See the dynamic-import `$effect` below.
 
   // Subscribe to the shared clock tick so `balanceAge` re-derives
   // every 15 s. Without this the "Updated 5m ago" label would be
-  // baked in at mount time and never update unless the pilot record
+  // baked in at mount time and never update unless the rider record
   // changed for some other reason.
   useClockTick();
 
   interface Props {
-    pilot: Pilot;
+    rider: Rider;
   }
 
-  let { pilot }: Props = $props();
+  let { rider }: Props = $props();
 
   let pickingAccent = $state(false);
   let palette = $state<string[]>([]);
@@ -44,15 +44,15 @@
   });
 
   async function pickAccent(color: string) {
-    await pilotStore.setAccent(pilot.id, color);
+    await riderStore.setAccent(rider.id, color);
     pickingAccent = false;
   }
 
-  /** Lazily-imported `PilotAppsRow.svelte` component, populated by
+  /** Lazily-imported `RiderAppsRow.svelte` component, populated by
    *  the `$effect` below the first time wallet integration becomes
    *  available. Until then this stays `null` and the entire
    *  companion-site + favicon code path is unloaded. */
-  let AppsRowComponent = $state<Component<{ pilot: Pilot }> | null>(null);
+  let AppsRowComponent = $state<Component<{ rider: Rider }> | null>(null);
 
   /** Trigger the Apps-row chunk download the moment integration
    *  becomes ready AND there's at least one enabled companion site.
@@ -65,15 +65,15 @@
       integrationReady() &&
       configStore.enabledSites.length > 0
     ) {
-      import("./PilotAppsRow.svelte").then((m) => {
+      import("./RiderAppsRow.svelte").then((m) => {
         AppsRowComponent = m.default;
       });
     }
   });
 
   const shortAddr = $derived(
-    pilot.walletAddress
-      ? `${pilot.walletAddress.slice(0, 6)}…${pilot.walletAddress.slice(-4)}`
+    rider.walletAddress
+      ? `${rider.walletAddress.slice(0, 6)}…${rider.walletAddress.slice(-4)}`
       : "—",
   );
 
@@ -83,14 +83,14 @@
   let savingWallet = $state(false);
 
   function startEditWallet() {
-    walletInput = pilot.walletAddress ?? "";
+    walletInput = rider.walletAddress ?? "";
     editingWallet = true;
   }
 
   async function saveWallet() {
     savingWallet = true;
     try {
-      await pilotStore.setWallet(pilot.id, walletInput.trim());
+      await riderStore.setWallet(rider.id, walletInput.trim());
       editingWallet = false;
     } finally {
       savingWallet = false;
@@ -102,20 +102,20 @@
     walletInput = "";
   }
   const shortSandbox = $derived(
-    pilot.sandbox.length > 18
-      ? `${pilot.sandbox.slice(0, 8)}…${pilot.sandbox.slice(-4)}`
-      : pilot.sandbox,
+    rider.sandbox.length > 18
+      ? `${rider.sandbox.slice(0, 8)}…${rider.sandbox.slice(-4)}`
+      : rider.sandbox,
   );
 
-  const isRunning = $derived(pilot.status === "running");
-  const isBusy = $derived(pilot.status === "starting");
-  const isMissing = $derived(pilot.status === "missing");
+  const isRunning = $derived(rider.status === "running");
+  const isBusy = $derived(rider.status === "starting");
+  const isMissing = $derived(rider.status === "missing");
   /** While cold-start sync is in flight, gate Launch/Stop. The cached
-   *  status badge may be stale, and clicking Launch on a pilot whose
+   *  status badge may be stale, and clicking Launch on a rider whose
    *  game is actually still running would spawn a second instance. */
-  const syncing = $derived(pilotStore.syncing);
+  const syncing = $derived(riderStore.syncing);
   const showFirstLaunchHint = $derived(
-    !pilot.launchedAtLeastOnce && !isRunning && !isMissing,
+    !rider.launchedAtLeastOnce && !isRunning && !isMissing,
   );
 
   /** Balance staleness — drives the small label below the stats grid
@@ -134,8 +134,8 @@
    *  freezes at mount time because nothing else changes in the
    *  dependency graph between refreshes. */
   const balanceAge = $derived.by(() => {
-    if (!pilot.walletAddress) return null;
-    const fetchedAt = pilot.walletBalanceFetchedAt;
+    if (!rider.walletAddress) return null;
+    const fetchedAt = rider.walletBalanceFetchedAt;
     if (fetchedAt == null) return null;
     const ageMs = clockStore.now - fetchedAt;
     if (ageMs < 0) return null; // clock skew / future timestamp — ignore
@@ -154,20 +154,20 @@
     return { label: `Updated ${ageHours}h ago · stale`, stale: true };
   });
 
-  /** Confirm + permanently delete a pilot whose sandbox is gone. The
+  /** Confirm + permanently delete a rider whose sandbox is gone. The
    *  backend bypasses the normal "archive-first" guard for Missing
-   *  pilots so a single click is enough. We still confirm because the
-   *  pilot record (wallet address, accent, custom name) goes with it. */
+   *  riders so a single click is enough. We still confirm because the
+   *  rider record (wallet address, accent, custom name) goes with it. */
   async function removeMissing() {
     const ok = confirmDestructive(
-      `Remove pilot "${pilot.name}"?\n\nIts Sandboxie sandbox is gone, so there's nothing to clean up there. Bifrost will forget this pilot's wallet, accent, and browser profile. This cannot be undone.`,
+      `Remove rider "${rider.name}"?\n\nIts Sandboxie sandbox is gone, so there's nothing to clean up there. Bifrost will forget this rider's wallet, accent, and browser profile. This cannot be undone.`,
     );
     if (!ok) return;
-    await pilotStore.deletePermanently(pilot.id);
+    await riderStore.deletePermanently(rider.id);
   }
 
   // Favicon prefetching used to live here as a `$effect` over
-  // `configStore.enabledSites`. It moved into `PilotAppsRow.svelte`
+  // `configStore.enabledSites`. It moved into `RiderAppsRow.svelte`
   // along with the rest of the wallet-integration UI so the
   // `faviconStore` IPC pipeline is only loaded when the user
   // actually has the wallet workflow installed.
@@ -177,36 +177,36 @@
   class="group relative flex flex-col bg-[var(--color-surface)]/60 transition-colors {isRunning
     ? 'border border-[var(--color-focus)]/60'
     : 'border border-[var(--color-border)] hover:border-[var(--color-focus)]/60'}"
-  style:--pilot-accent={pilot.accent}
+  style:--rider-accent={rider.accent}
 >
   <!-- Outer corner brackets (in-game window-corner motif) -->
   <div
     class="pointer-events-none absolute -top-px -left-px h-2.5 w-2.5 border-t border-l"
-    style:border-color={pilot.accent}
+    style:border-color={rider.accent}
   ></div>
   <div
     class="pointer-events-none absolute -top-px -right-px h-2.5 w-2.5 border-t border-r"
-    style:border-color={pilot.accent}
+    style:border-color={rider.accent}
   ></div>
   <div
     class="pointer-events-none absolute -bottom-px -left-px h-2.5 w-2.5 border-b border-l opacity-50"
-    style:border-color={pilot.accent}
+    style:border-color={rider.accent}
   ></div>
   <div
     class="pointer-events-none absolute -right-px -bottom-px h-2.5 w-2.5 border-b border-r opacity-50"
-    style:border-color={pilot.accent}
+    style:border-color={rider.accent}
   ></div>
 
-  <!-- Title bar — pilot name + status badge -->
+  <!-- Title bar — rider name + status badge -->
   <header
     class="flex items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-bg)]/60 px-4 py-2"
   >
     <h3
       class="title-bracket text-[calc(13px*var(--text-scale,1))] tracking-[0.04em] text-[var(--color-text)]"
     >
-      {pilot.name}
+      {rider.name}
     </h3>
-    <StatusBadge status={pilot.status} />
+    <StatusBadge status={rider.status} />
   </header>
 
   <!-- Sandbox-missing ribbon. Takes priority over the first-launch
@@ -221,7 +221,7 @@
         class="text-[calc(10px*var(--text-scale,1))] leading-[1.4] tracking-[0.04em] text-[var(--color-warn)]"
       >
         <span class="mono tracking-[0.18em] uppercase">Sandbox no longer exists.</span><br>
-        The Sandboxie box this pilot was using has been deleted outside of
+        The Sandboxie box this rider was using has been deleted outside of
         Bifrost. Use Remove to drop the orphaned record.
       </p>
     </div>
@@ -245,9 +245,9 @@
 
   <!-- Portrait + accent picker overlay -->
   <div class="relative">
-    <PilotPortrait
-      name={pilot.name}
-      accent={pilot.accent}
+    <RiderPortrait
+      name={rider.name}
+      accent={rider.accent}
       active={isRunning}
       onEditAccent={() => (pickingAccent = !pickingAccent)}
     />
@@ -261,7 +261,7 @@
         {#each palette as color}
           <button
             class="h-5 w-5 cursor-pointer border transition-transform hover:scale-110 {color.toLowerCase() ===
-            pilot.accent.toLowerCase()
+            rider.accent.toLowerCase()
               ? 'border-[var(--color-focus)]'
               : 'border-[var(--color-border-hi)]'}"
             style:background={color}
@@ -286,8 +286,8 @@
     <div
       class="h-full transition-all"
       style:width={isRunning ? "100%" : "20%"}
-      style:background={pilot.accent}
-      style:box-shadow={isRunning ? `0 0 12px ${pilot.accent}` : "none"}
+      style:background={rider.accent}
+      style:box-shadow={isRunning ? `0 0 12px ${rider.accent}` : "none"}
     ></div>
   </div>
 
@@ -334,7 +334,7 @@
       <div class="grid grid-cols-3 divide-x divide-[var(--color-border)]">
         <div class="flex flex-col items-start gap-0.5 px-3 py-2.5">
           <span class="mono text-[calc(15px*var(--text-scale,1))] leading-none text-[var(--color-text)]">
-            {pilot.eveBalance ?? "—"}
+            {rider.eveBalance ?? "—"}
           </span>
           <span
             class="mono text-[calc(9px*var(--text-scale,1))] tracking-[0.22em] text-[var(--color-text-dim)] uppercase"
@@ -346,7 +346,7 @@
           <span
             class="mono text-[calc(15px*var(--text-scale,1))] leading-none text-[var(--color-text-muted)]"
           >
-            {pilot.walletBalance ?? "—"}
+            {rider.walletBalance ?? "—"}
           </span>
           <span
             class="mono text-[calc(9px*var(--text-scale,1))] tracking-[0.22em] text-[var(--color-text-dim)] uppercase"
@@ -357,7 +357,7 @@
         <div class="flex flex-col items-start gap-0.5 px-3 py-2.5">
           <span
             class="mono truncate w-full text-[calc(12px*var(--text-scale,1))] leading-none text-[var(--color-text-muted)]"
-            title={pilot.sandbox}
+            title={rider.sandbox}
           >
             {shortSandbox}
           </span>
@@ -371,7 +371,7 @@
 
       <!-- Balance staleness. Tiny single-line stamp under the stats
            grid. Only renders when there IS a wallet to fetch and at
-           least one successful fetch has happened — pilots that
+           least one successful fetch has happened — riders that
            never had a balance fetched stay unmarked rather than
            showing a confusing "never updated". Warn-yellow tint
            when stale (≥ 5 min). -->
@@ -392,7 +392,7 @@
         onclick={startEditWallet}
         title="Click to edit wallet address"
       >
-        {#if pilot.walletAddress}
+        {#if rider.walletAddress}
           <span class="mono text-[calc(11px*var(--text-scale,1))] text-[var(--color-text-muted)]"
             >{shortAddr}</span
           >
@@ -419,34 +419,34 @@
        script block. -->
   {#if AppsRowComponent && integrationReady() && configStore.enabledSites.length > 0}
     {@const Comp = AppsRowComponent}
-    <Comp {pilot} />
+    <Comp {rider} />
   {/if}
 
   <!-- Action footer.
        The primary CTA (Launch / Stop) is sized `lg` and `flex-1` so it
        dominates the row on narrow cards, but capped at `max-w-[260px]`
        so it doesn't sprawl across the full width of a card in the
-       2- or 3-pilot fixed layouts (where the card stretches to fit
+       2- or 3-rider fixed layouts (where the card stretches to fit
        half / a third of the window). Excess footer space sits as
        calm gap between Launch and the Archive icon — feels less
        "button bar", more "primary action, quiet utility". Archive
        is a quiet icon-button on the RIGHT — less weight, hints at a
        non-destructive "stash" action (sandbox is preserved).
-       Disabled while the pilot is running. -->
+       Disabled while the rider is running. -->
   <footer
     class="flex items-center gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg)]/40 px-4 py-2.5"
   >
     {#if isMissing}
       <!-- Sandbox was deleted externally. Launch / Stop / Archive don't
            apply — there's nothing to act on. Only sensible action is to
-           drop the orphan pilot record. -->
+           drop the orphan rider record. -->
       <Button
         variant="danger"
         size="lg"
         class="flex-1 max-w-[260px]"
         onclick={removeMissing}
       >
-        Remove pilot
+        Remove rider
       </Button>
     {:else if isRunning}
       <Button
@@ -454,7 +454,7 @@
         size="lg"
         class="flex-1 max-w-[260px]"
         disabled={syncing}
-        onclick={() => pilotStore.stop(pilot.id)}
+        onclick={() => riderStore.stop(rider.id)}
       >
         {syncing ? "Syncing…" : "Stop"}
       </Button>
@@ -464,7 +464,7 @@
         size="lg"
         class="flex-1 max-w-[260px]"
         disabled={isBusy || syncing}
-        onclick={() => pilotStore.start(pilot.id)}
+        onclick={() => riderStore.start(rider.id)}
       >
         ▶ {isBusy ? "Initialising…" : syncing ? "Syncing…" : "Launch"}
       </Button>
@@ -473,11 +473,11 @@
       <button
         class="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-focus)] hover:text-[var(--color-focus)] disabled:cursor-not-allowed disabled:opacity-30"
         disabled={isRunning}
-        onclick={() => pilotStore.archive(pilot.id)}
-        aria-label="Archive pilot {pilot.name}"
+        onclick={() => riderStore.archive(rider.id)}
+        aria-label="Archive rider {rider.name}"
         title={isRunning
-          ? "Stop the pilot before archiving"
-          : "Stash this pilot. Sandbox is preserved and can be restored later."}
+          ? "Stop the rider before archiving"
+          : "Stash this rider. Sandbox is preserved and can be restored later."}
       >
         <IconArchive size="18" />
       </button>

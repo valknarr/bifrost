@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { pilotStore } from "../stores/pilots.svelte";
+  import { riderStore } from "../stores/riders.svelte";
   import { routeStore, type Route } from "../stores/route.svelte";
   import { statusStore } from "../stores/status.svelte";
   import UpdateBanner from "./UpdateBanner.svelte";
@@ -12,7 +12,7 @@
   let { children }: Props = $props();
 
   const navItems: { id: Route; label: string }[] = [
-    { id: "pilots", label: "Pilots" },
+    { id: "riders", label: "Riders" },
     { id: "settings", label: "Settings" },
   ];
 
@@ -22,10 +22,10 @@
   const settingsAlert = $derived(statusStore.missingAny);
 
   const runningCount = $derived(
-    pilotStore.pilots.filter((p) => p.status === "running").length,
+    riderStore.riders.filter((p) => p.status === "running").length,
   );
   const managedCount = $derived(
-    pilotStore.pilots.filter((p) => !p.archived).length,
+    riderStore.riders.filter((p) => !p.archived).length,
   );
 
   // Current local time, ticking every second, for the bottom status strip
@@ -95,7 +95,7 @@
       </nav>
     </div>
     <!-- Right side: dual-state HUD indicator.
-         Left half = pilot lifecycle (Online / Standby).
+         Left half = rider lifecycle (Online / Standby).
          Right half = system health (Ready / Setup required).
          The visual rhythm mirrors EVE Frontier's in-game era/cycle
          indicators (and CradleOS's "STILLNESS · UTOPIA" header
@@ -104,7 +104,7 @@
     <div
       class="flex items-center gap-3 px-4 text-[calc(10px*var(--text-scale,1))] tracking-[0.2em] uppercase"
     >
-      <!-- Pilots state -->
+      <!-- Riders state -->
       <div class="flex items-center gap-2">
         <div
           class="h-1.5 w-1.5 {runningCount > 0
@@ -164,15 +164,15 @@
   >
     <div class="flex items-center gap-3">
       <span class="text-[var(--color-text-muted)]"
-        >{routeStore.current === "pilots"
-          ? "Pilot Roster"
+        >{routeStore.current === "riders"
+          ? "Rider Roster"
           : "System Configuration"}</span
       >
     </div>
     <div class="flex items-center gap-3">
-      {#if pilotStore.error}
+      {#if riderStore.error}
         <span class="text-[var(--color-danger)]"
-          >⚠ {pilotStore.error.slice(0, 80)}</span
+          >⚠ {riderStore.error.slice(0, 80)}</span
         >
       {/if}
       <span class="mono text-[var(--color-text-muted)]">{clock}</span>

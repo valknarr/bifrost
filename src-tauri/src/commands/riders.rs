@@ -1,5 +1,5 @@
-//! Pilot CRUD: list / create / archive / restore / delete + the
-//! per-pilot accent picker. Lifecycle (start / stop / reconcile) lives
+//! Rider CRUD: list / create / archive / restore / delete + the
+//! per-rider accent picker. Lifecycle (start / stop / reconcile) lives
 //! in [`super::lifecycle`]; wallet flows in [`super::wallet`].
 
 use std::path::PathBuf;
@@ -8,112 +8,112 @@ use tauri::State;
 
 use crate::browser;
 use crate::error::{BifrostError, Result};
-use crate::pilot::{self, Pilot, PilotStatus};
+use crate::rider::{self, Rider, RiderStatus};
 use crate::sandboxie::Sandboxie;
 use crate::state::AppState;
 
-/// Statuses that allow `delete_pilot` to bypass the "must be archived
-/// first" guard. A pilot whose Sandboxie box has been deleted externally
+/// Statuses that allow `delete_rider` to bypass the "must be archived
+/// first" guard. A rider whose Sandboxie box has been deleted externally
 /// is already half-broken — forcing the user to archive-then-delete
 /// just adds friction. The archive guard exists to protect *running*
-/// pilots from being nuked by an accidental click; that concern doesn't
+/// riders from being nuked by an accidental click; that concern doesn't
 /// apply when the sandbox is already gone.
-const ARCHIVE_BYPASS_STATUSES: &[PilotStatus] = &[PilotStatus::Missing];
+const ARCHIVE_BYPASS_STATUSES: &[RiderStatus] = &[RiderStatus::Missing];
 
 #[tauri::command]
-pub fn list_pilots(state: State<'_, AppState>) -> Result<Vec<Pilot>> {
-    Ok(state.pilots_lock().clone())
+pub fn list_riders(state: State<'_, AppState>) -> Result<Vec<Rider>> {
+    Ok(state.riders_lock().clone())
 }
 
-/// Create a new managed pilot. Eagerly provisions the Sandboxie box so
+/// Create a new managed rider. Eagerly provisions the Sandboxie box so
 /// Bifrost's view of the world matches Sandboxie's. Provisioning
-/// failure is non-fatal — the pilot record is saved either way, and
+/// failure is non-fatal — the rider record is saved either way, and
 /// the next Launch click retries.
 #[tauri::command]
-pub async fn create_pilot(state: State<'_, AppState>, name: String) -> Result<Pilot> {
+pub async fn create_rider(state: State<'_, AppState>, name: String) -> Result<Rider> {
     let cfg = state.config();
 
     // Validation step 1: non-empty trimmed name. Without this an
     // empty / whitespace-only `name` propagates to `id = ""` and
-    // `<pilots_dir>/<id>` collapses to the parent — so
-    // `delete_pilot`'s `remove_dir_all` would wipe every pilot's
+    // `<riders_dir>/<id>` collapses to the parent — so
+    // `delete_rider`'s `remove_dir_all` would wipe every rider's
     // browser profile in a single click. The FE has its own guard;
     // this is defence-in-depth at the command boundary.
     let trimmed_name = name.trim().to_string();
     if trimmed_name.is_empty() {
-        return Err(BifrostError::Other("Pilot name cannot be empty.".into()));
+        return Err(BifrostError::Other("Rider name cannot be empty.".into()));
     }
     // Validation step 2: slug must contain at least one alphanumeric
     // character. Catches names like "!!!" / "---" that pass the
     // non-empty check but slugify to "".
-    let slug = pilot::slugify(&trimmed_name);
+    let slug = rider::slugify(&trimmed_name);
     if slug.is_empty() {
         return Err(BifrostError::Other(
-            "Pilot name must contain at least one letter or number.".into(),
+            "Rider name must contain at least one letter or number.".into(),
         ));
     }
 
-    // Build the pilot record under the lock, then drop it before any
+    // Build the rider record under the lock, then drop it before any
     // async I/O (Sandboxie provisioning).
-    let pilot = {
-        let mut pilots = state.pilots_lock();
-        if pilots
+    let rider = {
+        let mut riders = state.riders_lock();
+        if riders
             .iter()
             .any(|p| !p.archived && p.name.eq_ignore_ascii_case(&trimmed_name))
         {
-            return Err(BifrostError::PilotExists(trimmed_name));
+            return Err(BifrostError::RiderExists(trimmed_name));
         }
         // Validation step 3: id uniqueness across BOTH archived and
-        // managed pilots. Previously a fresh "Airikr" and an
+        // managed riders. Previously a fresh "Airikr" and an
         // archived "Airikr" both got id = "airikr" and shared a
-        // browser profile dir on disk — `delete_pilot` on one
-        // would nuke the other's data. `unique_pilot_id` appends a
+        // browser profile dir on disk — `delete_rider` on one
+        // would nuke the other's data. `unique_rider_id` appends a
         // hex suffix on collision so the ids are always disjoint.
-        let existing_ids: Vec<String> = pilots.iter().map(|p| p.id.clone()).collect();
-        let id = pilot::unique_pilot_id(&slug, existing_ids.iter().map(|s| s.as_str()))
+        let existing_ids: Vec<String> = riders.iter().map(|p| p.id.clone()).collect();
+        let id = rider::unique_rider_id(&slug, existing_ids.iter().map(|s| s.as_str()))
             .ok_or_else(|| {
                 BifrostError::Other(
-                    "Pilot name must contain at least one letter or number.".into(),
+                    "Rider name must contain at least one letter or number.".into(),
                 )
             })?;
-        let taken: Vec<String> = pilots.iter().map(|p| p.accent.clone()).collect();
+        let taken: Vec<String> = riders.iter().map(|p| p.accent.clone()).collect();
         let taken_refs: Vec<&str> = taken.iter().map(|s| s.as_str()).collect();
-        let mut pilot = Pilot::new(trimmed_name, &taken_refs);
-        pilot.id = id;
-        pilot.sandbox = generate_sandbox_name(&pilots);
-        let dir = PathBuf::from(&cfg.pilots_dir).join(&pilot.id);
-        pilot.browser_profile_dir = dir.to_string_lossy().into_owned();
-        pilots.push(pilot.clone());
-        pilot
+        let mut rider = Rider::new(trimmed_name, &taken_refs);
+        rider.id = id;
+        rider.sandbox = generate_sandbox_name(&riders);
+        let dir = PathBuf::from(&cfg.riders_dir).join(&rider.id);
+        rider.browser_profile_dir = dir.to_string_lossy().into_owned();
+        riders.push(rider.clone());
+        rider
     };
-    state.save_pilots()?;
+    state.save_riders()?;
 
     // Eager provisioning. Failure is non-fatal — log + carry on, the
     // user can retry by clicking Launch.
     if let Some(sb_path) = cfg.sandboxie_path.as_deref() {
         if let Ok(sb) = Sandboxie::at(sb_path) {
-            if let Err(e) = sb.provision_frontier_box(&pilot.sandbox).await {
+            if let Err(e) = sb.provision_frontier_box(&rider.sandbox).await {
                 tracing::warn!(
-                    "provisioning {} failed: {e} (pilot saved; retry on launch)",
-                    pilot.sandbox
+                    "provisioning {} failed: {e} (rider saved; retry on launch)",
+                    rider.sandbox
                 );
             }
         }
     }
 
-    Ok(pilot)
+    Ok(rider)
 }
 
 /// Generate a unique Sandboxie box name. Format: `Bifrost<8 hex>` —
 /// alphanumeric only (Sandboxie's name constraint), short enough to
 /// fit in the UI without truncation, and prefixed so a quick glance at
 /// Sandboxie-Plus's own UI tells the user which boxes Bifrost owns.
-fn generate_sandbox_name(pilots: &[Pilot]) -> String {
+fn generate_sandbox_name(riders: &[Rider]) -> String {
     use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     static COUNTER: AtomicU64 = AtomicU64::new(0);
-    let taken: std::collections::HashSet<String> = pilots
+    let taken: std::collections::HashSet<String> = riders
         .iter()
         .map(|p| p.sandbox.to_ascii_lowercase())
         .collect();
@@ -149,23 +149,23 @@ fn generate_sandbox_name(pilots: &[Pilot]) -> String {
     }
 }
 
-/// Move a pilot to the Archived section. Sandbox config is preserved;
+/// Move a rider to the Archived section. Sandbox config is preserved;
 /// any running processes in the box are terminated so we don't leave
 /// orphans the user can't see from the UI.
 #[tauri::command]
-pub async fn archive_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
+pub async fn archive_rider(state: State<'_, AppState>, id: String) -> Result<()> {
     let (cfg, sandbox) = {
-        let pilots = state.pilots_lock();
-        let p = pilots
+        let riders = state.riders_lock();
+        let p = riders
             .iter()
             .find(|p| p.id == id)
-            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?;
+            .ok_or_else(|| BifrostError::RiderNotFound(id.clone()))?;
         (state.config(), p.sandbox.clone())
     };
 
     // Best-effort terminate. If it fails (box doesn't exist, already
     // empty) we still archive — the user's intent is to put this
-    // pilot aside.
+    // rider aside.
     if let Some(sb_path) = cfg.sandboxie_path.as_deref() {
         if let Ok(sb) = Sandboxie::at(sb_path) {
             if let Err(e) = sb.terminate_box(&sandbox).await {
@@ -175,39 +175,39 @@ pub async fn archive_pilot(state: State<'_, AppState>, id: String) -> Result<()>
     }
 
     {
-        let mut pilots = state.pilots_lock();
-        let p = pilots
+        let mut riders = state.riders_lock();
+        let p = riders
             .iter_mut()
             .find(|p| p.id == id)
-            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?;
+            .ok_or_else(|| BifrostError::RiderNotFound(id.clone()))?;
         p.archived = true;
-        p.status = PilotStatus::Stopped;
+        p.status = RiderStatus::Stopped;
     }
-    state.save_pilots()?;
+    state.save_riders()?;
     Ok(())
 }
 
-/// Restore an archived pilot back to the Managed list. Refuses if a
-/// managed pilot with the same display name already exists — the user
+/// Restore an archived rider back to the Managed list. Refuses if a
+/// managed rider with the same display name already exists — the user
 /// has to rename one or the other before restoring.
 #[tauri::command]
-pub fn restore_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
+pub fn restore_rider(state: State<'_, AppState>, id: String) -> Result<()> {
     {
-        let mut pilots = state.pilots_lock();
+        let mut riders = state.riders_lock();
         // Snapshot the name we'd be restoring under, so we can check
-        // collisions against other managed pilots without holding a
+        // collisions against other managed riders without holding a
         // mutable borrow on the same Vec.
-        let target_name = pilots
+        let target_name = riders
             .iter()
             .find(|p| p.id == id)
-            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?
+            .ok_or_else(|| BifrostError::RiderNotFound(id.clone()))?
             .name
             .clone();
-        if pilots
+        if riders
             .iter()
             .any(|p| !p.archived && p.id != id && p.name.eq_ignore_ascii_case(&target_name))
         {
-            return Err(BifrostError::PilotExists(target_name));
+            return Err(BifrostError::RiderExists(target_name));
         }
         // Re-find with proper error propagation. The unwrap that
         // used to live here was technically unreachable today
@@ -215,24 +215,24 @@ pub fn restore_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
         // this mutation — but if anyone ever inserts a yield point
         // (e.g. an async pre-check) between the two finds, a
         // concurrent delete could leave us with `None` and panic
-        // the whole runtime. Propagating `PilotNotFound` is cheap
+        // the whole runtime. Propagating `RiderNotFound` is cheap
         // insurance.
-        let p = pilots
+        let p = riders
             .iter_mut()
             .find(|p| p.id == id)
-            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?;
+            .ok_or_else(|| BifrostError::RiderNotFound(id.clone()))?;
         p.archived = false;
     }
-    state.save_pilots()?;
+    state.save_riders()?;
     Ok(())
 }
 
-/// Change a pilot's accent colour. Used by the pen-icon picker on the
+/// Change a rider's accent colour. Used by the pen-icon picker on the
 /// portrait. Accepts any 6-digit hex string with the `#` prefix. The
-/// new colour drives the Bifrost UI immediately and the per-pilot
+/// new colour drives the Bifrost UI immediately and the per-rider
 /// Chromium theme extension on next browser launch.
 #[tauri::command]
-pub fn set_pilot_accent(state: State<'_, AppState>, id: String, accent: String) -> Result<()> {
+pub fn set_rider_accent(state: State<'_, AppState>, id: String, accent: String) -> Result<()> {
     let trimmed = accent.trim();
     if trimmed.len() != 7 || !trimmed.starts_with('#') {
         return Err(BifrostError::Other(
@@ -245,14 +245,14 @@ pub fn set_pilot_accent(state: State<'_, AppState>, id: String, accent: String) 
         ));
     }
     {
-        let mut pilots = state.pilots_lock();
-        let p = pilots
+        let mut riders = state.riders_lock();
+        let p = riders
             .iter_mut()
             .find(|p| p.id == id)
-            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?;
+            .ok_or_else(|| BifrostError::RiderNotFound(id.clone()))?;
         p.accent = trimmed.to_string();
     }
-    state.save_pilots()?;
+    state.save_riders()?;
     Ok(())
 }
 
@@ -260,43 +260,43 @@ pub fn set_pilot_accent(state: State<'_, AppState>, id: String, accent: String) 
 /// can render the swatches without hardcoding them in two places.
 #[tauri::command]
 pub fn get_accent_palette() -> Vec<String> {
-    pilot::PALETTE.iter().map(|s| s.to_string()).collect()
+    rider::PALETTE.iter().map(|s| s.to_string()).collect()
 }
 
-/// Permanently delete a pilot record AND clean up everything it owns:
-/// the Sandboxie box config + data directory, and Bifrost's per-pilot
-/// browser/profile/theme files. Only allowed when the pilot is
+/// Permanently delete a rider record AND clean up everything it owns:
+/// the Sandboxie box config + data directory, and Bifrost's per-rider
+/// browser/profile/theme files. Only allowed when the rider is
 /// archived, forcing a two-step removal so accidental clicks can't
-/// nuke a running pilot.
+/// nuke a running rider.
 #[tauri::command]
-pub async fn delete_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
+pub async fn delete_rider(state: State<'_, AppState>, id: String) -> Result<()> {
     let (cfg, sandbox) = {
-        let mut pilots = state.pilots_lock();
-        let p = pilots
+        let mut riders = state.riders_lock();
+        let p = riders
             .iter()
             .find(|p| p.id == id)
-            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?;
+            .ok_or_else(|| BifrostError::RiderNotFound(id.clone()))?;
         if !p.archived && !ARCHIVE_BYPASS_STATUSES.contains(&p.status) {
             return Err(BifrostError::Other(
-                "Archive the pilot before deleting it.".into(),
+                "Archive the rider before deleting it.".into(),
             ));
         }
         let sandbox = p.sandbox.clone();
-        pilots.retain(|p| p.id != id);
+        riders.retain(|p| p.id != id);
         (state.config(), sandbox)
     };
-    state.save_pilots()?;
+    state.save_riders()?;
 
     // Sandboxie box: remove config + wipe data directory.
     if let Some(sb_path) = cfg.sandboxie_path.as_deref() {
         if let Ok(sb) = Sandboxie::at(sb_path) {
             if let Err(e) = sb.delete_box(&sandbox).await {
-                tracing::warn!("delete_pilot: clean-up of box {sandbox} failed: {e}");
+                tracing::warn!("delete_rider: clean-up of box {sandbox} failed: {e}");
             }
         }
     }
 
-    // Per-pilot Bifrost files (browser profile, generated theme
+    // Per-rider Bifrost files (browser profile, generated theme
     // extension). Brave can hold file handles into the profile dir
     // even after the visible window is closed, so terminate any
     // matching browser process for this profile first then retry the
@@ -310,15 +310,15 @@ pub async fn delete_pilot(state: State<'_, AppState>, id: String) -> Result<()> 
     // on the slow path.
     const HANDLE_RELEASE_DELAYS_MS: &[u64] = &[200, 500, 1000];
 
-    let pilot_dir = PathBuf::from(&cfg.pilots_dir).join(&id);
-    if pilot_dir.exists() {
-        let profile_dir = pilot_dir.join("browser");
+    let rider_dir = PathBuf::from(&cfg.riders_dir).join(&id);
+    if rider_dir.exists() {
+        let profile_dir = rider_dir.join("browser");
         browser::kill_browsers_for_profile(&profile_dir).await;
 
         let mut last_err: Option<std::io::Error> = None;
         for &delay_ms in HANDLE_RELEASE_DELAYS_MS {
             tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
-            match std::fs::remove_dir_all(&pilot_dir) {
+            match std::fs::remove_dir_all(&rider_dir) {
                 Ok(_) => {
                     last_err = None;
                     break;
@@ -328,8 +328,8 @@ pub async fn delete_pilot(state: State<'_, AppState>, id: String) -> Result<()> 
         }
         if let Some(e) = last_err {
             tracing::warn!(
-                "delete_pilot: could not remove pilot dir {} after retries: {e}",
-                pilot_dir.display()
+                "delete_rider: could not remove rider dir {} after retries: {e}",
+                rider_dir.display()
             );
         }
     }

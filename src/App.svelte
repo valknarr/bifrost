@@ -3,7 +3,7 @@
   import type { Component } from "svelte";
   import BackgroundField from "./lib/components/BackgroundField.svelte";
   import Layout from "./lib/components/Layout.svelte";
-  import PilotsView from "./lib/views/PilotsView.svelte";
+  import RidersView from "./lib/views/RidersView.svelte";
   // SettingsView is loaded on demand — see the `$effect` below.
   // Cold-start frame skips parsing ~30 KB of Settings code (UI scale
   // picker, roster layout, companion-site CRUD, installer panels) for
@@ -122,8 +122,8 @@
 <BackgroundField />
 
 <Layout>
-  {#if routeStore.current === "pilots"}
-    <PilotsView />
+  {#if routeStore.current === "riders"}
+    <RidersView />
   {:else if routeStore.current === "settings"}
     <!-- SettingsView is dynamically imported on first navigation
          (see the `$effect` above). The brief null-state renders a

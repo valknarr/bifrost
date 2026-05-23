@@ -1,14 +1,14 @@
 <script lang="ts">
-  import type { PilotStatus } from "../types";
+  import type { RiderStatus } from "../types";
 
   interface Props {
-    status: PilotStatus;
+    status: RiderStatus;
   }
 
   let { status }: Props = $props();
 
   const styles: Record<
-    PilotStatus,
+    RiderStatus,
     { dot: string; label: string; text: string; glow: string }
   > = {
     stopped: {
@@ -37,7 +37,7 @@
     },
     missing: {
       // Distinct from `error` (recoverable fault) and `stopped` (idle):
-      // the sandbox no longer exists, the pilot record is orphaned, and
+      // the sandbox no longer exists, the rider record is orphaned, and
       // the only sensible recovery is Remove. Warn-yellow (not danger-
       // red) because the situation is benign — the user almost always
       // caused it by cleaning up Sandboxie themselves.

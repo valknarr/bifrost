@@ -1,17 +1,17 @@
 <script lang="ts">
-  // Pilot portrait. Today this is a shared placeholder image (pixel /
+  // Rider portrait. Today this is a shared placeholder image (pixel /
   // halftone style, matches the EVE-Frontier "data substrate" feel of
-  // the rest of the UI). Per-pilot identity is carried by the accent
+  // the rest of the UI). Per-rider identity is carried by the accent
   // colour — corner brackets, edge tick, and the "energy" bar in the
-  // parent PilotCard. Once we wire up FusionAuth + portrait fetching
-  // we'll swap `src` per pilot; the layout stays the same.
+  // parent RiderCard. Once we wire up FusionAuth + portrait fetching
+  // we'll swap `src` per rider; the layout stays the same.
 
-  import pilotPlaceholder from "$lib/assets/pilot-placeholder.png";
+  import riderPlaceholder from "$lib/assets/rider-placeholder.png";
 
   interface Props {
     name: string;
     accent: string;
-    /** When true, intensifies the accent treatment for a running pilot. */
+    /** When true, intensifies the accent treatment for a running rider. */
     active?: boolean;
     /** Optional callback fired when the user clicks the pen icon to
      *  change the accent. When omitted the pen icon doesn't render. */
@@ -28,10 +28,10 @@
        we're cropping a portrait-orientation source. The image is
        already sepia-toned to match the background palette, so we let
        its native colour show through (no desaturation); active state
-       just bumps brightness/contrast slightly to signal the pilot is
+       just bumps brightness/contrast slightly to signal the rider is
        live. -->
   <img
-    src={pilotPlaceholder}
+    src={riderPlaceholder}
     alt="Portrait of {name}"
     class="absolute inset-0 h-full w-full object-cover object-[center_18%] transition-all"
     style:filter={active
@@ -55,7 +55,7 @@
 
   <!-- Soft accent wash on the bottom edge so the colour still reads
        even without the monogram. Combined with the bar in the parent
-       PilotCard, the pilot's identity colour is unmistakable. -->
+       RiderCard, the rider's identity colour is unmistakable. -->
   <div
     class="pointer-events-none absolute right-0 bottom-0 left-0 h-6"
     style:background="linear-gradient(to top, {accent}{active

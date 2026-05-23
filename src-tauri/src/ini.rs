@@ -167,7 +167,7 @@ fn is_user_box(name: &str) -> bool {
 /// Returns `false` (rather than an error) on any failure to locate or
 /// parse the ini — better to fall through to the legacy code path
 /// (which may pop the dialog but is at least functionally correct)
-/// than to mark every pilot as missing because we couldn't read a file.
+/// than to mark every rider as missing because we couldn't read a file.
 pub fn box_section_exists(name: &str) -> bool {
     let Some(path) = locate_ini() else {
         return false;
@@ -214,7 +214,7 @@ mod tests {
 
     #[test]
     fn parse_finds_named_section_case_insensitively() {
-        // The motivating bug: a pilot's `Pilot.sandbox` field holds
+        // The motivating bug: a rider's `Rider.sandbox` field holds
         // "BifrostF89BB26E" exactly, but a user editing Sandboxie.ini by
         // hand might normalise the case. Section lookup must be case-
         // insensitive so neither side surprises the other.
@@ -243,7 +243,7 @@ mod tests {
     #[test]
     fn parse_does_not_find_missing_section() {
         // After `Delete Content` in Sandboxie's UI the entire
-        // [BoxName] section is removed from the ini. The pilot record
+        // [BoxName] section is removed from the ini. The rider record
         // still points at the old name — confirm we report it as
         // absent rather than confused.
         let f = write_ini_utf16(

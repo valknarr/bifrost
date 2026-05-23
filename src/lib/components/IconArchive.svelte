@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Minimalist archive-box glyph used by the PilotCard footer for the
-  // "stash this pilot, sandbox preserved" action. Mirrors IconDelete's
+  // Minimalist archive-box glyph used by the RiderCard footer for the
+  // "stash this rider, sandbox preserved" action. Mirrors IconDelete's
   // single-stroke / currentColor / 16-unit viewBox conventions so the
   // two read as a family.
 

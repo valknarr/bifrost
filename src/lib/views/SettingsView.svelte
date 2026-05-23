@@ -108,7 +108,7 @@
   <!-- Panel header. 2 px accent-tinted bottom border echoes
        CradleOS's HUD-style section dividers; inner section labels
        below the header keep the lighter 1 px rule.
-       `min-h-[40px]` matches the rule in PilotsView so the header
+       `min-h-[40px]` matches the rule in RidersView so the header
        doesn't grow / shrink by a pixel or two when tabbing between
        the views — see the comment over there for the arithmetic. -->
   <header class="border-b-2 border-[var(--color-accent)]/40 px-6 pt-5 pb-4">
@@ -262,7 +262,7 @@
                 </Button>
                 <UninstallButton
                   component={`Sandboxie ${variantLabel}`}
-                  warning="Sandboxie ships a kernel driver — uninstalling will trigger a Windows UAC prompt. Close the EVE Frontier launcher and any running sandboxes first, or the uninstall will fail half-way. Pilots using Sandboxie sandboxes will stop working until you reinstall."
+                  warning="Sandboxie ships a kernel driver — uninstalling will trigger a Windows UAC prompt. Close the EVE Frontier launcher and any running sandboxes first, or the uninstall will fail half-way. Riders using Sandboxie sandboxes will stop working until you reinstall."
                   busy={sandboxieBusy}
                   onConfirm={() => sandboxieStore.uninstall()}
                 />
@@ -279,7 +279,7 @@
                 </Button>
                 <UninstallButton
                   component={`Sandboxie ${variantLabel}`}
-                  warning="Sandboxie ships a kernel driver — uninstalling will trigger a Windows UAC prompt. Close the EVE Frontier launcher and any running sandboxes first, or the uninstall will fail half-way. Pilots using Sandboxie sandboxes will stop working until you reinstall."
+                  warning="Sandboxie ships a kernel driver — uninstalling will trigger a Windows UAC prompt. Close the EVE Frontier launcher and any running sandboxes first, or the uninstall will fail half-way. Riders using Sandboxie sandboxes will stop working until you reinstall."
                   busy={sandboxieBusy}
                   onConfirm={() => sandboxieStore.uninstall()}
                 />
@@ -325,7 +325,7 @@
               >
                 <span class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-muted)] leading-snug">
                   The official game launcher. Bifrost will launch it inside
-                  each pilot's sandbox.
+                  each rider's sandbox.
                 </span>
                 <button
                   class="mono shrink-0 cursor-pointer border border-[var(--color-border-hi)] px-2.5 py-1 text-[calc(10px*var(--text-scale,1))] tracking-[0.18em] text-[var(--color-text-muted)] uppercase transition-colors hover:border-[var(--color-focus)] hover:text-[var(--color-focus)]"
@@ -348,7 +348,7 @@
         <div class="flex items-baseline justify-between">
           <h2 class="section-label">EVE Vault Integration</h2>
           <span class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] tracking-[0.2em] uppercase">
-            Per-pilot browser + wallet
+            Per-rider browser + wallet
           </span>
         </div>
 
@@ -454,7 +454,7 @@
                 </Button>
                 <UninstallButton
                   component="the portable browser"
-                  warning="Per-pilot browser profiles (wallet sessions, extensions) are kept under each pilot — only the Brave binaries are removed."
+                  warning="Per-rider browser profiles (wallet sessions, extensions) are kept under each rider — only the Brave binaries are removed."
                   busy={chromiumBusy}
                   onConfirm={() => chromiumStore.uninstall()}
                 />
@@ -471,7 +471,7 @@
                 </Button>
                 <UninstallButton
                   component="the portable browser"
-                  warning="Per-pilot browser profiles (wallet sessions, extensions) are kept under each pilot — only the Brave binaries are removed."
+                  warning="Per-rider browser profiles (wallet sessions, extensions) are kept under each rider — only the Brave binaries are removed."
                   busy={chromiumBusy}
                   onConfirm={() => chromiumStore.uninstall()}
                 />
@@ -605,17 +605,17 @@
             Bifrost downloads the official EVE Vault Chromium extension from
             <span class="mono">github.com/evefrontier/evevault</span>
             (verified by SHA-256) and stores it under Bifrost's app-data.
-            Each pilot's "Apps" buttons open ecosystem sites in a
+            Each rider's "Apps" buttons open ecosystem sites in a
             standalone Chromium window with EVE Vault preloaded as that
-            pilot's identity.
+            rider's identity.
           </p>
           <p class="text-[calc(10px*var(--text-scale,1))] tracking-[0.04em] text-[var(--color-text-dim)] leading-relaxed">
-            <span class="text-[var(--color-warn)]">One-time setup per pilot:</span>
+            <span class="text-[var(--color-warn)]">One-time setup per rider:</span>
             the first browser launch shows a Chromium window with EVE
             Vault pinned to the toolbar. Click the wallet icon → sign in
             via FusionAuth → derives the Sui address via zkLogin.
             Bifrost can't automate this step (it requires your credentials)
-            but only happens once per pilot — the profile remembers from
+            but only happens once per rider — the profile remembers from
             then on.
           </p>
         </div>
@@ -690,10 +690,10 @@
             survives restarts.
           </p>
 
-          <!-- Roster layout. Lets the user lock the pilot grid to a
+          <!-- Roster layout. Lets the user lock the rider grid to a
                fixed column count instead of the responsive default.
                Stored as `rosterColumns` in BifrostConfig (0 = auto,
-               2 = two cards per row, 3 = three). PilotsView reacts
+               2 = two cards per row, 3 = three). RidersView reacts
                to the value via configStore — no extra view-glue. -->
           <div class="mt-2 flex flex-col gap-2 border-t border-[var(--color-border)] pt-3">
             <div class="field">
@@ -703,15 +703,15 @@
                 {#if (config?.rosterColumns ?? 0) === 0}
                   Auto · fills the window
                 {:else}
-                  {config?.rosterColumns} pilots per row
+                  {config?.rosterColumns} riders per row
                 {/if}
               </span>
             </div>
             <div class="flex flex-wrap items-center gap-2">
               {#each [
-                { value: 0, label: "Auto", title: "Responsive — as many pilots per row as the window can hold." },
-                { value: 2, label: "2 pilots", title: "Lock the grid to two pilots per row. Best for narrower windows." },
-                { value: 3, label: "3 pilots", title: "Lock the grid to three pilots per row. Best for wider windows." },
+                { value: 0, label: "Auto", title: "Responsive — as many riders per row as the window can hold." },
+                { value: 2, label: "2 riders", title: "Lock the grid to two riders per row. Best for narrower windows." },
+                { value: 3, label: "3 riders", title: "Lock the grid to three riders per row. Best for wider windows." },
               ] as option (option.value)}
                 <Button
                   variant={(config?.rosterColumns ?? 0) === option.value ? "primary" : "ghost"}
@@ -726,7 +726,7 @@
             <p
               class="text-[calc(10px*var(--text-scale,1))] leading-snug text-[var(--color-text-muted)]"
             >
-              Picks how many pilot cards line up per row. Auto adds
+              Picks how many rider cards line up per row. Auto adds
               columns as you drag the window wider — 3, 4, 5, as many
               as fit at the natural card width. The fixed options (2
               or 3) snap the window to that layout and lock it,
@@ -763,10 +763,10 @@
             </span>
           </div>
           <div class="field">
-            <span class="label">Pilots dir</span>
+            <span class="label">Riders dir</span>
             <span class="leader"></span>
             <span class="value mono text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-muted)]">
-              {config?.pilotsDir ?? "—"}
+              {config?.ridersDir ?? "—"}
             </span>
           </div>
         </dl>

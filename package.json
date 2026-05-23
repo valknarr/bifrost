@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
-  "description": "Multi-pilot session manager for EVE Frontier",
+  "description": "Multi-rider session manager for EVE Frontier",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

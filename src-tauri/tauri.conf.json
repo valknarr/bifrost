@@ -38,8 +38,8 @@
       "icons/icon.ico"
     ],
     "category": "Utility",
-    "shortDescription": "Multi-pilot session manager for EVE Frontier",
-    "longDescription": "Bifrost orchestrates isolated EVE Frontier game clients + per-pilot Brave Browser profiles + EVE Vault wallets for multi-pilot play. Uses Sandboxie (Plus or Classic) under the hood. Strictly official-APIs-only.",
+    "shortDescription": "Multi-rider session manager for EVE Frontier",
+    "longDescription": "Bifrost orchestrates isolated EVE Frontier game clients + per-rider Brave Browser profiles + EVE Vault wallets for multi-rider play. Uses Sandboxie (Plus or Classic) under the hood. Strictly official-APIs-only.",
     "copyright": "© 2026 Bifrost contributors. MIT licensed.",
     "windows": {
       "nsis": {

@@ -1,10 +1,10 @@
-//! Per-pilot browser launcher.
+//! Per-rider browser launcher.
 //!
 //! Bifrost ships its own portable Chromium build — Brave Browser
 //! (chosen for built-in tracker / ad blocking that pairs well with
 //! the wallet-extension workflow and an actively maintained Windows
 //! portable release on GitHub). The bundled Brave is used
-//! exclusively for per-pilot wallet sessions. Host-installed
+//! exclusively for per-rider wallet sessions. Host-installed
 //! browsers are deliberately ignored so every Bifrost install
 //! behaves identically and the user's day-to-day Chrome / Edge /
 //! Brave profile is never touched.
@@ -14,7 +14,7 @@
 //!   profile support gives us the same kind of isolation Sandboxie
 //!   gives us for the game client).
 //! - `--load-extension=<unpacked-extension-dir>` to side-load EVE Vault
-//!   (and the per-pilot frame-colour theme) into that profile without
+//!   (and the per-rider frame-colour theme) into that profile without
 //!   going through the Chrome Web Store.
 
 use std::path::{Path, PathBuf};
@@ -24,8 +24,8 @@ use crate::cmd::no_window;
 use crate::error::Result;
 
 /// Terminate any chromium-family browser process whose command line
-/// references the given profile directory. Used by `delete_pilot` so
-/// the per-pilot browser doesn't keep file handles open and block
+/// references the given profile directory. Used by `delete_rider` so
+/// the per-rider browser doesn't keep file handles open and block
 /// `remove_dir_all` of the profile.
 ///
 /// Uses PowerShell's `Get-CimInstance Win32_Process` (modern, replaces
@@ -75,7 +75,7 @@ pub async fn kill_browsers_for_profile(profile_dir: &Path) {
 
 /// True when `cmdline_lower` contains a `--user-data-dir` argument
 /// whose value is **exactly** `profile_lower`. Naive substring match
-/// would kill the wrong pilot's browser when two pilot ids share a
+/// would kill the wrong rider's browser when two rider ids share a
 /// prefix (e.g. `airikr` and `airikr-2`); this scans for the real
 /// argument token and compares the resolved path.
 ///
@@ -113,17 +113,17 @@ fn cmdline_holds_profile(cmdline_lower: &str, profile_lower: &str) -> bool {
 }
 
 /// Generate (or refresh) a tiny Chromium **theme extension** that
-/// colours the browser frame with the given pilot's accent. Side-loaded
+/// colours the browser frame with the given rider's accent. Side-loaded
 /// alongside EVE Vault on every browser launch so the user can tell at
-/// a glance which pilot owns each Chromium window — Airikr's wallet
+/// a glance which rider owns each Chromium window — Airikr's wallet
 /// windows have an orange frame, Tal'Ra's are green, etc., matching
-/// the pilot card accent in Bifrost itself.
+/// the rider card accent in Bifrost itself.
 ///
 /// Returns the path to the unpacked extension directory; pass it via
 /// `--load-extension` alongside any other extensions.
-pub fn ensure_pilot_theme(
+pub fn ensure_rider_theme(
     profile_root: &Path,
-    pilot_name: &str,
+    rider_name: &str,
     accent_hex: &str,
 ) -> Result<PathBuf> {
     let theme_dir = profile_root.join("theme");
@@ -133,9 +133,9 @@ pub fn ensure_pilot_theme(
 
     let manifest = serde_json::json!({
         "manifest_version": 3,
-        "name": format!("Bifrost — {pilot_name}"),
+        "name": format!("Bifrost — {rider_name}"),
         "version": "1.0.0",
-        "description": "Per-pilot Chromium frame colour for visual identification (set by Bifrost).",
+        "description": "Per-rider Chromium frame colour for visual identification (set by Bifrost).",
         "theme": {
             "colors": {
                 "frame": rgb,
@@ -185,7 +185,7 @@ fn hex_to_rgb(hex: &str) -> Option<[u8; 3]> {
 /// The Brave-specific prefs (`brave.*` keys) suppress the toolbar
 /// noise that ships on by default: Rewards onboarding, Brave Wallet
 /// (which would compete with EVE Vault for the wallet-icon slot),
-/// Talk, News, Leo AI, Search promotions. Each pilot's profile is
+/// Talk, News, Leo AI, Search promotions. Each rider's profile is
 /// dedicated to the EVE Frontier ecosystem; none of that bloat is
 /// relevant. Engine-level kill switches live in
 /// [`BrowserLauncher::launch`] as `--disable-features` so they apply
@@ -211,7 +211,7 @@ pub fn prepare_profile(profile_dir: &Path) -> Result<()> {
                 "restore_on_startup": 5,  // 5 = open NTP
             },
             // Brave-specific prefs — silence the toolbar / onboarding
-            // noise that ships on by default. Each pilot's profile is
+            // noise that ships on by default. Each rider's profile is
             // a single-purpose EVE Frontier wallet session, none of
             // these surfaces are relevant.
             "brave": {
@@ -253,7 +253,7 @@ pub fn prepare_profile(profile_dir: &Path) -> Result<()> {
 ///
 /// Documentation for each Brave feature flag is sparse — names lifted
 /// from the `brave/brave-core` source. We err on the side of "disable
-/// anything that paints UI a pilot wouldn't expect to see on their
+/// anything that paints UI a rider wouldn't expect to see on their
 /// EVE-Frontier wallet window".
 const QUIET_BRAVE_FEATURES: &[&str] = &[
     // Rewards / Ads / BAT token plumbing.
@@ -383,7 +383,7 @@ impl BrowserLauncher {
     ///
     /// When `startup_url` is provided AND `app_mode` is true, the URL is
     /// launched via `--app=URL` — a standalone window with no Chrome
-    /// chrome (URL bar, tabs, menu all hidden). Used for our per-pilot
+    /// chrome (URL bar, tabs, menu all hidden). Used for our per-rider
     /// "App" buttons so each ecosystem site feels like its own desktop
     /// app. When `app_mode` is false the URL just opens as a regular tab.
     pub async fn launch(
@@ -439,8 +439,8 @@ impl BrowserLauncher {
         // the next line — that just means we stop watching it
         // from Rust; the OS process continues independently.
         //
-        // When Bifrost actually needs to terminate a pilot's browser
-        // (during `delete_pilot`), it uses
+        // When Bifrost actually needs to terminate a rider's browser
+        // (during `delete_rider`), it uses
         // `kill_browsers_for_profile` above, which finds the right
         // process by command-line and runs `taskkill`.
         cmd.kill_on_drop(false);
@@ -448,7 +448,7 @@ impl BrowserLauncher {
         // Log the resolved PID alongside the profile dir so a user
         // reporting "the browser window vanished" gives us something
         // we can cross-reference against tasklist. The profile dir
-        // ends in `pilots/<pilot-id>/browser`, so the pilot is
+        // ends in `riders/<rider-id>/browser`, so the rider is
         // recoverable from the log line. Child handle is dropped
         // immediately afterwards per the fire-and-forget contract
         // documented above.
@@ -464,10 +464,10 @@ impl BrowserLauncher {
 #[cfg(test)]
 mod tests {
     //! Profile bootstrap is the contract the user actually sees: open
-    //! Brave with a fresh per-pilot profile and have it be quiet —
+    //! Brave with a fresh per-rider profile and have it be quiet —
     //! no Rewards onboarding, no native wallet popup, no News feed,
     //! no Leo AI sidebar. These tests pin every preference key the
-    //! Settings UI promises a pilot's window won't have. If a key
+    //! Settings UI promises a rider's window won't have. If a key
     //! drifts, the regression surfaces here before a CCP-dev demo.
     use super::*;
     use tempfile::TempDir;
@@ -568,7 +568,7 @@ mod tests {
     }
 
     /// Cascading: bootstrap + pin extension + read back. Covers the
-    /// real flow Bifrost runs on every pilot's second launch (first
+    /// real flow Bifrost runs on every rider's second launch (first
     /// launch creates Preferences without an `extensions` key,
     /// second launch's `ensure_extension_pinned` has to create it
     /// then write the pin).
@@ -595,22 +595,22 @@ mod tests {
     // ---- cmdline_holds_profile -------------------------------------
     //
     // Substring matching on the profile dir was a real prefix-collision
-    // bug: a pilot named `airikr` would kill `airikr-2`'s browser
+    // bug: a rider named `airikr` would kill `airikr-2`'s browser
     // because the latter's command line literally contained the
     // former's profile path as a prefix. These tests pin the
     // exact-match contract so a regression surfaces here.
 
     #[test]
     fn cmdline_holds_profile_exact_match_with_equals() {
-        let cmd = r#""c:\bifrost\brave.exe" --user-data-dir=c:\bifrost\pilots\airikr\browser --no-first-run"#.to_lowercase();
-        let profile = r"c:\bifrost\pilots\airikr\browser".to_lowercase();
+        let cmd = r#""c:\bifrost\brave.exe" --user-data-dir=c:\bifrost\riders\airikr\browser --no-first-run"#.to_lowercase();
+        let profile = r"c:\bifrost\riders\airikr\browser".to_lowercase();
         assert!(cmdline_holds_profile(&cmd, &profile));
     }
 
     #[test]
     fn cmdline_holds_profile_quoted_path() {
-        let cmd = r#""c:\bifrost\brave.exe" --user-data-dir="c:\bifrost\pilots\airikr\browser" --foo"#.to_lowercase();
-        let profile = r"c:\bifrost\pilots\airikr\browser".to_lowercase();
+        let cmd = r#""c:\bifrost\brave.exe" --user-data-dir="c:\bifrost\riders\airikr\browser" --foo"#.to_lowercase();
+        let profile = r"c:\bifrost\riders\airikr\browser".to_lowercase();
         assert!(cmdline_holds_profile(&cmd, &profile));
     }
 
@@ -620,9 +620,9 @@ mod tests {
         // (which the old naive contains() check would match) but the
         // resolved `--user-data-dir` value isn't equal to airikr's
         // profile path. Must NOT match.
-        let cmd = r#""c:\bifrost\brave.exe" --user-data-dir=c:\bifrost\pilots\airikr-2\browser"#
+        let cmd = r#""c:\bifrost\brave.exe" --user-data-dir=c:\bifrost\riders\airikr-2\browser"#
             .to_lowercase();
-        let profile = r"c:\bifrost\pilots\airikr\browser".to_lowercase();
+        let profile = r"c:\bifrost\riders\airikr\browser".to_lowercase();
         assert!(!cmdline_holds_profile(&cmd, &profile));
     }
 
@@ -630,15 +630,15 @@ mod tests {
     fn cmdline_holds_profile_handles_trailing_separator() {
         // Profile path with trailing slash should still match a
         // command line that wrote it without one (or vice versa).
-        let cmd = r#"brave.exe --user-data-dir=c:\bifrost\pilots\airikr\browser"#.to_lowercase();
-        let profile_with_slash = r"c:\bifrost\pilots\airikr\browser\".to_lowercase();
+        let cmd = r#"brave.exe --user-data-dir=c:\bifrost\riders\airikr\browser"#.to_lowercase();
+        let profile_with_slash = r"c:\bifrost\riders\airikr\browser\".to_lowercase();
         assert!(cmdline_holds_profile(&cmd, &profile_with_slash));
     }
 
     #[test]
     fn cmdline_holds_profile_misses_when_token_absent() {
-        let cmd = "notepad.exe c:\\bifrost\\pilots\\airikr\\browser".to_lowercase();
-        let profile = r"c:\bifrost\pilots\airikr\browser".to_lowercase();
+        let cmd = "notepad.exe c:\\bifrost\\riders\\airikr\\browser".to_lowercase();
+        let profile = r"c:\bifrost\riders\airikr\browser".to_lowercase();
         assert!(
             !cmdline_holds_profile(&cmd, &profile),
             "the path appearing as a positional arg shouldn't count"

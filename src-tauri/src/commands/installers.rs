@@ -52,7 +52,7 @@ pub async fn install_evevault(state: State<'_, AppState>) -> Result<()> {
     evevault::install(&state.app_data_dir, &release).await
 }
 
-/// Remove the unpacked EVE Vault extension. Per-pilot browser
+/// Remove the unpacked EVE Vault extension. Per-rider browser
 /// profiles retain their extension state under their own
 /// `--user-data-dir`, so uninstalling here only removes the *unpacked
 /// source*; existing browser windows keep working until they reload.
@@ -89,8 +89,8 @@ pub async fn install_chromium(state: State<'_, AppState>) -> Result<()> {
     chromium::install(&state.app_data_dir, &release).await
 }
 
-/// Remove the portable browser install. Per-pilot browser profiles
-/// under `<app-data>/pilots/*/browser/` are intentionally left
+/// Remove the portable browser install. Per-rider browser profiles
+/// under `<app-data>/riders/*/browser/` are intentionally left
 /// untouched — they survive a browser reinstall so wallet sessions
 /// aren't blown away. The frontend confirms with the user before
 /// invoking this.
@@ -154,7 +154,7 @@ pub async fn install_sandboxie(
 
         // Preemptively silence the "Program Compatibility" wizard that
         // would otherwise pop up the first time the engine starts (i.e.
-        // when the user creates their first pilot). Best-effort; the
+        // when the user creates their first rider). Best-effort; the
         // dialog is annoying-but-harmless if this fails.
         sandboxie_installer::suppress_compat_prompts(std::path::Path::new(&path)).await;
     }
@@ -166,7 +166,7 @@ pub async fn install_sandboxie(
 /// elevation for kernel-driver removal. After the uninstaller exits we
 /// also clear the cached `sandboxie_path` so the next host probe
 /// correctly reports it missing. The frontend confirms with the user
-/// (and warns about orphaned pilots) before invoking this.
+/// (and warns about orphaned riders) before invoking this.
 ///
 /// Refuses to proceed if any sandbox has live processes — the Inno
 /// uninstaller can't tear down `SbieDrv.sys` while the driver is held

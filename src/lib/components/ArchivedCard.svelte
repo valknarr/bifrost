@@ -1,19 +1,19 @@
 <script lang="ts">
-  import type { Pilot } from "../types";
-  import { pilotStore } from "../stores/pilots.svelte";
+  import type { Rider } from "../types";
+  import { riderStore } from "../stores/riders.svelte";
   import Button from "./Button.svelte";
 
   interface Props {
-    pilot: Pilot;
+    rider: Rider;
   }
 
-  let { pilot }: Props = $props();
+  let { rider }: Props = $props();
 
   let confirmingDelete = $state(false);
 
   const shortAddr = $derived(
-    pilot.walletAddress
-      ? `${pilot.walletAddress.slice(0, 6)}…${pilot.walletAddress.slice(-4)}`
+    rider.walletAddress
+      ? `${rider.walletAddress.slice(0, 6)}…${rider.walletAddress.slice(-4)}`
       : "—",
   );
 </script>
@@ -23,7 +23,7 @@
 >
   <div
     class="absolute top-0 right-0 left-0 h-[2px] opacity-30"
-    style:background={pilot.accent}
+    style:background={rider.accent}
   ></div>
 
   <header class="flex items-start justify-between gap-3">
@@ -31,19 +31,19 @@
       <h3
         class="title-bracket text-[calc(14px*var(--text-scale,1))] text-[var(--color-text-muted)]"
       >
-        {pilot.name}
+        {rider.name}
       </h3>
       <div
         class="flex items-center gap-2 text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] uppercase tracking-[0.2em]"
       >
-        <span class="mono normal-case tracking-normal">{pilot.sandbox}</span>
+        <span class="mono normal-case tracking-normal">{rider.sandbox}</span>
         <span>›</span>
         <span>Archived</span>
       </div>
     </div>
   </header>
 
-  {#if pilot.walletAddress}
+  {#if rider.walletAddress}
     <div class="field">
       <span class="label">Wallet</span>
       <span class="leader"></span>
@@ -60,14 +60,14 @@
        `flex-wrap` stays as a defensive fallback for very narrow
        rendering (e.g. user zoom or future layout shifts). -->
   <footer class="flex flex-wrap gap-2">
-    <Button size="sm" variant="focus" onclick={() => pilotStore.restore(pilot.id)}>
+    <Button size="sm" variant="focus" onclick={() => riderStore.restore(rider.id)}>
       Restore
     </Button>
     {#if confirmingDelete}
       <Button
         size="sm"
         variant="danger"
-        onclick={() => pilotStore.deletePermanently(pilot.id)}
+        onclick={() => riderStore.deletePermanently(rider.id)}
       >
         Confirm
       </Button>
@@ -79,7 +79,7 @@
         size="sm"
         variant="ghost"
         onclick={() => (confirmingDelete = true)}
-        title="Permanently remove the pilot AND its Sandboxie box + browser profile. This cannot be undone."
+        title="Permanently remove the rider AND its Sandboxie box + browser profile. This cannot be undone."
       >
         Delete…
       </Button>

@@ -25,7 +25,7 @@
   const sizes: Record<Size, string> = {
     sm: "px-3 py-1.5 text-[calc(10px*var(--text-scale,1))] min-h-[28px] min-w-[72px]",
     md: "px-5 py-2.5 text-[calc(11px*var(--text-scale,1))] min-h-[36px] min-w-[96px]",
-    // lg is the "pilot card primary CTA" size — bigger hit-target +
+    // lg is the "rider card primary CTA" size — bigger hit-target +
     // beefier visual presence for Launch / Stop, where the user is
     // committing to a multi-second sandbox spin-up. Pairs with the
     // h-10/w-10 icon-button for Archive sitting next to it.

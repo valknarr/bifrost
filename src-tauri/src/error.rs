@@ -10,11 +10,11 @@ pub enum BifrostError {
     #[error("Sandboxie command failed: {0}")]
     SandboxieCommand(String),
 
-    #[error("Pilot not found: {0}")]
-    PilotNotFound(String),
+    #[error("Rider not found: {0}")]
+    RiderNotFound(String),
 
-    #[error("Pilot already exists: {0}")]
-    PilotExists(String),
+    #[error("Rider already exists: {0}")]
+    RiderExists(String),
 
     #[error("Configuration error: {0}")]
     Config(String),

@@ -57,7 +57,7 @@ pub fn set_ui_zoom(state: State<'_, AppState>, zoom: f32) -> Result<BifrostConfi
     Ok(cfg)
 }
 
-/// Persist the user's preferred pilot-roster column count and return
+/// Persist the user's preferred rider-roster column count and return
 /// the updated config. `0` = auto (responsive grid), `2`/`3` = explicit
 /// overrides. Anything else is rejected — a corrupted config or a
 /// misbehaving frontend can't land on `0` columns (invisible grid) or

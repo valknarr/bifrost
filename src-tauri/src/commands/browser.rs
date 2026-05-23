@@ -1,15 +1,15 @@
-//! Per-pilot browser launches. These commands orchestrate three lower
+//! Per-rider browser launches. These commands orchestrate three lower
 //! layers: [`crate::chromium`] (find the portable Brave binary on
 //! disk), [`crate::evevault`] (find the unpacked extension dir +
 //! popup file), and [`crate::browser::BrowserLauncher`] (spawn the
 //! Brave process with the right flags + extensions).
 //!
 //! Two entry points:
-//! - [`open_pilot_browser`] — the plain "Wallet" button on each pilot
+//! - [`open_rider_browser`] — the plain "Wallet" button on each rider
 //!   card. Opens the EVE Vault popup URL directly if Bifrost already
 //!   knows the extension's Chromium-assigned ID; otherwise a blank
 //!   new tab.
-//! - [`open_pilot_app`] — the per-pilot Apps row. Opens a specific
+//! - [`open_rider_app`] — the per-rider Apps row. Opens a specific
 //!   URL in standalone `--app=…` mode (no Chrome chrome) so each
 //!   ecosystem site feels like a desktop app.
 
@@ -22,29 +22,29 @@ use crate::error::{BifrostError, Result};
 use crate::state::AppState;
 use crate::{chromium, evevault};
 
-/// Open this pilot's browser to the EVE Vault popup (or a blank new
+/// Open this rider's browser to the EVE Vault popup (or a blank new
 /// tab on first ever launch, before Chromium has resolved the
 /// extension ID).
 #[tauri::command]
-pub async fn open_pilot_browser(state: State<'_, AppState>, id: String) -> Result<()> {
-    open_pilot_browser_impl(state, id, None).await
+pub async fn open_rider_browser(state: State<'_, AppState>, id: String) -> Result<()> {
+    open_rider_browser_impl(state, id, None).await
 }
 
-/// Open a specific URL in this pilot's browser as a standalone
+/// Open a specific URL in this rider's browser as a standalone
 /// Chromium "app" window (`--app=URL` — no URL bar / tabs / menu).
-/// Same per-pilot profile + EVE Vault extension as the regular
-/// Wallet button, so the site receives this pilot's identity via the
+/// Same per-rider profile + EVE Vault extension as the regular
+/// Wallet button, so the site receives this rider's identity via the
 /// Sui Wallet Standard.
 ///
 /// URL is checked against the configured companion-site whitelist
 /// before launch. If the FE ever passes a URL that isn't in the
 /// user's `companion_sites` list (UI state corruption, future
 /// component bug, malicious FE injection), the launch is refused
-/// rather than opening the page with the pilot's wallet-bearing
+/// rather than opening the page with the rider's wallet-bearing
 /// session. Defence in depth — the FE only renders buttons for
 /// configured sites today, but the backend shouldn't trust that.
 #[tauri::command]
-pub async fn open_pilot_app(state: State<'_, AppState>, id: String, url: String) -> Result<()> {
+pub async fn open_rider_app(state: State<'_, AppState>, id: String, url: String) -> Result<()> {
     let cfg = state.config();
     let allowed = cfg
         .companion_sites
@@ -56,10 +56,10 @@ pub async fn open_pilot_app(state: State<'_, AppState>, id: String, url: String)
              Add it under Settings › Companion sites first."
         )));
     }
-    open_pilot_browser_impl(state, id, Some(url)).await
+    open_rider_browser_impl(state, id, Some(url)).await
 }
 
-/// Shared core for opening a per-pilot browser window. `url = Some(…)`
+/// Shared core for opening a per-rider browser window. `url = Some(…)`
 /// launches in `--app=` mode (no Chrome chrome — looks like a
 /// standalone desktop app). `url = None` opens a regular window.
 ///
@@ -67,7 +67,7 @@ pub async fn open_pilot_app(state: State<'_, AppState>, id: String, url: String)
 /// and the EVE Vault extension are installed; this function errors
 /// out with actionable messages if either is missing, so no explicit
 /// gating flag is needed.
-async fn open_pilot_browser_impl(
+async fn open_rider_browser_impl(
     state: State<'_, AppState>,
     id: String,
     url: Option<String>,
@@ -92,23 +92,23 @@ async fn open_pilot_browser_impl(
         ));
     }
 
-    let (profile_dir, pilot_name, pilot_accent, pilot_root) = {
-        let pilots = state.pilots_lock();
-        let p = pilots
+    let (profile_dir, rider_name, rider_accent, rider_root) = {
+        let riders = state.riders_lock();
+        let p = riders
             .iter()
             .find(|p| p.id == id)
-            .ok_or_else(|| BifrostError::PilotNotFound(id.clone()))?;
-        // Per-pilot browser profile lives alongside the pilot's other
+            .ok_or_else(|| BifrostError::RiderNotFound(id.clone()))?;
+        // Per-rider browser profile lives alongside the rider's other
         // local state. Distinct from the Sandboxie game-side profile.
-        let root = PathBuf::from(&cfg.pilots_dir).join(&p.id);
+        let root = PathBuf::from(&cfg.riders_dir).join(&p.id);
         (root.join("browser"), p.name.clone(), p.accent.clone(), root)
     };
 
-    // Generate / refresh the per-pilot theme extension so the
-    // Chromium window frame colour matches this pilot's accent.
+    // Generate / refresh the per-rider theme extension so the
+    // Chromium window frame colour matches this rider's accent.
     // Best-effort — failures only mean Chromium uses its default
     // colours, the rest of the launch is unaffected.
-    let theme_dir = browser::ensure_pilot_theme(&pilot_root, &pilot_name, &pilot_accent).ok();
+    let theme_dir = browser::ensure_rider_theme(&rider_root, &rider_name, &rider_accent).ok();
 
     // If the EVE Vault extension has been loaded into this profile
     // before, Chromium will have written its assigned ID into the

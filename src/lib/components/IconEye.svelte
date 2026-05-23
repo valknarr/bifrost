@@ -1,6 +1,6 @@
 <script lang="ts">
   // Show/hide toggle used by the companion-sites list. `hidden=false`
-  // renders an open eye (site is visible to pilots); `hidden=true`
+  // renders an open eye (site is visible to riders); `hidden=true`
   // renders a struck-through eye (site is hidden / disabled). Single
   // stroke, sized via currentColor + em so it tracks the host font.
 

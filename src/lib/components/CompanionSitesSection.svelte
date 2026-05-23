@@ -2,7 +2,7 @@
   /**
    * Companion-sites configuration. Lets the user enable / disable the
    * built-in companion sites (which can't be removed, only hidden) and
-   * add custom sites that appear in every pilot's Apps row.
+   * add custom sites that appear in every rider's Apps row.
    *
    * State lives entirely in `configStore`; this component is a thin
    * presentation layer over it. Extracted from SettingsView so the
@@ -55,7 +55,7 @@
     <span
       class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] tracking-[0.2em] uppercase"
     >
-      Each pilot opens these with their wallet identity
+      Each rider opens these with their wallet identity
     </span>
   </div>
 
@@ -63,7 +63,7 @@
     class="flex flex-col gap-3 border border-[var(--color-border)] bg-[var(--color-bg)] px-5 py-4"
   >
     <!-- Existing sites. Disabled rows fade to ~50% opacity so the
-         user can see at a glance which are hidden on pilot cards;
+         user can see at a glance which are hidden on rider cards;
          the eye toggle on the right flips disabled state. -->
     <ul class="flex flex-col gap-1.5">
       {#each sites as site (site.url)}
@@ -101,8 +101,8 @@
                 ? `Enable ${site.name}`
                 : `Disable ${site.name}`}
               title={site.disabled
-                ? `Show ${site.name} on pilot cards`
-                : `Hide ${site.name} from pilot cards`}
+                ? `Show ${site.name} on rider cards`
+                : `Hide ${site.name} from rider cards`}
             >
               <IconEye hidden={site.disabled} />
             </button>

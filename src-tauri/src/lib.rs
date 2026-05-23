@@ -3,7 +3,7 @@
 //! `lib.rs` is intentionally thin: it declares the sub-modules, sets
 //! up logging, and registers every Tauri command in one place via
 //! [`tauri::generate_handler!`]. All command logic lives under
-//! [`commands`], grouped by domain (pilots, lifecycle, wallet,
+//! [`commands`], grouped by domain (riders, lifecycle, wallet,
 //! sandboxes, installers, companion sites, browser launches, status).
 //! App state lives in [`state`].
 //!
@@ -22,7 +22,7 @@ mod evevault;
 mod favicon;
 mod http;
 mod ini;
-mod pilot;
+mod rider;
 mod release_cache;
 mod sandboxie;
 mod sandboxie_installer;
@@ -68,20 +68,20 @@ pub fn run() {
             commands::set_ui_zoom,
             commands::set_roster_columns,
             commands::set_roster_window_size,
-            // Pilots (CRUD)
-            commands::list_pilots,
-            commands::create_pilot,
-            commands::archive_pilot,
-            commands::restore_pilot,
-            commands::delete_pilot,
-            commands::set_pilot_accent,
+            // Riders (CRUD)
+            commands::list_riders,
+            commands::create_rider,
+            commands::archive_rider,
+            commands::restore_rider,
+            commands::delete_rider,
+            commands::set_rider_accent,
             commands::get_accent_palette,
-            // Pilots (lifecycle)
-            commands::start_pilot,
-            commands::stop_pilot,
-            commands::reconcile_pilots,
-            // Pilots (wallet)
-            commands::set_pilot_wallet,
+            // Riders (lifecycle)
+            commands::start_rider,
+            commands::stop_rider,
+            commands::reconcile_riders,
+            // Riders (wallet)
+            commands::set_rider_wallet,
             // Sandboxes (discover / adopt / delete unmanaged)
             commands::detect_sandboxie,
             commands::list_sandboxes,
@@ -97,9 +97,9 @@ pub fn run() {
             commands::get_sandboxie_installer_status,
             commands::install_sandboxie,
             commands::uninstall_sandboxie,
-            // Per-pilot browser launches
-            commands::open_pilot_browser,
-            commands::open_pilot_app,
+            // Per-rider browser launches
+            commands::open_rider_browser,
+            commands::open_rider_app,
             // Companion sites
             commands::add_companion_site,
             commands::remove_companion_site,

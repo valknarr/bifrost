@@ -1,25 +1,25 @@
 // Shared TypeScript types. These mirror the Rust models in
-// src-tauri/src/pilot.rs — keep them in sync.
+// src-tauri/src/rider.rs — keep them in sync.
 
-export type PilotStatus =
+export type RiderStatus =
   | "stopped"
   | "starting"
   | "running"
   | "error"
-  /** The pilot's Sandboxie box is no longer in Sandboxie.ini — the user
-   *  (or another tool) deleted it externally. The pilot record is now
+  /** The rider's Sandboxie box is no longer in Sandboxie.ini — the user
+   *  (or another tool) deleted it externally. The rider record is now
    *  orphaned; the UI surfaces a "Sandbox missing" badge and a one-click
    *  Remove action that bypasses the normal archive-then-delete flow. */
   | "missing";
 
-export interface Pilot {
+export interface Rider {
   /** Stable internal id, e.g. "frontier-1" */
   id: string;
   /** Display name shown in the UI */
   name: string;
   /** Sandboxie box name, e.g. "Frontier1" */
   sandbox: string;
-  /** Per-pilot Chromium `--user-data-dir`. Browser-agnostic; today
+  /** Per-rider Chromium `--user-data-dir`. Browser-agnostic; today
    *  Bifrost bundles Brave but the dir layout is standard Chromium. */
   browserProfileDir: string;
   /** Optional Sui wallet address once known (read-only display) */
@@ -30,25 +30,25 @@ export interface Pilot {
    *  pre-formatted as a decimal string */
   eveBalance: string | null;
   /** Current lifecycle state */
-  status: PilotStatus;
+  status: RiderStatus;
   /** Optional border / theme colour as #RRGGBB */
   accent: string;
-  /** Archived pilots are hidden from the Managed list and shown under
+  /** Archived riders are hidden from the Managed list and shown under
    *  Archived. Their sandboxes are preserved and can be restored. */
   archived: boolean;
-  /** True once Bifrost has successfully launched the game in this pilot's
+  /** True once Bifrost has successfully launched the game in this rider's
    *  sandbox at least once. Used to suppress the first-launch hint ribbon. */
   launchedAtLeastOnce: boolean;
   /** Unix milliseconds at which `walletBalance` / `eveBalance` were last
    *  successfully refreshed from the Sui RPC. `null` until the first
-   *  refresh succeeds. PilotCard reads this to surface a staleness
+   *  refresh succeeds. RiderCard reads this to surface a staleness
    *  badge — "Updated 5m ago" / "Stale" — so the user can tell at a
    *  glance whether the figures on screen are current or were last
    *  fetched 20 min ago when the network was up. */
   walletBalanceFetchedAt: number | null;
 }
 
-/** A single ecosystem app the user can launch into a pilot's browser. */
+/** A single ecosystem app the user can launch into a rider's browser. */
 export interface CompanionSite {
   name: string;
   /** 1–2 char monogram for the icon tile. */
@@ -57,7 +57,7 @@ export interface CompanionSite {
   /** True for sites bundled with Bifrost (cannot be removed, but can be
    *  disabled). */
   builtin: boolean;
-  /** True when the user has hidden this site from the per-pilot Apps
+  /** True when the user has hidden this site from the per-rider Apps
    *  row. Site stays in the config so re-enabling restores it. */
   disabled: boolean;
 }
@@ -67,9 +67,9 @@ export interface BifrostConfig {
   sandboxiePath: string | null;
   /** Path to the EVE Frontier game executable. null = autodetect */
   frontierExe: string | null;
-  /** Local directory where per-pilot Chrome profiles live */
-  pilotsDir: string;
-  /** Whether to auto-launch all enabled pilots on app open */
+  /** Local directory where per-rider Chrome profiles live */
+  ridersDir: string;
+  /** Whether to auto-launch all enabled riders on app open */
   launchAllOnStart: boolean;
   /** Ordered list of ecosystem apps, both built-in and user-added. */
   companionSites: CompanionSite[];
@@ -81,7 +81,7 @@ export interface BifrostConfig {
    *  the raw float for forward compat with future keyboard-driven
    *  steps. */
   uiZoom: number;
-  /** Preferred pilot-card column count in the roster grid. `0` = auto
+  /** Preferred rider-card column count in the roster grid. `0` = auto
    *  (responsive — as many cards as the window can hold); `2` and
    *  `3` are explicit overrides surfaced under Settings › Display
    *  for multiboxers who want a locked layout. */

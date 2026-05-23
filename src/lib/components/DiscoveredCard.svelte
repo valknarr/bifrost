@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { DiscoveredBox } from "../types";
-  import { pilotStore } from "../stores/pilots.svelte";
+  import { riderStore } from "../stores/riders.svelte";
   import { confirmDelete } from "../confirm";
   import Button from "./Button.svelte";
   import IconDelete from "./IconDelete.svelte";
@@ -23,7 +23,7 @@
     if (!displayName.trim()) return;
     adopting = true;
     try {
-      await pilotStore.adopt(box.name, displayName.trim());
+      await riderStore.adopt(box.name, displayName.trim());
     } finally {
       adopting = false;
     }
@@ -39,7 +39,7 @@
     if (!ok) return;
     deleting = true;
     try {
-      await pilotStore.deleteSandbox(box.name);
+      await riderStore.deleteSandbox(box.name);
     } finally {
       deleting = false;
     }
@@ -67,7 +67,7 @@
 
   <div class="flex flex-col gap-2">
     <label class="flex flex-col gap-2 text-[calc(10px*var(--text-scale,1))] tracking-[0.2em] text-[var(--color-text-muted)] uppercase">
-      Pilot name
+      Rider name
       <input
         type="text"
         placeholder="Designation…"
@@ -84,7 +84,7 @@
         onclick={handleAdopt}
         disabled={adopting || deleting || !displayName.trim()}
       >
-        {adopting ? "Adopting…" : "Adopt as pilot"}
+        {adopting ? "Adopting…" : "Adopt as rider"}
       </Button>
       <button
         class="flex w-9 shrink-0 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-30"

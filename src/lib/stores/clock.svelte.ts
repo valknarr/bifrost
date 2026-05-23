@@ -1,7 +1,7 @@
 // Shared "current time" tick. Cards that surface relative-time labels
-// (e.g. PilotCard's "Updated 5m ago" balance staleness) need a value
-// to re-derive against. Centralising the timer here means N pilot
-// cards share ONE interval instead of N — at 4 pilots the difference
+// (e.g. RiderCard's "Updated 5m ago" balance staleness) need a value
+// to re-derive against. Centralising the timer here means N rider
+// cards share ONE interval instead of N — at 4 riders the difference
 // is negligible, but the right shape from the start avoids "why are
 // there 47 setInterval timers running" surprises later.
 //
@@ -26,7 +26,7 @@ class ClockStore {
    *  subscriber. Components SHOULD call `subscribe()` inside their
    *  `onMount` and the returned unsubscribe inside the mount
    *  cleanup. The refcount means the ticker stops when nothing's
-   *  watching (e.g. user is on SettingsView and there are no pilot
+   *  watching (e.g. user is on SettingsView and there are no rider
    *  cards visible). */
   subscribe(): () => void {
     this.refCount++;

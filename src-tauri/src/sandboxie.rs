@@ -181,7 +181,7 @@ impl Sandboxie {
     /// to empty WITHOUT invoking Start.exe. `Start.exe /box:<unknown>
     /// /listpids` pops up a native "Invalid box name parameter" GUI
     /// dialog that we can't suppress via stdio redirection — checking
-    /// the ini first avoids the popup for pilots whose sandbox was
+    /// the ini first avoids the popup for riders whose sandbox was
     /// nuked externally (e.g. via Sandboxie's own "Delete Content"
     /// menu).
     pub async fn list_pids(&self, box_name: &str) -> Vec<u32> {
@@ -355,7 +355,7 @@ mod tests {
     //! — including `commands::sandboxes::list_sandboxes`, which
     //! short-circuits to empty when the engine isn't installed (so
     //! stale boxes left behind by Inno's "preserve user data"
-    //! uninstall behaviour don't show up on the Pilots view as
+    //! uninstall behaviour don't show up on the Riders view as
     //! phantom Discovered cards). These tests pin the contract.
     use super::*;
     use tempfile::TempDir;

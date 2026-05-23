@@ -9,18 +9,18 @@
 //! Layout:
 //! - [`status`] — `get_status` (host probe summary)
 //! - [`config`] — `get_config`, `set_config`
-//! - [`pilots`] — pilot CRUD (create / archive / restore / delete /
+//! - [`riders`] — rider CRUD (create / archive / restore / delete /
 //!   accent), plus the helpers `generate_sandbox_name`,
-//!   `get_accent_palette`, `list_pilots`
-//! - [`lifecycle`] — `start_pilot`, `stop_pilot`, `reconcile_pilots`
-//! - [`wallet`] — `set_pilot_wallet`, plus the shared
+//!   `get_accent_palette`, `list_riders`
+//! - [`lifecycle`] — `start_rider`, `stop_rider`, `reconcile_riders`
+//! - [`wallet`] — `set_rider_wallet`, plus the shared
 //!   `refresh_balances` helper
 //! - [`sandboxes`] — discovery + adopt + delete for Sandboxie boxes
 //!   that exist outside Bifrost's managed set
 //! - [`installers`] — `install_*` / `uninstall_*` / `get_*_status` for
 //!   Sandboxie-Plus, Brave, and the EVE Vault extension
 //! - [`companion_sites`] — add / remove / disable companion sites
-//! - [`browser`] — `open_pilot_browser`, `open_pilot_app` (wraps the
+//! - [`browser`] — `open_rider_browser`, `open_rider_app` (wraps the
 //!   lower-level [`crate::browser::BrowserLauncher`])
 
 pub mod browser;
@@ -29,7 +29,7 @@ pub mod config;
 pub mod favicon;
 pub mod installers;
 pub mod lifecycle;
-pub mod pilots;
+pub mod riders;
 pub mod sandboxes;
 pub mod status;
 pub mod wallet;
@@ -42,7 +42,7 @@ pub use config::*;
 pub use favicon::*;
 pub use installers::*;
 pub use lifecycle::*;
-pub use pilots::*;
+pub use riders::*;
 pub use sandboxes::*;
 pub use status::*;
 pub use wallet::*;

@@ -117,7 +117,7 @@ pub fn remove_companion_site(state: State<'_, AppState>, url: String) -> Result<
 /// Toggle the `disabled` flag on a companion site (typically a
 /// built-in, since user-added sites have a `Remove` button instead).
 /// Disabled sites stay in the config but are filtered out of the
-/// per-pilot Apps row in the UI.
+/// per-rider Apps row in the UI.
 #[tauri::command]
 pub fn set_companion_site_disabled(
     state: State<'_, AppState>,

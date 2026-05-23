@@ -8,7 +8,7 @@ import type {
   ChromiumStatus,
   DiscoveredBox,
   EveVaultStatus,
-  Pilot,
+  Rider,
   SandboxieInstallerStatus,
   SandboxieVariant,
 } from "./types";
@@ -25,26 +25,26 @@ export const api = {
   setRosterWindowSize: (width: number, height: number) =>
     invoke<BifrostConfig>("set_roster_window_size", { width, height }),
 
-  // --- pilots ---
-  listPilots: () => invoke<Pilot[]>("list_pilots"),
-  createPilot: (name: string) => invoke<Pilot>("create_pilot", { name }),
-  archivePilot: (id: string) => invoke<void>("archive_pilot", { id }),
-  restorePilot: (id: string) => invoke<void>("restore_pilot", { id }),
-  deletePilot: (id: string) => invoke<void>("delete_pilot", { id }),
-  setPilotAccent: (id: string, accent: string) =>
-    invoke<void>("set_pilot_accent", { id, accent }),
+  // --- riders ---
+  listRiders: () => invoke<Rider[]>("list_riders"),
+  createRider: (name: string) => invoke<Rider>("create_rider", { name }),
+  archiveRider: (id: string) => invoke<void>("archive_rider", { id }),
+  restoreRider: (id: string) => invoke<void>("restore_rider", { id }),
+  deleteRider: (id: string) => invoke<void>("delete_rider", { id }),
+  setRiderAccent: (id: string, accent: string) =>
+    invoke<void>("set_rider_accent", { id, accent }),
   getAccentPalette: () => invoke<string[]>("get_accent_palette"),
-  startPilot: (id: string) => invoke<void>("start_pilot", { id }),
-  stopPilot: (id: string) => invoke<void>("stop_pilot", { id }),
-  setPilotWallet: (id: string, address: string) =>
-    invoke<Pilot>("set_pilot_wallet", { id, address }),
-  reconcilePilots: () => invoke<void>("reconcile_pilots"),
+  startRider: (id: string) => invoke<void>("start_rider", { id }),
+  stopRider: (id: string) => invoke<void>("stop_rider", { id }),
+  setRiderWallet: (id: string, address: string) =>
+    invoke<Rider>("set_rider_wallet", { id, address }),
+  reconcileRiders: () => invoke<void>("reconcile_riders"),
 
   // --- sandboxie ---
   detectSandboxie: () => invoke<string | null>("detect_sandboxie"),
   listSandboxes: () => invoke<DiscoveredBox[]>("list_sandboxes"),
   adoptSandbox: (boxName: string, displayName: string) =>
-    invoke<Pilot>("adopt_sandbox", { boxName, displayName }),
+    invoke<Rider>("adopt_sandbox", { boxName, displayName }),
   deleteSandbox: (boxName: string) =>
     invoke<void>("delete_sandbox", { boxName }),
 
@@ -69,10 +69,10 @@ export const api = {
   installSandboxie: (variant: SandboxieVariant = "plus") =>
     invoke<void>("install_sandboxie", { variant }),
   uninstallSandboxie: () => invoke<void>("uninstall_sandboxie"),
-  openPilotBrowser: (id: string) =>
-    invoke<void>("open_pilot_browser", { id }),
-  openPilotApp: (id: string, url: string) =>
-    invoke<void>("open_pilot_app", { id, url }),
+  openRiderBrowser: (id: string) =>
+    invoke<void>("open_rider_browser", { id }),
+  openRiderApp: (id: string, url: string) =>
+    invoke<void>("open_rider_app", { id, url }),
   addCompanionSite: (name: string, url: string, icon?: string) =>
     invoke<BifrostConfig>("add_companion_site", { name, url, icon }),
   removeCompanionSite: (url: string) =>

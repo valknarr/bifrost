@@ -1,7 +1,7 @@
 // Shared host-detection state.
 //
 // Previously SettingsView fetched `get_status` directly on mount; now
-// any view can subscribe so the Pilots view can surface a "setup
+// any view can subscribe so the Riders view can surface a "setup
 // required" banner without duplicating the call.
 
 import { api } from "../tauri";

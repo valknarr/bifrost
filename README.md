@@ -4,12 +4,12 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/valknarr/bifrost?include_prereleases&label=latest&sort=semver)](https://github.com/valknarr/bifrost/releases/latest)
 
-**Multi-pilot session manager for EVE Frontier.**
+**Multi-rider session manager for EVE Frontier.**
 
-![Pilot roster — three pilots, one launched, each with its own
-coloured frame and wallet session.](./docs/screenshots/pilots.png)
+![Rider roster — three riders, one launched, each with its own
+coloured frame and wallet session.](./docs/screenshots/riders.png)
 
-One click → N isolated pilot sessions, each with its own game client,
+One click → N isolated rider sessions, each with its own game client,
 browser profile, and EVE Vault wallet. No keystroke broadcasting, no
 DLL injection, no TOS edge cases.
 
@@ -27,16 +27,16 @@ sessions, and a wallet extension that only loads in one browser profile
 at a time. The community has solved this with hand-rolled `.bat` scripts
 that hand-craft Sandboxie configs, but the user experience is rough and
 easy to get wrong (orphaned sandboxes, mixed wallet sessions, "which
-pilot is that?").
+rider is that?").
 
 Bifrost replaces all of that with:
 
-- **One UI** that shows pilots, not sandboxes.
+- **One UI** that shows riders, not sandboxes.
 - **One installer** that brings its own portable Brave + EVE Vault, so
   the user's day-to-day browser is never touched.
-- **One sign-in per pilot, ever.** Wallet sessions persist between
-  launches because each pilot owns a real Chromium profile.
-- **Coloured window frames per pilot** — Airikr's wallet windows are
+- **One sign-in per rider, ever.** Wallet sessions persist between
+  launches because each rider owns a real Chromium profile.
+- **Coloured window frames per rider** — Airikr's wallet windows are
   orange, Tal'Ra's green, etc. — so you always know which identity
   you're acting as.
 
@@ -49,7 +49,7 @@ latest. Recommended for users comfortable with `.exe` installs from
 GitHub Releases; a one-click installer flow for non-technical users
 lands in v0.1.
 
-The Pilots view, Sandboxie + EVE Vault integration, per-pilot browser
+The Riders view, Sandboxie + EVE Vault integration, per-rider browser
 sessions, wallet balance reads from the Sui mainnet RPC, and the
 in-app installers (Sandboxie Plus or Classic, portable Brave, EVE
 Vault extension) all work today. See [`CHANGELOG.md`](./CHANGELOG.md)
@@ -116,10 +116,10 @@ Output lands in `src-tauri/target/release/bundle/`.
 │   └── src/
 │       ├── main.rs                 Entry point
 │       ├── lib.rs                  Tauri setup + command registration
-│       ├── pilot.rs                Pilot model + lifecycle
+│       ├── rider.rs                Rider model + lifecycle
 │       ├── sandboxie.rs            Wraps SbieIni.exe / Start.exe
 │       ├── sandboxie_installer.rs  Silent install/uninstall of Sandboxie (Plus + Classic)
-│       ├── browser.rs              Per-pilot Brave launcher + theme extension
+│       ├── browser.rs              Per-rider Brave launcher + theme extension
 │       ├── chromium.rs             Portable Brave downloader
 │       ├── evevault.rs             EVE Vault extension downloader
 │       ├── release_cache.rs        Shared GitHub-fetch helpers + 30-min cache
@@ -149,10 +149,10 @@ Output lands in `src-tauri/target/release/bundle/`.
 2. **Single portable binary.** One `.exe` from GitHub Releases. The
    only hard dependency is Sandboxie-Plus, which Bifrost installs
    silently on first run.
-3. **The user never sees Sandboxie.** Sandboxie is plumbing. Pilots,
+3. **The user never sees Sandboxie.** Sandboxie is plumbing. Riders,
    sessions, wallets — that's what the UI shows.
-4. **Per-pilot bundling.** Each pilot session is one unit: game client
-   + Brave profile + EVE Vault. Switching pilots switches identity
+4. **Per-rider bundling.** Each rider session is one unit: game client
+   + Brave profile + EVE Vault. Switching riders switches identity
    wholesale, not piecemeal.
 5. **No telemetry.** Bifrost is a local app. The only network calls are
    to GitHub Releases (for component updates) and the Sui mainnet RPC
@@ -176,7 +176,7 @@ deliberately distinct from CCP's brand colours.
 | `--color-accent` | `#e54b1a` | Primary actions, brand |
 | `--color-accent-hi` | `#ff6a30` | Accent hover |
 | `--color-focus` | `#f5c542` | Focused window, selected tab |
-| `--color-ok` | `#ff6332` | Running pilots — brand orange (not green) |
+| `--color-ok` | `#ff6332` | Running riders — brand orange (not green) |
 | `--color-warn` | `#f2c94c` | Warnings |
 | `--color-danger` | `#e2604a` | Errors, destructive |
 
@@ -203,16 +203,16 @@ pnpm check
 Bifrost stands on the shoulders of several open-source projects:
 
 - **[Sandboxie][Sandboxie]** — the kernel-level sandboxing engine that
-  makes per-pilot isolation possible. Bifrost supports both the modern
+  makes per-rider isolation possible. Bifrost supports both the modern
   Plus build (default) and the Classic LTS build, calling Sandboxie's
   CLI tools (`SbieIni.exe`, `Start.exe`) and shipping the official
   silent installer; we don't link `SbieDll.dll`.
 - **[Brave Browser][Brave Browser]** — the Chromium fork Bifrost bundles
-  as its portable per-pilot browser. We picked Brave specifically
+  as its portable per-rider browser. We picked Brave specifically
   because it ships with the full Google-identity plumbing that
   FusionAuth's OAuth flow (used by EVE Vault) needs.
 - **[EVE Vault][EVE Vault]** — the official Chromium wallet extension
-  Bifrost side-loads into each pilot's profile.
+  Bifrost side-loads into each rider's profile.
 - **[Tauri](https://tauri.app/)** — the desktop runtime.
 - **[Svelte](https://svelte.dev/)** — the frontend framework.
 
@@ -234,10 +234,10 @@ hits one in practice.
   See `src-tauri/src/evevault.rs::install`. Mitigation: GitHub
   serves the release artifact over TLS; the substitution surface
   is essentially "GitHub itself."
-- **`delete_pilot` is not atomic across the save + filesystem-wipe
-  boundary.** Bifrost removes the pilot from `pilots.json` and saves
-  the config *before* wiping the per-pilot directory under
-  `<app-data>/pilots/<id>/`. A crash in that ~1 second window
+- **`delete_rider` is not atomic across the save + filesystem-wipe
+  boundary.** Bifrost removes the rider from `riders.json` and saves
+  the config *before* wiping the per-rider directory under
+  `<app-data>/riders/<id>/`. A crash in that ~1 second window
   leaves an orphaned ~200 MB browser profile the UI can't see
   anymore. No data loss — just disk slowly leaks until you nuke
   `<app-data>` manually. Reproducing requires a power-cycle at
@@ -293,8 +293,8 @@ issue once the repo is public.
 
 - [ ] **Frontend tests** — currently zero. Wire up `vitest` and
       plant at least one spec for `src/lib/error.ts` (round-trip),
-      one for a pilot-store mutation, and a smoke test for
-      `PilotCard.svelte`. Adds a meaningful signal to Dependabot
+      one for a rider-store mutation, and a smoke test for
+      `RiderCard.svelte`. Adds a meaningful signal to Dependabot
       bumps.
 
 **Tooling**
@@ -310,7 +310,7 @@ issue once the repo is public.
 - [ ] Rework the EVE Vault first-launch flow. Right now opening any
       Apps button triggers the OAuth setup as a side effect —
       functional but unexplained. A dedicated wallet-setup state on
-      the pilot card would make it discoverable.
+      the rider card would make it discoverable.
 
 ## Contributing
 
