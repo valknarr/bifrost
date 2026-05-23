@@ -39,19 +39,37 @@ Open `src-tauri/tauri.conf.json` and replace:
 with the public key string `tauri signer generate` printed. Commit
 this change in the same PR that turns on releases.
 
-### Step 2 — Add the private key to GitHub Actions secrets
+### Step 2 — Add the private key to the `release` environment
 
-In the repo settings → Secrets and variables → Actions, add **two**
-secrets:
+The signing key is the highest-value secret in this repo: anyone who
+can read it can publish a malicious `.exe` that auto-updates onto
+every Bifrost user's machine. Rather than storing it as a repo-wide
+secret, gate it through a GitHub Environment so it's only readable
+when the workflow is triggered by a release tag (not by a PR a
+contributor opens against `main`).
 
-- `TAURI_SIGNING_PRIVATE_KEY` — the *contents* of `~/.bifrost-updater.key`
-  (the full file, including the `untrusted comment:` header)
-- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — the password you set during
-  generation. Use an empty string if you didn't set one.
+1. In the repo, go to **Settings → Environments → New environment**
+   and name it `release`. (Not `prod` — Bifrost isn't a server you're
+   deploying to, you're cutting a signed artifact.)
+2. Under **Deployment branches and tags**, switch to
+   **Selected branches and tags** and add the rule `v*.*.*`. This is
+   the security-critical bit: it means the secrets below are *only*
+   readable when the workflow runs from a `v*.*.*` tag. A malicious
+   PR opened against `main` that runs CI cannot exfiltrate the key by
+   adding a step that echoes it, because PR-triggered runs are not in
+   this environment.
+3. Skip **Required reviewers** unless you're collaborating — for a
+   solo project it's friction without a security improvement.
+4. Under **Environment secrets**, add **two** secrets:
+   - `TAURI_SIGNING_PRIVATE_KEY` — the *contents* of `~/.bifrost-updater.key`
+     (the full file, including the `untrusted comment:` header)
+   - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — the password you set
+     during generation. Use an empty string if you didn't set one.
 
-The release workflow (`.github/workflows/release.yml`) reads these from
-the env and passes them to `tauri-action`, which signs the build and
-emits a `latest.json` alongside the `.exe`.
+The release workflow (`.github/workflows/release.yml`) declares
+`environment: release` on the build job, so it claims these secrets
+on tag-triggered runs and passes them to `tauri-action`, which signs
+the build and emits a `latest.json` alongside the `.exe`.
 
 ## Per-release flow
 

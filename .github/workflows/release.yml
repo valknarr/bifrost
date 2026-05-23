@@ -32,6 +32,15 @@ jobs:
   build:
     name: Build Windows installer
     runs-on: windows-latest
+    # Claim the `release` GitHub Environment. This is where the
+    # updater-signing secrets live (TAURI_SIGNING_PRIVATE_KEY +
+    # TAURI_SIGNING_PRIVATE_KEY_PASSWORD). The environment's
+    # deployment-tag rule (`v*.*.*`) means those secrets are only
+    # readable when this workflow runs from a release tag — a
+    # malicious PR cannot exfiltrate the key by adding a step that
+    # echoes it, because PR-triggered runs are not in this
+    # environment. See docs/RELEASING.md for the one-time setup.
+    environment: release
     steps:
       - uses: actions/checkout@v4
 
