@@ -288,10 +288,7 @@ mod tests {
     /// Happy path: box exists + game is running → Running.
     #[test]
     fn decide_rider_status_box_exists_game_running_is_running() {
-        assert_eq!(
-            decide_rider_status(true, true, true),
-            RiderStatus::Running
-        );
+        assert_eq!(decide_rider_status(true, true, true), RiderStatus::Running);
         assert_eq!(
             decide_rider_status(false, true, true),
             RiderStatus::Running,
@@ -305,10 +302,7 @@ mod tests {
     /// launched_before.
     #[test]
     fn decide_rider_status_box_exists_game_not_running_is_stopped() {
-        assert_eq!(
-            decide_rider_status(true, true, false),
-            RiderStatus::Stopped
-        );
+        assert_eq!(decide_rider_status(true, true, false), RiderStatus::Stopped);
         assert_eq!(
             decide_rider_status(false, true, false),
             RiderStatus::Stopped

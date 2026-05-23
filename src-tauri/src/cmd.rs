@@ -143,7 +143,7 @@ pub async fn run_elevated_silent(exe: &Path, args: &[&str], label: &str) -> Resu
 /// Newlines terminate the command mid-statement; NUL breaks the
 /// process-creation IPC encoding entirely.
 fn has_forbidden_char(s: &str) -> bool {
-    s.contains(|c: char| c == '\n' || c == '\r' || c == '\0')
+    s.contains(['\n', '\r', '\0'])
 }
 
 #[cfg(test)]
@@ -220,7 +220,9 @@ mod tests {
         // The typical inputs run_elevated_silent receives: Windows
         // file paths (spaces, backslashes, single quotes via escape)
         // and Inno Setup silent flags.
-        assert!(!has_forbidden_char(r"C:\Program Files\Sandboxie\unins000.exe"));
+        assert!(!has_forbidden_char(
+            r"C:\Program Files\Sandboxie\unins000.exe"
+        ));
         assert!(!has_forbidden_char("/verysilent"));
         assert!(!has_forbidden_char("/suppressmsgboxes"));
         assert!(!has_forbidden_char(r"C:\Users\valknarr's path\setup.exe"));

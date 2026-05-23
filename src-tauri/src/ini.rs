@@ -233,11 +233,9 @@ mod tests {
                 .any(|s| s.name.eq_ignore_ascii_case("bifrostf89bb26e")),
             "case-insensitive lookup must find the section"
         );
-        assert!(
-            sections
-                .iter()
-                .any(|s| s.name.eq_ignore_ascii_case("BIFROSTF89BB26E")),
-        );
+        assert!(sections
+            .iter()
+            .any(|s| s.name.eq_ignore_ascii_case("BIFROSTF89BB26E")),);
     }
 
     #[test]

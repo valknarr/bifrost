@@ -291,10 +291,16 @@ mod tests {
     /// rather than silently disabling the backoff cache.
     #[test]
     fn rate_limit_error_recognises_throttling_responses() {
-        assert!(is_rate_limit_error("Sui RPC returned HTTP 429 Too Many Requests"));
-        assert!(is_rate_limit_error("Sui RPC returned HTTP 503 Service Unavailable"));
+        assert!(is_rate_limit_error(
+            "Sui RPC returned HTTP 429 Too Many Requests"
+        ));
+        assert!(is_rate_limit_error(
+            "Sui RPC returned HTTP 503 Service Unavailable"
+        ));
         assert!(is_rate_limit_error("Sui RPC returned HTTP 403 Forbidden"));
-        assert!(is_rate_limit_error("Sui RPC error -32000: rate limit exceeded"));
+        assert!(is_rate_limit_error(
+            "Sui RPC error -32000: rate limit exceeded"
+        ));
         assert!(is_rate_limit_error("rate-limit reached"));
     }
 
@@ -305,10 +311,18 @@ mod tests {
     /// reason.
     #[test]
     fn rate_limit_error_ignores_transport_failures() {
-        assert!(!is_rate_limit_error("Sui RPC request failed: connection refused"));
-        assert!(!is_rate_limit_error("Sui RPC request failed: dns resolution error"));
-        assert!(!is_rate_limit_error("Sui RPC request failed: request timed out"));
-        assert!(!is_rate_limit_error("invalid totalBalance value: invalid digit"));
+        assert!(!is_rate_limit_error(
+            "Sui RPC request failed: connection refused"
+        ));
+        assert!(!is_rate_limit_error(
+            "Sui RPC request failed: dns resolution error"
+        ));
+        assert!(!is_rate_limit_error(
+            "Sui RPC request failed: request timed out"
+        ));
+        assert!(!is_rate_limit_error(
+            "invalid totalBalance value: invalid digit"
+        ));
     }
 
     /// Pin the address-keyed cache shape: marking an address makes it
@@ -322,11 +336,20 @@ mod tests {
         // test execution.
         let addr = format!("0xtest_marks_and_clears_{}", std::process::id());
 
-        assert!(!is_address_rate_limited(&addr), "fresh address must not be marked");
+        assert!(
+            !is_address_rate_limited(&addr),
+            "fresh address must not be marked"
+        );
         mark_address_rate_limited(&addr);
-        assert!(is_address_rate_limited(&addr), "marked address must read as rate-limited");
+        assert!(
+            is_address_rate_limited(&addr),
+            "marked address must read as rate-limited"
+        );
         clear_address_rate_limited(&addr);
-        assert!(!is_address_rate_limited(&addr), "cleared address must read as free again");
+        assert!(
+            !is_address_rate_limited(&addr),
+            "cleared address must read as free again"
+        );
     }
 
     /// Re-marking refreshes the timer rather than appending a second

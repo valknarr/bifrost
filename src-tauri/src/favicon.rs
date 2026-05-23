@@ -80,8 +80,8 @@ fn is_fresh(path: &Path) -> bool {
 }
 
 fn parse_host(url: &str) -> Result<String> {
-    let parsed = reqwest::Url::parse(url)
-        .map_err(|e| BifrostError::Other(format!("invalid URL: {e}")))?;
+    let parsed =
+        reqwest::Url::parse(url).map_err(|e| BifrostError::Other(format!("invalid URL: {e}")))?;
     let host = parsed
         .host_str()
         .ok_or_else(|| BifrostError::Other("URL has no host".into()))?

@@ -308,9 +308,7 @@ pub async fn fetch_latest_release_with_asset<F>(
 where
     F: Fn(&str) -> bool,
 {
-    let url = format!(
-        "https://api.github.com/repos/{repo}/releases?per_page={per_page}"
-    );
+    let url = format!("https://api.github.com/repos/{repo}/releases?per_page={per_page}");
 
     let resp = http::client()
         .get(&url)
@@ -341,12 +339,10 @@ where
     // first one whose assets include a matching name.
     for release in releases {
         if let Some(assets) = release["assets"].as_array() {
-            if assets.iter().any(|a| {
-                a["name"]
-                    .as_str()
-                    .map(&is_match)
-                    .unwrap_or(false)
-            }) {
+            if assets
+                .iter()
+                .any(|a| a["name"].as_str().map(&is_match).unwrap_or(false))
+            {
                 return Ok(release.clone());
             }
         }
@@ -560,9 +556,7 @@ mod tests {
                 let n = calls_c.clone();
                 async move {
                     n.fetch_add(1, Ordering::SeqCst);
-                    Err(BifrostError::Other(
-                        "simulated network timeout".into(),
-                    ))
+                    Err(BifrostError::Other("simulated network timeout".into()))
                 }
             },
         ));
@@ -826,7 +820,9 @@ mod tests {
     /// rather than silently disabling the rate-limit cache.
     #[test]
     fn rate_limit_error_detection() {
-        assert!(is_rate_limit_error("GitHub API returned HTTP 403 Forbidden"));
+        assert!(is_rate_limit_error(
+            "GitHub API returned HTTP 403 Forbidden"
+        ));
         assert!(is_rate_limit_error("HTTP 429 Too Many Requests"));
         assert!(is_rate_limit_error("Rate limit exceeded"));
         assert!(is_rate_limit_error("rate limit"));

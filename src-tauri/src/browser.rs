@@ -609,7 +609,9 @@ mod tests {
 
     #[test]
     fn cmdline_holds_profile_quoted_path() {
-        let cmd = r#""c:\bifrost\brave.exe" --user-data-dir="c:\bifrost\riders\airikr\browser" --foo"#.to_lowercase();
+        let cmd =
+            r#""c:\bifrost\brave.exe" --user-data-dir="c:\bifrost\riders\airikr\browser" --foo"#
+                .to_lowercase();
         let profile = r"c:\bifrost\riders\airikr\browser".to_lowercase();
         assert!(cmdline_holds_profile(&cmd, &profile));
     }

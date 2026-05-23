@@ -34,6 +34,7 @@ const REPO: &str = "brave/brave-browser";
 /// Brave uses TWO portable-ZIP naming forms across recent releases:
 ///   - `brave-v1.92.85-win32-x64.zip` (older / occasional)
 ///   - `brave-origin-v1.91.159-win32-x64.zip` (post-2026 default)
+///
 /// Both are valid portable builds — the `origin` prefix differentiates
 /// the Chromium-origin build chain from variant builds, but for our
 /// purposes (run-the-browser-in-a-sandbox) they're interchangeable.
@@ -148,9 +149,7 @@ mod tests {
             Err(e) => {
                 let msg = e.to_string();
                 if release_cache::looks_like_transport_failure(&msg) {
-                    eprintln!(
-                        "upstream-contract test: skipped (transport / rate-limit): {msg}"
-                    );
+                    eprintln!("upstream-contract test: skipped (transport / rate-limit): {msg}");
                     return;
                 }
                 panic!(
@@ -191,8 +190,11 @@ mod tests {
     fn version_marker_roundtrips() {
         let tmp = TempDir::new().expect("tempdir");
         std::fs::create_dir_all(install_dir(tmp.path())).expect("install dir");
-        std::fs::write(install_dir(tmp.path()).join(".bifrost-version"), "v1.90.124")
-            .expect("marker");
+        std::fs::write(
+            install_dir(tmp.path()).join(".bifrost-version"),
+            "v1.90.124",
+        )
+        .expect("marker");
 
         assert_eq!(
             read_installed_version(tmp.path()).as_deref(),
@@ -301,12 +303,7 @@ pub async fn fetch_latest_release() -> Result<ChromiumRelease> {
     // multiple Windows-bearing releases per week so 30 is plenty
     // of headroom even when several consecutive releases are
     // Android-only.
-    let body = release_cache::fetch_latest_release_with_asset(
-        REPO,
-        30,
-        is_portable_zip,
-    )
-    .await?;
+    let body = release_cache::fetch_latest_release_with_asset(REPO, 30, is_portable_zip).await?;
 
     let tag = body["tag_name"]
         .as_str()

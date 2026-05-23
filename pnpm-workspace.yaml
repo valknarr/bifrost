@@ -1,2 +1,19 @@
-allowBuilds:
-  esbuild: true
+# pnpm-workspace.yaml — not actually a workspace, just the home of
+# pnpm's project-wide settings since pnpm 10 stopped reading the
+# `pnpm` field in package.json.
+#
+# `packages: [.]` declares the root as a single package. Without this
+# field, pnpm 9 (which CI installs via pnpm/action-setup@v4) errors
+# out with `packages field missing or empty` on every command,
+# including `pnpm store path` that actions/setup-node@v4 runs to
+# determine the cache directory — so CI fails before svelte-check
+# even starts.
+packages:
+  - "."
+
+# Allow esbuild's postinstall step to compile its native Go binary.
+# pnpm 10+ blocks postinstall scripts by default; without this
+# allowlist `pnpm install` warns + runs with a non-functional
+# esbuild binary, which then breaks Vite's transform pipeline.
+onlyBuiltDependencies:
+  - esbuild

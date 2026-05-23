@@ -404,7 +404,8 @@ mod tests {
         // Even if the 16 hex attempts collide, the ordinal `x-2`
         // path eventually returns a non-colliding name. Just verify
         // we never return `None` and the result is unique.
-        let result = unique_rider_id("x", taken.iter().map(|s| s.as_str())).expect("must return Some");
+        let result =
+            unique_rider_id("x", taken.iter().map(|s| s.as_str())).expect("must return Some");
         assert_ne!(result, "x");
         assert!(!taken.iter().any(|t| t.eq_ignore_ascii_case(&result)));
     }

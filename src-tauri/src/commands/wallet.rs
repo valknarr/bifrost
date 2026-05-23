@@ -11,7 +11,7 @@ use crate::state::AppState;
 use crate::sui::{format_coin, is_address_rate_limited, SuiClient};
 
 /// Unix-millis "now" helper. Wraps the `SystemTime::now()` boilerplate
-/// + the rare-but-possible negative-elapsed clock-skew case so callers
+/// and the rare-but-possible negative-elapsed clock-skew case so callers
 /// stay single-expression.
 fn now_unix_ms() -> u64 {
     SystemTime::now()
@@ -73,10 +73,8 @@ pub async fn set_rider_wallet(
     // even if one fails, so a single-coin failure leaves the other
     // populated; matches the previous sequential behaviour.
     let sui = SuiClient::new();
-    let (sui_res, eve_res) = tokio::join!(
-        sui.get_sui_balance(&trimmed),
-        sui.get_eve_balance(&trimmed),
-    );
+    let (sui_res, eve_res) =
+        tokio::join!(sui.get_sui_balance(&trimmed), sui.get_eve_balance(&trimmed),);
     let sui_fmt = match sui_res {
         Ok(mist) => Some(format_coin(mist)),
         Err(e) => {
@@ -177,24 +175,15 @@ pub async fn refresh_balances(state: &State<'_, AppState>) -> bool {
         // win is small but the symmetry with `release_cache` makes
         // the code easier to reason about.
         if is_address_rate_limited(&addr) {
-            tracing::debug!(
-                "wallet refresh: skipping rider {id} — Sui RPC backoff active"
-            );
+            tracing::debug!("wallet refresh: skipping rider {id} — Sui RPC backoff active");
             // Surface the skip as a "no fresh data this tick" pair
             // of synthetic errors so the timestamp stays unchanged
             // and the UI staleness clock keeps ticking.
-            let err = || {
-                BifrostError::Other(
-                    "Sui RPC rate-limit backoff active".into(),
-                )
-            };
+            let err = || BifrostError::Other("Sui RPC rate-limit backoff active".into());
             results.push((id, Err(err()), Err(err())));
             continue;
         }
-        let (s, e) = tokio::join!(
-            sui.get_sui_balance(&addr),
-            sui.get_eve_balance(&addr),
-        );
+        let (s, e) = tokio::join!(sui.get_sui_balance(&addr), sui.get_eve_balance(&addr),);
         results.push((id, s, e));
     }
 

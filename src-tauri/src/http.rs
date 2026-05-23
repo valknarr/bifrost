@@ -144,7 +144,10 @@ mod tests {
         let p1 = Lazy::get(&SHARED_CLIENT).expect("initialised") as *const _;
         let _again = client();
         let p2 = Lazy::get(&SHARED_CLIENT).expect("still initialised") as *const _;
-        assert_eq!(p1, p2, "Lazy must hand back the same inner client across calls");
+        assert_eq!(
+            p1, p2,
+            "Lazy must hand back the same inner client across calls"
+        );
     }
 
     /// Configured defaults. Pins the contract so a future refactor

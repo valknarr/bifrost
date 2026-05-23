@@ -72,9 +72,7 @@ pub async fn create_rider(state: State<'_, AppState>, name: String) -> Result<Ri
         let existing_ids: Vec<String> = riders.iter().map(|p| p.id.clone()).collect();
         let id = rider::unique_rider_id(&slug, existing_ids.iter().map(|s| s.as_str()))
             .ok_or_else(|| {
-                BifrostError::Other(
-                    "Rider name must contain at least one letter or number.".into(),
-                )
+                BifrostError::Other("Rider name must contain at least one letter or number.".into())
             })?;
         let taken: Vec<String> = riders.iter().map(|p| p.accent.clone()).collect();
         let taken_refs: Vec<&str> = taken.iter().map(|s| s.as_str()).collect();

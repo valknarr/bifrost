@@ -43,12 +43,9 @@ pub async fn get_evevault_status(
 /// error rather than burning more GitHub quota on every retry.
 #[tauri::command]
 pub async fn install_evevault(state: State<'_, AppState>) -> Result<()> {
-    let release = crate::release_cache::fetch_with_cache(
-        "evevault",
-        false,
-        evevault::fetch_latest_release,
-    )
-    .await?;
+    let release =
+        crate::release_cache::fetch_with_cache("evevault", false, evevault::fetch_latest_release)
+            .await?;
     evevault::install(&state.app_data_dir, &release).await
 }
 
@@ -80,12 +77,9 @@ pub async fn get_chromium_status(
 /// same rationale as `install_evevault`.
 #[tauri::command]
 pub async fn install_chromium(state: State<'_, AppState>) -> Result<()> {
-    let release = crate::release_cache::fetch_with_cache(
-        "chromium",
-        false,
-        chromium::fetch_latest_release,
-    )
-    .await?;
+    let release =
+        crate::release_cache::fetch_with_cache("chromium", false, chromium::fetch_latest_release)
+            .await?;
     chromium::install(&state.app_data_dir, &release).await
 }
 

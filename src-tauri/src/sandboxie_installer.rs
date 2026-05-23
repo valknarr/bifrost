@@ -543,9 +543,7 @@ mod tests {
             Err(e) => {
                 let msg = e.to_string();
                 if crate::release_cache::looks_like_transport_failure(&msg) {
-                    eprintln!(
-                        "upstream-contract test: skipped (transport / rate-limit): {msg}"
-                    );
+                    eprintln!("upstream-contract test: skipped (transport / rate-limit): {msg}");
                     return;
                 }
                 panic!("Sandboxie latest-release fetch failed unexpectedly: {msg}");
@@ -836,7 +834,9 @@ pub async fn install(app_data: &Path, release: &SandboxieRelease) -> Result<()> 
             .timeout(std::time::Duration::from_secs(300))
             .send()
             .await
-            .map_err(|e| BifrostError::Other(format!("sandboxie installer download failed: {e}")))?;
+            .map_err(|e| {
+                BifrostError::Other(format!("sandboxie installer download failed: {e}"))
+            })?;
         let exe_bytes = http::download_capped(resp, SANDBOXIE_EXE_CAP)
             .await
             .map_err(|e| {

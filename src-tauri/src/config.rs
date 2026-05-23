@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::error::Result;
 
@@ -236,7 +236,7 @@ impl BifrostConfig {
         }
     }
 
-    pub fn save(&self, path: &PathBuf) -> Result<()> {
+    pub fn save(&self, path: &Path) -> Result<()> {
         // config.json holds companion sites + persisted Auto-mode
         // window size + ui-zoom + roster columns — corruption here
         // silently resets the user back to defaults on next launch

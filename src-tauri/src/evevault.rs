@@ -474,9 +474,7 @@ mod tests {
             Err(e) => {
                 let msg = e.to_string();
                 if crate::release_cache::looks_like_transport_failure(&msg) {
-                    eprintln!(
-                        "upstream-contract test: skipped (transport / rate-limit): {msg}"
-                    );
+                    eprintln!("upstream-contract test: skipped (transport / rate-limit): {msg}");
                     return;
                 }
                 panic!("EVE Vault latest-release fetch failed unexpectedly: {msg}");

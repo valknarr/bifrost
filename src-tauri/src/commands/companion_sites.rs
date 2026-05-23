@@ -23,10 +23,7 @@ use crate::state::AppState;
 /// Extracted as `pub(crate)` so command-boundary tests in
 /// `mod tests` can exercise it directly without standing up an
 /// `AppState`.
-pub(crate) fn validate_companion_site_input(
-    name: &str,
-    url: &str,
-) -> Result<(String, String)> {
+pub(crate) fn validate_companion_site_input(name: &str, url: &str) -> Result<(String, String)> {
     let trimmed_name = name.trim().to_string();
     let trimmed_url = url.trim().to_string();
     if trimmed_name.is_empty() || trimmed_url.is_empty() {
@@ -146,8 +143,7 @@ mod tests {
     /// pass validation and return the trimmed pair.
     #[test]
     fn validate_companion_site_input_accepts_well_formed() {
-        let (n, u) =
-            validate_companion_site_input("EF Map", "https://ef-map.com/").expect("valid");
+        let (n, u) = validate_companion_site_input("EF Map", "https://ef-map.com/").expect("valid");
         assert_eq!(n, "EF Map");
         assert_eq!(u, "https://ef-map.com/");
 
@@ -159,9 +155,7 @@ mod tests {
 
         // Both http and https are accepted; a localhost URL with
         // port should pass.
-        assert!(
-            validate_companion_site_input("Local", "http://localhost:1420/foo").is_ok()
-        );
+        assert!(validate_companion_site_input("Local", "http://localhost:1420/foo").is_ok());
     }
 
     /// Empty / whitespace name or URL is rejected before scheme
