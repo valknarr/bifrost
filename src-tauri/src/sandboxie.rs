@@ -176,7 +176,18 @@ impl Sandboxie {
     /// exists in Sandboxie.ini). Best-effort: if Start.exe can't be
     /// queried we treat the box as empty rather than erroring, so a
     /// reconcile pass never blocks the UI.
+    ///
+    /// Pre-flight: if the box isn't in Sandboxie.ini we short-circuit
+    /// to empty WITHOUT invoking Start.exe. `Start.exe /box:<unknown>
+    /// /listpids` pops up a native "Invalid box name parameter" GUI
+    /// dialog that we can't suppress via stdio redirection — checking
+    /// the ini first avoids the popup for pilots whose sandbox was
+    /// nuked externally (e.g. via Sandboxie's own "Delete Content"
+    /// menu).
     pub async fn list_pids(&self, box_name: &str) -> Vec<u32> {
+        if !crate::ini::box_section_exists(box_name) {
+            return Vec::new();
+        }
         let mut cmd = Command::new(&self.start_exe);
         cmd.arg(format!("/box:{box_name}")).arg("/listpids");
         no_window(&mut cmd);
@@ -271,7 +282,16 @@ impl Sandboxie {
     /// Uses `Start.exe /box:<box> /terminate` — this is scoped to the single
     /// named box. Do NOT use `/terminate_all`: that flag is global and kills
     /// every Sandboxie process across every box, ignoring `/box:`.
+    ///
+    /// Pre-flight: same reasoning as `list_pids` — if the box isn't in
+    /// Sandboxie.ini we no-op rather than letting Start.exe pop a GUI
+    /// dialog. Callers (stop / archive / delete) treat terminate as
+    /// best-effort anyway, and "no box to terminate" is the same
+    /// outcome as "box terminated successfully".
     pub async fn terminate_box(&self, box_name: &str) -> Result<()> {
+        if !crate::ini::box_section_exists(box_name) {
+            return Ok(());
+        }
         let mut cmd = Command::new(&self.start_exe);
         cmd.arg(format!("/box:{box_name}")).arg("/terminate");
         no_window(&mut cmd);

@@ -155,10 +155,110 @@ fn is_user_box(name: &str) -> bool {
         && !lower.starts_with("trace")
 }
 
+/// True if a section with this name exists in Sandboxie.ini, regardless
+/// of `Enabled=y/n`. Used as a pre-flight before any `Start.exe /box:`
+/// call — Start.exe will pop up a GUI dialog ("Invalid box name
+/// parameter") if asked about a section that doesn't exist, and that
+/// dialog can't be suppressed via stdio redirection (it's a native
+/// window). Cheap: just re-parses the ini text. The cost is one disk
+/// read + one O(n) scan per call, and reconcile only runs every 30 s,
+/// so we don't bother memoising.
+///
+/// Returns `false` (rather than an error) on any failure to locate or
+/// parse the ini — better to fall through to the legacy code path
+/// (which may pop the dialog but is at least functionally correct)
+/// than to mark every pilot as missing because we couldn't read a file.
+pub fn box_section_exists(name: &str) -> bool {
+    let Some(path) = locate_ini() else {
+        return false;
+    };
+    let Ok(sections) = parse(&path) else {
+        return false;
+    };
+    sections.iter().any(|s| s.name.eq_ignore_ascii_case(name))
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DiscoveredBox {
     pub name: String,
     pub config_level: Option<String>,
     pub border_color: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    //! Unit tests for the parser. `box_section_exists` and
+    //! `list_user_boxes` both go through `locate_ini()` which reads the
+    //! real user environment, so we exercise the underlying `parse()`
+    //! helper directly via a tempfile — that's the layer that's worth
+    //! pinning. Skipping the env-driven wrappers also keeps the tests
+    //! hermetic (they pass on CI without a real Sandboxie install).
+    use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    /// Write a minimal UTF-16-LE-BOM Sandboxie.ini to a temp file and
+    /// return the file handle (so the path stays valid). Matches the
+    /// real encoding Sandboxie-Plus writes by default.
+    fn write_ini_utf16(content: &str) -> NamedTempFile {
+        let mut f = NamedTempFile::new().expect("tempfile");
+        // BOM
+        f.write_all(&[0xFF, 0xFE]).expect("write BOM");
+        for unit in content.encode_utf16() {
+            f.write_all(&unit.to_le_bytes()).expect("write unit");
+        }
+        f.flush().expect("flush");
+        f
+    }
+
+    #[test]
+    fn parse_finds_named_section_case_insensitively() {
+        // The motivating bug: a pilot's `Pilot.sandbox` field holds
+        // "BridgeF89BB26E" exactly, but a user editing Sandboxie.ini by
+        // hand might normalise the case. Section lookup must be case-
+        // insensitive so neither side surprises the other.
+        let f = write_ini_utf16(
+            "[GlobalSettings]\n\
+             FileRootPath=C:\\Sandbox\n\
+             \n\
+             [BridgeF89BB26E]\n\
+             Enabled=y\n\
+             ConfigLevel=10\n",
+        );
+        let sections = parse(f.path()).expect("parse");
+        assert!(
+            sections
+                .iter()
+                .any(|s| s.name.eq_ignore_ascii_case("bridgef89bb26e")),
+            "case-insensitive lookup must find the section"
+        );
+        assert!(
+            sections
+                .iter()
+                .any(|s| s.name.eq_ignore_ascii_case("BRIDGEF89BB26E")),
+        );
+    }
+
+    #[test]
+    fn parse_does_not_find_missing_section() {
+        // After `Delete Content` in Sandboxie's UI the entire
+        // [BoxName] section is removed from the ini. The pilot record
+        // still points at the old name — confirm we report it as
+        // absent rather than confused.
+        let f = write_ini_utf16(
+            "[GlobalSettings]\n\
+             FileRootPath=C:\\Sandbox\n\
+             \n\
+             [SomeOtherBox]\n\
+             Enabled=y\n",
+        );
+        let sections = parse(f.path()).expect("parse");
+        assert!(
+            !sections
+                .iter()
+                .any(|s| s.name.eq_ignore_ascii_case("BridgeF89BB26E")),
+            "missing section must not match"
+        );
+    }
 }

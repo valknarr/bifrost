@@ -108,11 +108,17 @@ pub async fn stop_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
 #[tauri::command]
 pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
     let cfg = state.config();
-    let pilot_snapshot: Vec<(String, String)> = {
+    // Snapshot includes `launched_at_least_once`: a pilot that has
+    // successfully launched at least once but whose box is now gone is
+    // unambiguously broken (the sandbox was nuked externally — usually
+    // via Sandboxie's own "Delete Content" menu). A pilot that has
+    // NEVER launched might just not have been provisioned yet, so we
+    // leave those as Stopped — `start_pilot` will provision on demand.
+    let pilot_snapshot: Vec<(String, String, bool)> = {
         let pilots = state.pilots.lock().unwrap();
         pilots
             .iter()
-            .map(|p| (p.id.clone(), p.sandbox.clone()))
+            .map(|p| (p.id.clone(), p.sandbox.clone(), p.launched_at_least_once))
             .collect()
     };
 
@@ -139,7 +145,16 @@ pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
 
     let mut new_statuses: Vec<(String, PilotStatus)> = Vec::new();
     if let Some(sb) = sb {
-        for (id, sandbox) in pilot_snapshot {
+        for (id, sandbox, launched_before) in pilot_snapshot {
+            // Pre-flight: if the pilot has launched before but the box
+            // is now gone from Sandboxie.ini, surface as Missing so the
+            // UI can offer to clean it up. Pilots that have never
+            // launched yet are still in "first-launch will provision"
+            // territory — don't false-positive them as missing.
+            if launched_before && !crate::ini::box_section_exists(&sandbox) {
+                new_statuses.push((id, PilotStatus::Missing));
+                continue;
+            }
             let running = sb.is_game_running(&sandbox, &game_exe_name).await;
             new_statuses.push((
                 id,
@@ -152,7 +167,7 @@ pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
         }
     } else {
         // No Sandboxie — best we can do is mark everything stopped.
-        for (id, _) in pilot_snapshot {
+        for (id, _, _) in pilot_snapshot {
             new_statuses.push((id, PilotStatus::Stopped));
         }
     }

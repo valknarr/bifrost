@@ -9,6 +9,14 @@ use tauri::State;
 use crate::browser;
 use crate::error::{BridgeError, Result};
 use crate::pilot::{self, Pilot, PilotStatus};
+
+/// Statuses that allow `delete_pilot` to bypass the "must be archived
+/// first" guard. A pilot whose Sandboxie box has been deleted externally
+/// is already half-broken — forcing the user to archive-then-delete
+/// just adds friction. The archive guard exists to protect *running*
+/// pilots from being nuked by an accidental click; that concern doesn't
+/// apply when the sandbox is already gone.
+const ARCHIVE_BYPASS_STATUSES: &[PilotStatus] = &[PilotStatus::Missing];
 use crate::sandboxie::Sandboxie;
 use crate::state::AppState;
 
@@ -208,7 +216,7 @@ pub async fn delete_pilot(state: State<'_, AppState>, id: String) -> Result<()> 
             .iter()
             .find(|p| p.id == id)
             .ok_or_else(|| BridgeError::PilotNotFound(id.clone()))?;
-        if !p.archived {
+        if !p.archived && !ARCHIVE_BYPASS_STATUSES.contains(&p.status) {
             return Err(BridgeError::Other(
                 "Archive the pilot before deleting it.".into(),
             ));

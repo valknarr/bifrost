@@ -9,6 +9,14 @@ pub enum PilotStatus {
     Starting,
     Running,
     Error,
+    /// The pilot's Sandboxie box is no longer present in Sandboxie.ini
+    /// — the user (or another tool) deleted the sandbox externally,
+    /// leaving Bifrost's pilot record pointing at nothing. The UI
+    /// surfaces this with a "Sandbox missing — Remove pilot" action;
+    /// reconcile sets it via a pre-flight check before any Start.exe
+    /// call so a stale pilot doesn't trigger the native "Invalid box
+    /// name parameter" dialog every 30 s.
+    Missing,
 }
 
 /// One pilot = (Sandboxie box, Chrome profile, optional wallet identity).

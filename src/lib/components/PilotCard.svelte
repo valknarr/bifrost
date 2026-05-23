@@ -82,9 +82,22 @@
 
   const isRunning = $derived(pilot.status === "running");
   const isBusy = $derived(pilot.status === "starting");
+  const isMissing = $derived(pilot.status === "missing");
   const showFirstLaunchHint = $derived(
-    !pilot.launchedAtLeastOnce && !isRunning,
+    !pilot.launchedAtLeastOnce && !isRunning && !isMissing,
   );
+
+  /** Confirm + permanently delete a pilot whose sandbox is gone. The
+   *  backend bypasses the normal "archive-first" guard for Missing
+   *  pilots so a single click is enough. We still confirm because the
+   *  pilot record (wallet address, accent, custom name) goes with it. */
+  async function removeMissing() {
+    const ok = confirm(
+      `Remove pilot "${pilot.name}"?\n\nIts Sandboxie sandbox is gone, so there's nothing to clean up there. Bifrost will forget this pilot's wallet, accent, and browser profile. This cannot be undone.`,
+    );
+    if (!ok) return;
+    await pilotStore.deletePermanently(pilot.id);
+  }
 
   // Lazy-load favicons for each enabled companion site. The store
   // dedupes by URL so repeat calls across pilot cards collapse to a
@@ -132,6 +145,24 @@
     </h3>
     <StatusBadge status={pilot.status} />
   </header>
+
+  <!-- Sandbox-missing ribbon. Takes priority over the first-launch
+       hint because if the sandbox is gone, there's no first-launch to
+       hint about — only a recovery to perform. -->
+  {#if isMissing}
+    <div
+      class="flex items-start gap-2 border-b border-[var(--color-warn)]/40 bg-[var(--color-warn)]/10 px-4 py-2"
+    >
+      <span class="text-[var(--color-warn)] leading-tight">⚠</span>
+      <p
+        class="text-[10px] leading-[1.4] tracking-[0.04em] text-[var(--color-warn)]"
+      >
+        <span class="mono tracking-[0.18em] uppercase">Sandbox no longer exists.</span><br>
+        The Sandboxie box this pilot was using has been deleted outside of
+        Bifrost. Use Remove to drop the orphaned record.
+      </p>
+    </div>
+  {/if}
 
   <!-- First-launch hint ribbon -->
   {#if showFirstLaunchHint}
@@ -343,7 +374,19 @@
   <footer
     class="flex items-center gap-2 border-t border-[var(--color-border)] bg-[var(--color-bg)]/40 px-4 py-2.5"
   >
-    {#if isRunning}
+    {#if isMissing}
+      <!-- Sandbox was deleted externally. Launch / Stop / Archive don't
+           apply — there's nothing to act on. Only sensible action is to
+           drop the orphan pilot record. -->
+      <Button
+        variant="danger"
+        size="lg"
+        class="flex-1"
+        onclick={removeMissing}
+      >
+        Remove pilot
+      </Button>
+    {:else if isRunning}
       <Button
         variant="danger"
         size="lg"
@@ -363,16 +406,18 @@
         ▶ {isBusy ? "Initialising…" : "Launch"}
       </Button>
     {/if}
-    <button
-      class="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-focus)] hover:text-[var(--color-focus)] disabled:cursor-not-allowed disabled:opacity-30"
-      disabled={isRunning}
-      onclick={() => pilotStore.archive(pilot.id)}
-      aria-label="Archive pilot {pilot.name}"
-      title={isRunning
-        ? "Stop the pilot before archiving"
-        : "Stash this pilot. Sandbox is preserved and can be restored later."}
-    >
-      <IconArchive size="18" />
-    </button>
+    {#if !isMissing}
+      <button
+        class="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center border border-[var(--color-border-hi)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-focus)] hover:text-[var(--color-focus)] disabled:cursor-not-allowed disabled:opacity-30"
+        disabled={isRunning}
+        onclick={() => pilotStore.archive(pilot.id)}
+        aria-label="Archive pilot {pilot.name}"
+        title={isRunning
+          ? "Stop the pilot before archiving"
+          : "Stash this pilot. Sandbox is preserved and can be restored later."}
+      >
+        <IconArchive size="18" />
+      </button>
+    {/if}
   </footer>
 </article>

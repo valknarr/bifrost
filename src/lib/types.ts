@@ -1,7 +1,16 @@
 // Shared TypeScript types. These mirror the Rust models in
 // src-tauri/src/pilot.rs — keep them in sync.
 
-export type PilotStatus = "stopped" | "starting" | "running" | "error";
+export type PilotStatus =
+  | "stopped"
+  | "starting"
+  | "running"
+  | "error"
+  /** The pilot's Sandboxie box is no longer in Sandboxie.ini — the user
+   *  (or another tool) deleted it externally. The pilot record is now
+   *  orphaned; the UI surfaces a "Sandbox missing" badge and a one-click
+   *  Remove action that bypasses the normal archive-then-delete flow. */
+  | "missing";
 
 export interface Pilot {
   /** Stable internal id, e.g. "frontier-1" */

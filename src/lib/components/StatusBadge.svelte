@@ -35,6 +35,17 @@
       text: "text-[var(--color-danger)]",
       glow: "0 0 8px var(--color-danger)",
     },
+    missing: {
+      // Distinct from `error` (recoverable fault) and `stopped` (idle):
+      // the sandbox no longer exists, the pilot record is orphaned, and
+      // the only sensible recovery is Remove. Warn-yellow (not danger-
+      // red) because the situation is benign — the user almost always
+      // caused it by cleaning up Sandboxie themselves.
+      dot: "bg-[var(--color-warn)]",
+      label: "Sandbox missing",
+      text: "text-[var(--color-warn)]",
+      glow: "0 0 8px var(--color-warn)",
+    },
   };
 
   const s = $derived(styles[status]);
