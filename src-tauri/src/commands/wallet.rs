@@ -269,7 +269,16 @@ mod tests {
 
     #[test]
     fn valid_sui_address_rejects_wrong_length() {
+        // Far-from-canonical lengths.
         assert!(!is_valid_sui_address("0xdeadbeef"));
+        assert!(!is_valid_sui_address(&format!("0x{}", "a".repeat(65))));
+        // Empty hex body after the `0x` prefix.
+        assert!(!is_valid_sui_address("0x"));
+        // Single-char hex body — exercises the "is the loop guarded
+        // by length, not just emptiness" path.
+        assert!(!is_valid_sui_address("0xa"));
+        // Off-by-one on both sides of the canonical 64 hex chars.
+        assert!(!is_valid_sui_address(&format!("0x{}", "a".repeat(63))));
         assert!(!is_valid_sui_address(&format!("0x{}", "a".repeat(65))));
     }
 
@@ -277,5 +286,15 @@ mod tests {
     fn valid_sui_address_rejects_non_hex() {
         let addr = format!("0x{}", "z".repeat(64));
         assert!(!is_valid_sui_address(&addr));
+    }
+
+    /// Sui addresses are mixed-case hex by convention. The validator
+    /// must accept uppercase A-F as well as lowercase a-f. If a
+    /// future refactor narrows the check to lowercase-only, a real
+    /// user who pasted a checksummed address would be rejected.
+    #[test]
+    fn valid_sui_address_accepts_mixed_case_hex() {
+        let addr = format!("0x{}", "DeadBeefCafe1234".repeat(4)); // 64 hex chars, mixed case
+        assert!(is_valid_sui_address(&addr));
     }
 }

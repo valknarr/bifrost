@@ -305,14 +305,36 @@ mod tests {
         );
     }
 
+    /// A filename that contains a word starting with `v` (e.g.
+    /// `Sandboxie-Vault-…`) AND a real `-vN.N` version suffix must
+    /// still extract the version correctly — the matcher looks for
+    /// `-v` followed by digits, so `-Vault-` (no digits after) is
+    /// rightly skipped and the `-v1.0` suffix is the one picked up.
+    /// The previous name (`extract_version_skips_non_digit_dash_v`)
+    /// implied the opposite assertion (skipping the suffix), which
+    /// misleads a contributor reading for regression context.
     #[test]
-    fn extract_version_skips_non_digit_dash_v() {
-        // "-vault" would naively match `-v` but the char after must
-        // be a digit. This guards against false-positive matches if
-        // a future filename contains words beginning with "v".
+    fn extract_version_finds_v_digits_even_when_basename_has_v_word() {
         assert_eq!(
             extract_version_from_asset_name("Sandboxie-Vault-x64-v1.0.exe").as_deref(),
             Some("1.0")
+        );
+    }
+
+    /// The actual false-match case the matcher must guard against:
+    /// a filename with a `-vault` (or similar `-vXXX` word) and NO
+    /// trailing `-vN.N` digits — must yield `None`, not match the
+    /// `-vault` and treat `"ault"` as a version. This is the
+    /// regression the old test thought it was covering.
+    #[test]
+    fn extract_version_returns_none_when_dash_v_word_has_no_digits() {
+        assert!(
+            extract_version_from_asset_name("Sandboxie-vault-Setup.exe").is_none(),
+            "`-vault` (no trailing digits) must not match as `-v` + version"
+        );
+        assert!(
+            extract_version_from_asset_name("Sandboxie-Variant-Setup.exe").is_none(),
+            "`-Variant` (no trailing digits) must not match either"
         );
     }
 

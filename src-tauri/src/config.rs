@@ -360,11 +360,26 @@ mod tests {
         original.save(&path).expect("save");
 
         let loaded = BifrostConfig::load_or_default(&path).expect("load");
+        // Assert every persisted field — a future contributor adding
+        // a new field with the wrong `#[serde(rename)]` or missing
+        // `#[serde(default)]` shim would otherwise survive this test.
         assert_eq!(loaded.sandboxie_path, original.sandboxie_path);
         assert_eq!(loaded.frontier_exe, original.frontier_exe);
         assert_eq!(loaded.pilots_dir, original.pilots_dir);
         assert_eq!(loaded.launch_all_on_start, original.launch_all_on_start);
         assert_eq!(loaded.companion_sites.len(), original.companion_sites.len());
+        // The four "newer" fields that the test previously didn't
+        // assert. `ui_zoom` is `f32` so we compare with an epsilon to
+        // tolerate JSON-roundtrip float imprecision.
+        assert!(
+            (loaded.ui_zoom - original.ui_zoom).abs() < f32::EPSILON,
+            "ui_zoom: expected {} got {}",
+            original.ui_zoom,
+            loaded.ui_zoom
+        );
+        assert_eq!(loaded.roster_columns, original.roster_columns);
+        assert_eq!(loaded.roster_window_width, original.roster_window_width);
+        assert_eq!(loaded.roster_window_height, original.roster_window_height);
     }
 
     /// Loading from a missing path returns the defaults instead of

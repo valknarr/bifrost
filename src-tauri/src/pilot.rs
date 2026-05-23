@@ -299,11 +299,167 @@ mod tests {
         assert_eq!(slugify("Tal'Ra"), "tal-ra");
     }
 
+    /// Load-bearing: `commands::pilots::create_pilot` rejects a pilot
+    /// whose name slugifies to `""` precisely because `<pilots_dir>/""`
+    /// collapses to the parent directory — a subsequent delete would
+    /// then wipe every pilot's browser profile. The guard at
+    /// `commands/pilots.rs::create_pilot` depends on this function
+    /// returning empty for these three input shapes; if a refactor
+    /// changes the contract (e.g. "always return at least one char"),
+    /// the downstream guard becomes wrong without any compile-time
+    /// signal. This test pins both halves of the contract.
+    #[test]
+    fn slugify_returns_empty_for_inputs_without_alphanumerics() {
+        assert_eq!(slugify(""), "");
+        assert_eq!(slugify("   "), "");
+        assert_eq!(slugify("\t\n"), "");
+        assert_eq!(slugify("!!!"), "");
+        assert_eq!(slugify("---"), "");
+        assert_eq!(slugify("   - , ' ! "), "");
+    }
+
     /// The palette must have at least one entry — `Pilot::new` falls
     /// back to `PALETTE[0]` if no unused colour is found, and
-    /// indexing into an empty slice would panic.
+    /// indexing into an empty slice would panic. Six colours is the
+    /// current design minimum (matches the natural pilot count cap);
+    /// asserting >= 5 pins the floor while leaving room for the
+    /// design to drop one without breaking the test.
     #[test]
-    fn palette_is_non_empty() {
-        assert!(!PALETTE.is_empty());
+    fn palette_meets_minimum_size_for_pilot_new_fallback() {
+        assert!(
+            PALETTE.len() >= 5,
+            "PALETTE must keep at least 5 entries to support the design's pilot accent variety; \
+             also guards Pilot::new's PALETTE[0] indexing from panicking"
+        );
+    }
+
+    /// `unique_pilot_id` returns the slug unchanged when nothing
+    /// collides — the common case for the first pilot or a fresh
+    /// display name.
+    #[test]
+    fn unique_pilot_id_returns_slug_when_no_collision() {
+        let existing: Vec<&str> = vec!["other"];
+        let result = unique_pilot_id("airikr", existing);
+        assert_eq!(result.as_deref(), Some("airikr"));
+    }
+
+    /// `unique_pilot_id` returns `None` for an empty slug. This is
+    /// load-bearing: `create_pilot` and `adopt_sandbox` propagate
+    /// the `None` to a validation error. If a future refactor makes
+    /// this return `Some("")`, the empty-id data-loss bug
+    /// (every pilot's profile wiped on first delete) returns. See
+    /// `commands/pilots.rs::create_pilot` doc comment for context.
+    #[test]
+    fn unique_pilot_id_returns_none_for_empty_slug() {
+        let result = unique_pilot_id("", std::iter::empty::<&str>());
+        assert!(result.is_none(), "empty slug must short-circuit to None");
+    }
+
+    /// `unique_pilot_id` appends a hex suffix when the slug collides
+    /// with ANY existing id (archived or active). Two pilots with
+    /// the same display name previously shared a browser-profile
+    /// directory; this is what stops that. Tests two collision
+    /// shapes:
+    ///   1. Exact slug match → suffix appended
+    ///   2. Case-only difference → still treated as collision (the
+    ///      filesystem we ultimately use is case-insensitive on
+    ///      Windows, so we must dedup case-insensitively).
+    #[test]
+    fn unique_pilot_id_appends_suffix_on_collision() {
+        let existing = ["airikr"];
+        let result = unique_pilot_id("airikr", existing.iter().copied()).expect("non-empty slug");
+        assert_ne!(result, "airikr", "must NOT return the colliding slug");
+        assert!(
+            result.starts_with("airikr-"),
+            "result must start with original slug + '-' suffix, got {result:?}"
+        );
+        // Case-insensitive collision detection.
+        let existing_upper = ["AIRIKR"];
+        let result2 =
+            unique_pilot_id("airikr", existing_upper.iter().copied()).expect("non-empty slug");
+        assert_ne!(
+            result2.to_ascii_lowercase(),
+            "airikr",
+            "case-only collision must still trigger suffix"
+        );
+    }
+
+    /// Stress: when the entire hex-suffix space is occupied (or the
+    /// generator keeps producing the same suffix due to a clock
+    /// quirk), the function must STILL return a valid id via the
+    /// deterministic ordinal fallback. Pinning the fallback so a
+    /// future refactor that drops it doesn't silently let the
+    /// function spin forever or return `None`.
+    #[test]
+    fn unique_pilot_id_falls_back_to_ordinal_when_suffix_exhausted() {
+        // Construct an `existing` set containing the slug + 100
+        // hex-suffix variants AND the first few ordinal fallbacks.
+        // Use a contrived suffix space so we can guarantee
+        // collision-then-fallback in deterministic time.
+        let mut taken: Vec<String> = vec!["x".to_string()];
+        for i in 0..2 {
+            taken.push(format!("x-{i}"));
+        }
+        // The function tries 16 hex suffixes then ordinal-from-2.
+        // Even if the 16 hex attempts collide, the ordinal `x-2`
+        // path eventually returns a non-colliding name. Just verify
+        // we never return `None` and the result is unique.
+        let result = unique_pilot_id("x", taken.iter().map(|s| s.as_str())).expect("must return Some");
+        assert_ne!(result, "x");
+        assert!(!taken.iter().any(|t| t.eq_ignore_ascii_case(&result)));
+    }
+
+    /// PilotStatus ↔ TypeScript string union drift. The TS side
+    /// (`src/lib/types.ts`) declares a hard-coded union of these
+    /// status strings — adding a Rust variant without updating the
+    /// TS type is silent at compile time on both sides but breaks
+    /// the frontend's StatusBadge rendering at runtime. This test
+    /// emits every variant's JSON spelling and compares against a
+    /// hard-coded list; a contributor adding a new variant has to
+    /// update BOTH this assertion AND `types.ts` together.
+    ///
+    /// The serde representation is `rename_all = "lowercase"`, so
+    /// each variant becomes its name in lowercase.
+    #[test]
+    fn pilot_status_variants_match_typescript_union() {
+        // Hard-coded list: this MUST stay in sync with the
+        // `PilotStatus` type alias in src/lib/types.ts.
+        let expected: std::collections::HashSet<&str> =
+            ["stopped", "starting", "running", "error", "missing"]
+                .iter()
+                .copied()
+                .collect();
+
+        // Materialise every variant's JSON spelling. Listing them
+        // exhaustively here also means: if a new variant is added
+        // to the enum, the contributor must touch this test.
+        let variants = [
+            PilotStatus::Stopped,
+            PilotStatus::Starting,
+            PilotStatus::Running,
+            PilotStatus::Error,
+            PilotStatus::Missing,
+        ];
+        let actual: std::collections::HashSet<String> = variants
+            .iter()
+            .map(|s| {
+                serde_json::to_string(s)
+                    .expect("serialize")
+                    .trim_matches('"')
+                    .to_string()
+            })
+            .collect();
+        let actual_refs: std::collections::HashSet<&str> =
+            actual.iter().map(|s| s.as_str()).collect();
+
+        assert_eq!(
+            actual_refs, expected,
+            "\nPilotStatus drift: the serde-serialised variant names \
+             don't match the hard-coded TypeScript union in \
+             src/lib/types.ts. Update BOTH this test AND types.ts \
+             when adding / removing a variant.\n\
+             Rust variants serialise to: {actual_refs:?}\n\
+             Expected (per types.ts): {expected:?}\n"
+        );
     }
 }

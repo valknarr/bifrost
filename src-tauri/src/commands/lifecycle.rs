@@ -146,23 +146,19 @@ pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
     let mut new_statuses: Vec<(String, PilotStatus)> = Vec::new();
     if let Some(sb) = sb {
         for (id, sandbox, launched_before) in pilot_snapshot {
-            // Pre-flight: if the pilot has launched before but the box
-            // is now gone from Sandboxie.ini, surface as Missing so the
-            // UI can offer to clean it up. Pilots that have never
-            // launched yet are still in "first-launch will provision"
-            // territory — don't false-positive them as missing.
-            if launched_before && !crate::ini::box_section_exists(&sandbox) {
-                new_statuses.push((id, PilotStatus::Missing));
-                continue;
-            }
-            let running = sb.is_game_running(&sandbox, &game_exe_name).await;
+            let box_exists = crate::ini::box_section_exists(&sandbox);
+            // Only probe the game-running state when the box hasn't
+            // been declared Missing — `decide_pilot_status` short-
+            // circuits in that case, and the Start.exe shell-out
+            // is the slow part of this loop.
+            let game_running = if launched_before && !box_exists {
+                false
+            } else {
+                sb.is_game_running(&sandbox, &game_exe_name).await
+            };
             new_statuses.push((
                 id,
-                if running {
-                    PilotStatus::Running
-                } else {
-                    PilotStatus::Stopped
-                },
+                decide_pilot_status(launched_before, box_exists, game_running),
             ));
         }
     } else {
@@ -201,4 +197,139 @@ pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
         state.save_pilots()?;
     }
     Ok(())
+}
+
+/// Pure decision function for `reconcile_pilots`. Decoupled from the
+/// async I/O so the state-machine logic can be unit-tested without
+/// stubbing Sandboxie or constructing an `AppState`.
+///
+/// Inputs:
+/// * `launched_before` — has this pilot ever successfully launched
+///   (i.e. has its Sandboxie box been provisioned by Bifrost at
+///   least once)?
+/// * `box_exists` — does the pilot's `sandbox` name appear as a
+///   section in `Sandboxie.ini`?
+/// * `game_running` — is the EVE Frontier executable currently
+///   running inside the box (per `Sandboxie::is_game_running`)?
+///
+/// Output: the pilot's new status as reconcile sees it.
+///
+/// Decision table:
+///
+/// | launched_before | box_exists | game_running | → status   |
+/// |-----------------|------------|--------------|------------|
+/// | false           | *          | true         | Running    |
+/// | false           | *          | false        | Stopped    |
+/// | true            | true       | true         | Running    |
+/// | true            | true       | false        | Stopped    |
+/// | true            | false      | *            | Missing    |
+///
+/// Rationale: the `Missing` state only fires for pilots that have
+/// successfully launched before — a never-launched pilot whose box
+/// hasn't been provisioned yet is in "first-launch will provision"
+/// territory, and false-positiving it as Missing would frustrate
+/// the new-pilot flow. Pilots whose box has been deleted *after*
+/// they've used it (e.g. via Sandboxie Plus's own Delete Content
+/// menu) get the recovery banner in the UI.
+pub fn decide_pilot_status(
+    launched_before: bool,
+    box_exists: bool,
+    game_running: bool,
+) -> PilotStatus {
+    if launched_before && !box_exists {
+        return PilotStatus::Missing;
+    }
+    if game_running {
+        PilotStatus::Running
+    } else {
+        PilotStatus::Stopped
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! Tests for `decide_pilot_status` — the load-bearing state
+    //! machine for the UI's status badges and Missing-recovery
+    //! banner. Every row of the decision table above is exercised
+    //! here. The async `reconcile_pilots` command is too coupled to
+    //! `AppState` / Sandboxie to unit test directly; this pure
+    //! helper covers the logic that actually matters.
+    use super::*;
+
+    /// A never-launched pilot whose box hasn't been provisioned yet
+    /// must NOT be flagged Missing — that path is reserved for
+    /// pilots that have actually run the game once. False-positives
+    /// here would put a scary "Sandbox missing" banner on every
+    /// fresh pilot before they've even clicked Launch.
+    #[test]
+    fn decide_pilot_status_never_launched_no_box_is_stopped_not_missing() {
+        let s = decide_pilot_status(false, false, false);
+        assert_eq!(s, PilotStatus::Stopped);
+    }
+
+    /// Once a pilot has launched at least once, a vanished box is
+    /// unambiguously broken — that's the externally-deleted-box
+    /// case the Missing state was designed for.
+    #[test]
+    fn decide_pilot_status_launched_before_no_box_is_missing() {
+        let s = decide_pilot_status(true, false, false);
+        assert_eq!(s, PilotStatus::Missing);
+        // Even if game_running is somehow reported true for a
+        // missing box (it shouldn't be — the caller short-circuits
+        // — but be defensive), Missing wins over Running.
+        let s2 = decide_pilot_status(true, false, true);
+        assert_eq!(
+            s2,
+            PilotStatus::Missing,
+            "Missing takes precedence over Running when the box is gone"
+        );
+    }
+
+    /// Happy path: box exists + game is running → Running.
+    #[test]
+    fn decide_pilot_status_box_exists_game_running_is_running() {
+        assert_eq!(
+            decide_pilot_status(true, true, true),
+            PilotStatus::Running
+        );
+        assert_eq!(
+            decide_pilot_status(false, true, true),
+            PilotStatus::Running,
+            "first-launch transient: the launch flow flips \
+             launched_at_least_once AFTER reconcile detects the \
+             game running, so this state is reachable briefly"
+        );
+    }
+
+    /// Box exists, game not running → Stopped, regardless of
+    /// launched_before.
+    #[test]
+    fn decide_pilot_status_box_exists_game_not_running_is_stopped() {
+        assert_eq!(
+            decide_pilot_status(true, true, false),
+            PilotStatus::Stopped
+        );
+        assert_eq!(
+            decide_pilot_status(false, true, false),
+            PilotStatus::Stopped
+        );
+    }
+
+    /// `launched_before` is the gate that keeps the Missing state
+    /// from firing on fresh pilots. Flipping that gate is the
+    /// regression we most worry about — pin it explicitly.
+    #[test]
+    fn decide_pilot_status_missing_gate_requires_launched_before() {
+        // Same box-missing condition; only the launched_before flag
+        // differs. False → Stopped (don't scare new users), True →
+        // Missing (real broken state).
+        assert_eq!(
+            decide_pilot_status(false, false, false),
+            PilotStatus::Stopped
+        );
+        assert_eq!(
+            decide_pilot_status(true, false, false),
+            PilotStatus::Missing
+        );
+    }
 }
