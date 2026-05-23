@@ -54,14 +54,96 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   (floored at 50 % of initial separation so they never actually
   merge). Pilot cards carry corner brackets, an "energy" bar in the
   accent colour, and a halftone portrait placeholder.
-- **UI zoom presets** in Settings — Compact (0.9×), Default (1.0×),
-  Comfortable (1.15×) call Tauri's `webview.setZoom()` so every pixel
-  scales together. Persisted across launches.
-- **Cascading integration test suite** (93 tests). Real on-disk
-  sequences exercise the pilot model, config round-trips, version
-  marker contracts, release-cache TTL behaviour, EVE Vault manifest
-  parsing, Sandboxie installer asset matching (Plus + Classic), and
-  the CLI helper formatters.
+- **UI text scale** in Settings — Compact (0.9×), Default (1.0×),
+  Comfortable (1.15×) drive a `--text-scale` CSS variable on `:root`
+  so text resizes but button hit-targets and grid spacing stay
+  fixed in pixels. Hit-target consistency matters more than uniform
+  zoom on a desktop app. Persisted across launches.
+- **Roster layout** in Settings — pick Auto (responsive
+  `auto-fit, minmax(280px, 320px)` — grows columns as the window
+  widens), 2 pilots locked, or 3 pilots locked. Auto-mode window
+  size persists across launches; fixed-mode snaps the window to a
+  width that fits the chosen column count.
+- **Auto-updater** via `tauri-plugin-updater`. Cold start polls a
+  signed `latest.json` on GitHub Releases; if a newer signed .exe
+  is available, a thin banner appears at the top of the window
+  ("Bifrost v0.X.Y is ready to install — Restart and update").
+  Click → background download with progress → signature verified
+  against the pubkey baked into the running .exe → passive NSIS
+  install → relaunch. The user never re-downloads manually. See
+  `docs/RELEASING.md` for the one-time keygen + signed-release
+  workflow.
+- **Code-split chunks** — `SettingsView` and `PilotAppsRow`
+  (companion-site icons + favicon-fetch pipeline) ship as separate
+  bundles loaded on demand. The main `index.js` is ~37 KB gzipped;
+  users who only use Bifrost to launch the game (no wallet
+  workflow) never pay the wallet-integration bytes.
+- **Stale-balance indicator** under each pilot's stats — "Updated
+  5 m ago / stale" computed from a `wallet_balance_fetched_at`
+  timestamp written on every successful Sui RPC refresh. Pilots
+  whose RPC is failing don't silently show stale figures as
+  "fresh"; the user can tell at a glance.
+- **Missing-sandbox state + one-click remove**. If a user deletes
+  a pilot's box externally (via Sandboxie's own "Delete Content"
+  menu), the pilot card flips to a `Missing` state with a warning
+  ribbon and a single "Remove pilot" button that bypasses the
+  archive-first guard. No more orphaned records; no more Sandboxie
+  "Invalid box name parameter" popups every reconcile tick.
+- **Reconcile tick gates on window visibility** — the 30 s
+  background pilot-status refresh skips when
+  `document.visibilityState === "hidden"` and fires immediately
+  on refocus. No wasted Sandboxie shellouts + Sui RPC calls while
+  the window is backgrounded.
+- **Atomic file persistence** — `pilots.json` and `config.json`
+  now write through a temp-file-plus-atomic-rename helper so a
+  power loss or hard crash mid-write can't leave a zero-byte file
+  that erases the user's whole roster on next launch. On parse
+  failure at startup, the corrupt file is renamed to
+  `<path>.corrupt-<unix>.json` and Bifrost launches with defaults
+  rather than refusing to start.
+- **Rate-limit backoff** for GitHub Releases lookups: 5 min
+  failure-cache TTL on HTTP 403/429 / asset-missing responses so
+  re-renders don't burn quota. Sui RPC has the analogous
+  per-address backoff for 429/503/JSON-RPC-overload responses.
+- **HTTP body size caps** on every download path (favicons 256 KiB,
+  EVE Vault zip 50 MiB, Sandboxie installer 50 MiB, Brave portable
+  300 MiB) enforced both via Content-Length AND streaming-tally so
+  a misbehaving / compromised upstream can't OOM the process.
+- **Live upstream-contract tests** for Brave, EVE Vault, and
+  Sandboxie. Run on every `cargo test`, hit the real GitHub
+  Releases API, skip gracefully on network failure but fail loudly
+  if upstream renames an asset or changes their release channel
+  mix in a way our matchers don't tolerate. Backed by a daily
+  scheduled CI workflow (`upstream-drift.yml`) that runs the same
+  tests with a token and opens a tracking issue on failure.
+- **Test suite** — 154 Rust tests across unit, contract, and
+  upstream-probe layers (was 93 at the start of pre-public
+  polish). Includes a cross-boundary drift test that asserts every
+  Rust `#[tauri::command]` has a matching TypeScript wrapper in
+  `src/lib/tauri.ts`, plus a `PilotStatus` variant-set test that
+  pins the enum against the TS string union.
+
+### Changed
+
+- **Project rename**: Bridge → Bifrost. App identifier
+  `app.bridge.frontier` → `io.github.valknarr.bifrost` (reverse-DNS
+  under the GitHub user namespace, verifiably owned). Internal
+  Rust types `BridgeError` / `BridgeConfig` renamed to
+  `BifrostError` / `BifrostConfig` to match the product name
+  throughout.
+- **Build chain upgraded**: Vite 6 → 8 (with explicit `esbuild`
+  devDependency for Vite 8's rolldown transition), Svelte plugin
+  5 → 7, TypeScript 5 → 6 (tsconfig `baseUrl` removed per TS 6
+  deprecation; `paths` migrated to relative form).
+- **Sui RPC fetches go concurrent** — each pilot's SUI + EVE
+  balance call pair runs via `tokio::join!`; pilots themselves
+  fan out via `FuturesUnordered` with a max-4 concurrency cap.
+- **Chromium asset matcher** broadened to accept both
+  `brave-v…-win32-x64.zip` and `brave-origin-v…-win32-x64.zip`
+  naming forms. The release lookup switched from `/releases/latest`
+  to a list-and-scan helper that includes prereleases — Brave tags
+  most Windows-bearing builds as prereleases, so the old singleton
+  endpoint returned Android-only builds with no Windows ZIP.
 
 ### Safety
 
