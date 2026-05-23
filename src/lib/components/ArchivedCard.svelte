@@ -79,7 +79,7 @@
         size="sm"
         variant="ghost"
         onclick={() => (confirmingDelete = true)}
-        title="Permanently remove the Bifrost pilot record. The Sandboxie box itself is not deleted."
+        title="Permanently remove the pilot AND its Sandboxie box + browser profile. This cannot be undone."
       >
         Delete…
       </Button>

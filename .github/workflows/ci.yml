@@ -59,11 +59,12 @@ jobs:
         run: cargo test --all-targets
 
       # `cargo audit` checks the Cargo.lock against the RustSec
-      # advisory DB. `continue-on-error` keeps the run green while
-      # we establish a clean baseline — once we've triaged any
-      # findings, drop this line so a new advisory fails the build.
+      # advisory DB. Baseline triage (pre-public sweep) cleared all
+      # CVEs — the only remaining advisories are GTK3 transitives
+      # (Linux-only, Bifrost is Windows) which are ignored via
+      # `src-tauri/audit.toml`. CI now hard-fails on any NEW
+      # advisory so a real CVE can't slip in unnoticed.
       - name: cargo audit
-        continue-on-error: true
         run: |
           cargo install --locked cargo-audit --version 0.21.2
           cargo audit
@@ -92,9 +93,8 @@ jobs:
 
       # `pnpm audit` checks the lockfile against npm's advisory DB.
       # `--prod` skips dev-only deps (vite, svelte-check, etc.) so we
-      # only block on advisories that affect what we ship. Soft-failed
-      # for the same reason as `cargo audit` above — flip to a hard
-      # fail once the baseline is clean.
+      # only block on advisories that affect what we ship. Hard-fail
+      # now that the pre-public baseline is clean (0 advisories
+      # across 144 deps as of the launch sweep).
       - name: pnpm audit
-        continue-on-error: true
         run: pnpm audit --prod

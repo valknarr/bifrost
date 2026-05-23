@@ -160,7 +160,18 @@ pub fn restore_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
         {
             return Err(BridgeError::PilotExists(target_name));
         }
-        let p = pilots.iter_mut().find(|p| p.id == id).unwrap();
+        // Re-find with proper error propagation. The unwrap that
+        // used to live here was technically unreachable today
+        // because we hold the lock from the initial find through
+        // this mutation — but if anyone ever inserts a yield point
+        // (e.g. an async pre-check) between the two finds, a
+        // concurrent delete could leave us with `None` and panic
+        // the whole runtime. Propagating `PilotNotFound` is cheap
+        // insurance.
+        let p = pilots
+            .iter_mut()
+            .find(|p| p.id == id)
+            .ok_or_else(|| BridgeError::PilotNotFound(id.clone()))?;
         p.archived = false;
     }
     state.save_pilots()?;

@@ -1,0 +1,38 @@
+# `cargo audit` configuration.
+#
+# Bifrost is Windows-only (Sandboxie is a Windows kernel driver), but
+# the Tauri 2.x dependency graph pulls in the entire GTK3 stack on
+# every platform for compile-time wry plumbing. Those GTK3 / glib
+# crates carry "unmaintained" or "unsoundness" advisories that
+# RustSec correctly flags — but they're dead code at our runtime on
+# Windows. Until Tauri 2.x migrates wry to gtk4 (tracked upstream),
+# ignoring them in CI keeps the audit signal meaningful: a NEW
+# advisory on something we actually ship breaks the build, while
+# the Linux-transitive noise stays out of the way.
+
+[advisories]
+ignore = [
+    # GTK3 + transitives — Linux-only, dead code on Windows.
+    # See https://rustsec.org/advisories/RUSTSEC-2024-0411 etc.
+    "RUSTSEC-2024-0411",   # gtk 0.18 unmaintained
+    "RUSTSEC-2024-0412",   # gdk 0.18 unmaintained
+    "RUSTSEC-2024-0413",   # atk 0.18 unmaintained
+    "RUSTSEC-2024-0414",   # gdk-pixbuf unmaintained
+    "RUSTSEC-2024-0415",   # gtk3-macros unmaintained
+    "RUSTSEC-2024-0416",   # gdkx11 unmaintained
+    "RUSTSEC-2024-0417",   # gdkwayland-sys unmaintained
+    "RUSTSEC-2024-0418",   # atk-sys unmaintained
+    "RUSTSEC-2024-0419",   # gdk-sys unmaintained
+    "RUSTSEC-2024-0420",   # gtk-sys unmaintained
+    "RUSTSEC-2024-0429",   # glib 0.18 VariantStrIter unsoundness
+    "RUSTSEC-2024-0370",   # proc-macro-error unmaintained (via gtk3-macros)
+
+    # `unic-*` family unmaintained — pulled via urlpattern → tauri-utils.
+    # Cross-platform but advisory-only (no CVE); resolves itself when
+    # tauri-utils switches off urlpattern 0.3.
+    "RUSTSEC-2025-0075",
+    "RUSTSEC-2025-0080",
+    "RUSTSEC-2025-0081",
+    "RUSTSEC-2025-0098",
+    "RUSTSEC-2025-0100",
+]

@@ -22,9 +22,24 @@ pub fn add_companion_site(
     if trimmed_name.is_empty() || trimmed_url.is_empty() {
         return Err(BridgeError::Other("Name and URL are required.".into()));
     }
+    // URL validation. Previously checked only the scheme prefix,
+    // which let "https:// " (prefix + space) and "https://" (just
+    // the scheme, no host) persist as garbage. Parse with
+    // `url::Url::parse` (via reqwest's re-export — already a
+    // transitive dep) so a missing host, malformed authority, or
+    // unsupported scheme all fail at the validation boundary
+    // instead of later when something tries to favicon-fetch it
+    // or hand it to Tauri's shell-plugin opener.
     if !trimmed_url.starts_with("http://") && !trimmed_url.starts_with("https://") {
         return Err(BridgeError::Other(
             "URL must start with http:// or https://.".into(),
+        ));
+    }
+    let parsed = reqwest::Url::parse(&trimmed_url)
+        .map_err(|e| BridgeError::Other(format!("URL is malformed: {e}")))?;
+    if parsed.host_str().filter(|h| !h.is_empty()).is_none() {
+        return Err(BridgeError::Other(
+            "URL must include a host (e.g. https://example.com/).".into(),
         ));
     }
 

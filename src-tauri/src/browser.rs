@@ -1,9 +1,13 @@
 //! Per-pilot browser launcher.
 //!
-//! Bifrost ships its own portable Chromium (Ungoogled Chromium) and uses
-//! it exclusively for per-pilot wallet sessions. Host-installed browsers
-//! are deliberately ignored so every Bifrost install behaves identically
-//! and the user's day-to-day Chrome / Edge profile is never touched.
+//! Bifrost ships its own portable Chromium build — Brave Browser
+//! (chosen for built-in tracker / ad blocking that pairs well with
+//! the wallet-extension workflow and an actively maintained Windows
+//! portable release on GitHub). The bundled Brave is used
+//! exclusively for per-pilot wallet sessions. Host-installed
+//! browsers are deliberately ignored so every Bifrost install
+//! behaves identically and the user's day-to-day Chrome / Edge /
+//! Brave profile is never touched.
 //!
 //! - `--user-data-dir=<path>` for a fully isolated profile (cookies,
 //!   localStorage, extension state — Chromium's first-class multi-

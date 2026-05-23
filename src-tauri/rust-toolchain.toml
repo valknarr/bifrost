@@ -1,5 +1,11 @@
 # Pin the toolchain so every contributor and CI run uses the same
 # compiler. Bump deliberately when we want to use a new stable feature.
+#
+# Pinning to a specific version (not "stable") so a contributor on
+# a newer compiler can't accidentally use post-1.95 features that
+# Cargo.toml's `rust-version = "1.77"` claims to support. CI uses
+# this file via `dtolnay/rust-toolchain` and gets the same compiler
+# every run regardless of when the action's cache rolled over.
 [toolchain]
-channel = "stable"
+channel = "1.95.0"
 components = ["rustfmt", "clippy"]

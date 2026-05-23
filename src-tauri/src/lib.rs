@@ -11,6 +11,7 @@
 //! wrappers — Tauri command names map 1:1 from snake_case Rust to
 //! camelCase TypeScript.
 
+mod atomic_write;
 mod browser;
 mod chromium;
 mod cmd;

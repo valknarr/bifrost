@@ -195,12 +195,14 @@ impl BridgeConfig {
     }
 
     pub fn save(&self, path: &PathBuf) -> Result<()> {
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
+        // config.json holds companion sites + persisted Auto-mode
+        // window size + ui-zoom + roster columns — corruption here
+        // silently resets the user back to defaults on next launch
+        // and they have no signal anything went wrong. Atomic write
+        // (tmp + rename) makes a crash mid-write a no-op rather
+        // than a silent data loss.
         let json = serde_json::to_string_pretty(self)?;
-        std::fs::write(path, json)?;
-        Ok(())
+        crate::atomic_write::write_atomic(path, json.as_bytes())
     }
 }
 

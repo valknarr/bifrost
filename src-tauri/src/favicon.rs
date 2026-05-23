@@ -89,9 +89,29 @@ fn parse_host(url: &str) -> Result<String> {
     Ok(host)
 }
 
+/// Cap on a single favicon body. 256 KiB is two orders of magnitude
+/// larger than the largest real-world favicon (~10–20 KiB for a
+/// 64 × 64 PNG with palette + alpha), so legitimate icons fit
+/// comfortably while a malicious or misbehaving host can't feed us
+/// a multi-GB body that would OOM the Tauri process.
+///
+/// Favicon URLs come from user-added companion sites — Google's
+/// `s2/favicons` endpoint sanitises the upstream icon for us, but
+/// the direct-host fallback (`https://{host}/favicon.ico`) talks to
+/// whatever the user typed, with the bifrost user-agent. Capping
+/// the response size at the read boundary is the cheap defence.
+const MAX_FAVICON_BYTES: u64 = 256 * 1024;
+
 /// Pull a single favicon URL via the shared HTTP client. Returns the
 /// raw bytes on a 2xx, Err otherwise. Used twice by `fetch_cached`
 /// (Google first, direct fallback second).
+///
+/// Body is read in a length-checked loop so an attacker-controlled
+/// host can't drown the process with an unbounded response. If the
+/// response either advertises `Content-Length > MAX_FAVICON_BYTES`
+/// or actually streams past the cap, we error rather than continue
+/// reading — the cap is enforced even when `Content-Length` is
+/// missing or lies.
 async fn try_fetch(url: &str) -> Result<Vec<u8>> {
     let resp = http::client()
         .get(url)
@@ -102,11 +122,37 @@ async fn try_fetch(url: &str) -> Result<Vec<u8>> {
     if !resp.status().is_success() {
         return Err(BridgeError::Other(format!("HTTP {}", resp.status())));
     }
-    let bytes = resp
-        .bytes()
+
+    // Up-front rejection when the server announces an oversized
+    // body — saves the stream loop work below.
+    if let Some(len) = resp.content_length() {
+        if len > MAX_FAVICON_BYTES {
+            return Err(BridgeError::Other(format!(
+                "favicon body too large: {} bytes (cap {})",
+                len, MAX_FAVICON_BYTES
+            )));
+        }
+    }
+
+    // Stream-and-tally so a lying / absent Content-Length can't get
+    // past the cap either. Reads chunks via `Response::chunk` and
+    // accumulates into a Vec, bailing the moment we cross the cap.
+    let mut buf: Vec<u8> = Vec::new();
+    let mut resp = resp;
+    while let Some(chunk) = resp
+        .chunk()
         .await
-        .map_err(|e| BridgeError::Other(format!("body read: {e}")))?;
-    Ok(bytes.to_vec())
+        .map_err(|e| BridgeError::Other(format!("body read: {e}")))?
+    {
+        if (buf.len() + chunk.len()) as u64 > MAX_FAVICON_BYTES {
+            return Err(BridgeError::Other(format!(
+                "favicon body exceeded {} bytes mid-stream",
+                MAX_FAVICON_BYTES
+            )));
+        }
+        buf.extend_from_slice(&chunk);
+    }
+    Ok(buf)
 }
 
 /// Ensure the favicon for `url` is cached locally. Returns the cache

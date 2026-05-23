@@ -99,10 +99,11 @@ fn load_pilots(path: &Path) -> Result<Vec<Pilot>> {
 }
 
 fn save_pilots(path: &Path, pilots: &[Pilot]) -> Result<()> {
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
+    // pilots.json is the source of truth for the user's entire
+    // roster — a power loss / crash mid-write previously left a
+    // zero-byte file and `load_or_default` silently falling back to
+    // an empty pilot list. Now goes through write_atomic (tmp +
+    // rename), which is atomic on every platform we support.
     let json = serde_json::to_string_pretty(pilots)?;
-    std::fs::write(path, json)?;
-    Ok(())
+    crate::atomic_write::write_atomic(path, json.as_bytes())
 }
