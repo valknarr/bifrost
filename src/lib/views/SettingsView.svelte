@@ -12,6 +12,7 @@
   import CompanionSitesSection from "../components/CompanionSitesSection.svelte";
   import type { SandboxieVariant } from "../types";
   import { ZOOM_PRESETS, presetFor, type ZoomPreset } from "../zoom";
+  import { vTag } from "../version";
 
   let loading = $state(true);
 
@@ -209,7 +210,7 @@
                     {#if sandboxieBusy}
                       Installing…
                     {:else if installTargetLatest}
-                      ▼ Install {installTargetLabel} v{installTargetLatest}
+                      ▼ Install {installTargetLabel} {vTag(installTargetLatest)}
                     {:else}
                       ▼ Install {installTargetLabel}
                     {/if}
@@ -433,7 +434,7 @@
                   {#if chromiumBusy}
                     Downloading…
                   {:else if chromium?.latestVersion}
-                    ▼ Install v{chromium.latestVersion}
+                    ▼ Install {vTag(chromium.latestVersion)}
                   {:else}
                     ▼ Install latest
                   {/if}
@@ -449,7 +450,7 @@
                 >
                   {chromiumBusy
                     ? "Updating…"
-                    : `Update to v${chromium.latestVersion}`}
+                    : `Update to ${vTag(chromium.latestVersion)}`}
                 </Button>
                 <UninstallButton
                   component="the portable browser"
@@ -555,7 +556,7 @@
                   {#if vaultBusy}
                     Installing…
                   {:else if vault?.latestVersion}
-                    ▼ Install v{vault.latestVersion}
+                    ▼ Install {vTag(vault.latestVersion)}
                   {:else}
                     ▼ Install latest
                   {/if}
@@ -571,7 +572,7 @@
                 >
                   {vaultBusy
                     ? "Updating…"
-                    : `Update to v${vault.latestVersion}`}
+                    : `Update to ${vTag(vault.latestVersion)}`}
                 </Button>
                 <UninstallButton
                   component="the EVE Vault extension"

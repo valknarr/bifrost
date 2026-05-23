@@ -5,6 +5,7 @@
   // discoverability without an explicit "Manual ↗" button.
 
   import { openExternal } from "../external";
+  import { vTag } from "../version";
 
   interface Props {
     version: string;
@@ -16,18 +17,12 @@
 
   let { version, url, class: cls = "" }: Props = $props();
 
-  /** Normalised label. Upstream version strings are inconsistent:
-   *  - Sandboxie's installer marker stores "5.72.6" (no `v`)
-   *  - Brave's GitHub release tag is "v1.90.124" (with `v`)
-   *  - EVE Vault's release tag is "v0.0.9" (with `v`)
-   *  Without normalisation we got `vv1.90.124` for the Brave +
-   *  EVE Vault rows in Settings (the component's "v" prefix
-   *  doubling with the tag's). Strip a leading `v` first so the
-   *  result is always exactly `v<digits.dots>`. */
-  const labelText = $derived.by(() => {
-    const stripped = version.startsWith("v") ? version.slice(1) : version;
-    return `v${stripped}`;
-  });
+  // Normalised label. Upstream version strings are inconsistent:
+  // Sandboxie stores "5.72.6" (no `v`), Brave's tag is "v1.90.124",
+  // EVE Vault's tag is "v0.0.9". `vTag()` strips a leading `v` first
+  // so the result is always exactly `v<digits.dots>` — without it the
+  // Brave + EVE Vault rows rendered "vv1.90.124".
+  const labelText = $derived(vTag(version));
 </script>
 
 <button
