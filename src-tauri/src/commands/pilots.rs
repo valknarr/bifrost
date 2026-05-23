@@ -22,7 +22,7 @@ use crate::state::AppState;
 
 #[tauri::command]
 pub fn list_pilots(state: State<'_, AppState>) -> Result<Vec<Pilot>> {
-    Ok(state.pilots.lock().unwrap().clone())
+    Ok(state.pilots_lock().clone())
 }
 
 /// Create a new managed pilot. Eagerly provisions the Sandboxie box so
@@ -56,7 +56,7 @@ pub async fn create_pilot(state: State<'_, AppState>, name: String) -> Result<Pi
     // Build the pilot record under the lock, then drop it before any
     // async I/O (Sandboxie provisioning).
     let pilot = {
-        let mut pilots = state.pilots.lock().unwrap();
+        let mut pilots = state.pilots_lock();
         if pilots
             .iter()
             .any(|p| !p.archived && p.name.eq_ignore_ascii_case(&trimmed_name))
@@ -140,7 +140,7 @@ fn generate_sandbox_name(pilots: &[Pilot]) -> String {
 #[tauri::command]
 pub async fn archive_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
     let (cfg, sandbox) = {
-        let pilots = state.pilots.lock().unwrap();
+        let pilots = state.pilots_lock();
         let p = pilots
             .iter()
             .find(|p| p.id == id)
@@ -160,7 +160,7 @@ pub async fn archive_pilot(state: State<'_, AppState>, id: String) -> Result<()>
     }
 
     {
-        let mut pilots = state.pilots.lock().unwrap();
+        let mut pilots = state.pilots_lock();
         let p = pilots
             .iter_mut()
             .find(|p| p.id == id)
@@ -178,7 +178,7 @@ pub async fn archive_pilot(state: State<'_, AppState>, id: String) -> Result<()>
 #[tauri::command]
 pub fn restore_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
     {
-        let mut pilots = state.pilots.lock().unwrap();
+        let mut pilots = state.pilots_lock();
         // Snapshot the name we'd be restoring under, so we can check
         // collisions against other managed pilots without holding a
         // mutable borrow on the same Vec.
@@ -230,7 +230,7 @@ pub fn set_pilot_accent(state: State<'_, AppState>, id: String, accent: String) 
         ));
     }
     {
-        let mut pilots = state.pilots.lock().unwrap();
+        let mut pilots = state.pilots_lock();
         let p = pilots
             .iter_mut()
             .find(|p| p.id == id)
@@ -256,7 +256,7 @@ pub fn get_accent_palette() -> Vec<String> {
 #[tauri::command]
 pub async fn delete_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
     let (cfg, sandbox) = {
-        let mut pilots = state.pilots.lock().unwrap();
+        let mut pilots = state.pilots_lock();
         let p = pilots
             .iter()
             .find(|p| p.id == id)

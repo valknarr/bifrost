@@ -71,6 +71,61 @@ pub fn client() -> reqwest::Client {
     SHARED_CLIENT.clone()
 }
 
+/// Stream a response body into memory with a hard byte cap.
+///
+/// `.bytes().await` on a `reqwest::Response` will happily allocate
+/// whatever the upstream feeds us. For URLs that come from a user-
+/// controllable host (favicon fallback) or where a compromised /
+/// misbehaving upstream could feed unbounded data within the
+/// timeout window (Brave / EVE Vault / Sandboxie ZIPs), that's an
+/// OOM vector.
+///
+/// This wrapper enforces `max_bytes` in two layers:
+///
+/// 1. Up-front rejection when `Content-Length` advertises an
+///    oversized body — saves the stream-loop work.
+/// 2. Streaming-and-tallying via `Response::chunk` so a lying /
+///    missing Content-Length can't bypass the cap either.
+///
+/// The hard cap is in bytes; pick it conservatively per-caller
+/// (favicon: 256 KiB, EVE Vault zip: 50 MiB, Brave zip: 300 MiB,
+/// Sandboxie installer: 50 MiB).
+///
+/// Returns the full body Vec on a clean 2xx within the cap; Err
+/// otherwise. Status-code translation is the caller's job — same
+/// shape as the previous `.bytes()` call sites.
+pub async fn download_capped(
+    resp: reqwest::Response,
+    max_bytes: u64,
+) -> Result<Vec<u8>, crate::error::BifrostError> {
+    use crate::error::BifrostError;
+
+    if let Some(len) = resp.content_length() {
+        if len > max_bytes {
+            return Err(BifrostError::Other(format!(
+                "body too large: {} bytes (cap {})",
+                len, max_bytes
+            )));
+        }
+    }
+    let mut buf: Vec<u8> = Vec::new();
+    let mut resp = resp;
+    while let Some(chunk) = resp
+        .chunk()
+        .await
+        .map_err(|e| BifrostError::Other(format!("body read: {e}")))?
+    {
+        if (buf.len() + chunk.len()) as u64 > max_bytes {
+            return Err(BifrostError::Other(format!(
+                "body exceeded {} bytes mid-stream",
+                max_bytes
+            )));
+        }
+        buf.extend_from_slice(&chunk);
+    }
+    Ok(buf)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

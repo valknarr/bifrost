@@ -340,13 +340,20 @@ pub async fn install(app_data: &Path, release: &ChromiumRelease) -> Result<()> {
     // 600 s timeout for this specific request — it's a ~180 MB
     // download. Pool + DNS + TLS state is reused from prior fetches
     // via the shared client.
-    let zip_bytes = http::client()
+    //
+    // Body cap at 300 MiB: Brave portable Windows-x64 ZIPs are
+    // ~180 MB; 300 MiB is generous headroom for future bundle
+    // growth while still rejecting an attacker-controlled or
+    // compromised upstream that tries to feed us unbounded data
+    // within the 600 s timeout window. See `http::download_capped`.
+    const CHROMIUM_ZIP_CAP: u64 = 300 * 1024 * 1024;
+    let resp = http::client()
         .get(&release.zip_url)
         .timeout(std::time::Duration::from_secs(600))
         .send()
         .await
-        .map_err(|e| BifrostError::Other(format!("chromium zip download failed: {e}")))?
-        .bytes()
+        .map_err(|e| BifrostError::Other(format!("chromium zip download failed: {e}")))?;
+    let zip_bytes = http::download_capped(resp, CHROMIUM_ZIP_CAP)
         .await
         .map_err(|e| BifrostError::Other(format!("chromium zip body read failed: {e}")))?;
 
@@ -356,7 +363,7 @@ pub async fn install(app_data: &Path, release: &ChromiumRelease) -> Result<()> {
     }
     std::fs::create_dir_all(&target)?;
 
-    let mut archive = zip::ZipArchive::new(std::io::Cursor::new(zip_bytes.as_ref()))
+    let mut archive = zip::ZipArchive::new(std::io::Cursor::new(&zip_bytes[..]))
         .map_err(|e| BifrostError::Other(format!("chromium zip parse failed: {e}")))?;
 
     for i in 0..archive.len() {

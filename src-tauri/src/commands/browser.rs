@@ -35,8 +35,27 @@ pub async fn open_pilot_browser(state: State<'_, AppState>, id: String) -> Resul
 /// Same per-pilot profile + EVE Vault extension as the regular
 /// Wallet button, so the site receives this pilot's identity via the
 /// Sui Wallet Standard.
+///
+/// URL is checked against the configured companion-site whitelist
+/// before launch. If the FE ever passes a URL that isn't in the
+/// user's `companion_sites` list (UI state corruption, future
+/// component bug, malicious FE injection), the launch is refused
+/// rather than opening the page with the pilot's wallet-bearing
+/// session. Defence in depth — the FE only renders buttons for
+/// configured sites today, but the backend shouldn't trust that.
 #[tauri::command]
 pub async fn open_pilot_app(state: State<'_, AppState>, id: String, url: String) -> Result<()> {
+    let cfg = state.config();
+    let allowed = cfg
+        .companion_sites
+        .iter()
+        .any(|s| s.url.eq_ignore_ascii_case(&url));
+    if !allowed {
+        return Err(BifrostError::Other(format!(
+            "Refusing to open {url} — not in the companion-site list. \
+             Add it under Settings › Companion sites first."
+        )));
+    }
     open_pilot_browser_impl(state, id, Some(url)).await
 }
 
@@ -74,7 +93,7 @@ async fn open_pilot_browser_impl(
     }
 
     let (profile_dir, pilot_name, pilot_accent, pilot_root) = {
-        let pilots = state.pilots.lock().unwrap();
+        let pilots = state.pilots_lock();
         let p = pilots
             .iter()
             .find(|p| p.id == id)

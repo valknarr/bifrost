@@ -18,7 +18,7 @@ pub async fn start_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
     // Pull out everything we need under the lock, then drop it before
     // async work.
     let (cfg, pilot) = {
-        let pilots = state.pilots.lock().unwrap();
+        let pilots = state.pilots_lock();
         let pilot = pilots
             .iter()
             .find(|p| p.id == id)
@@ -46,7 +46,7 @@ pub async fn start_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
     sb.launch_in_box(&pilot.sandbox, frontier_exe, &[]).await?;
 
     {
-        let mut pilots = state.pilots.lock().unwrap();
+        let mut pilots = state.pilots_lock();
         if let Some(p) = pilots.iter_mut().find(|p| p.id == id) {
             p.status = PilotStatus::Running;
             p.launched_at_least_once = true;
@@ -72,7 +72,7 @@ pub async fn start_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
 #[tauri::command]
 pub async fn stop_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
     let (cfg, sandbox) = {
-        let pilots = state.pilots.lock().unwrap();
+        let pilots = state.pilots_lock();
         let pilot = pilots
             .iter()
             .find(|p| p.id == id)
@@ -115,7 +115,7 @@ pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
     // NEVER launched might just not have been provisioned yet, so we
     // leave those as Stopped — `start_pilot` will provision on demand.
     let pilot_snapshot: Vec<(String, String, bool)> = {
-        let pilots = state.pilots.lock().unwrap();
+        let pilots = state.pilots_lock();
         pilots
             .iter()
             .map(|p| (p.id.clone(), p.sandbox.clone(), p.launched_at_least_once))
@@ -175,12 +175,12 @@ pub async fn reconcile_pilots(state: State<'_, AppState>) -> Result<()> {
     // Track whether anything actually changed so we can skip the
     // disk write when nothing did. Background reconcile ticks every
     // 30 s with no state drift would otherwise rewrite pilots.json
-    // ~2 880×/day for no reason — wasteful, and on shared/cloud
+    // ~2 880Ã—/day for no reason — wasteful, and on shared/cloud
     // disks contributes to needless I/O quota usage. Mutation
     // counter increments only when we OBSERVED a different value.
     let mut status_changes: u32 = 0;
     {
-        let mut pilots = state.pilots.lock().unwrap();
+        let mut pilots = state.pilots_lock();
         for (id, status) in new_statuses {
             if let Some(p) = pilots.iter_mut().find(|p| p.id == id) {
                 if p.status != status {

@@ -8,7 +8,7 @@
 //! shells, GitHub fetches, browser launches) never holds a lock.
 
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 
 use tauri::{AppHandle, Manager};
 
@@ -27,6 +27,31 @@ pub struct AppState {
 }
 
 impl AppState {
+    /// Acquire the pilots-list lock, recovering from poisoning.
+    ///
+    /// A panic inside any other `state.pilots.lock()` critical
+    /// section would poison the mutex; the default `.unwrap()`
+    /// behaviour would then panic EVERY subsequent command,
+    /// requiring an app restart. `into_inner` instead takes the
+    /// guard's contents (which may be in a partial state, but
+    /// it's still a `Vec<Pilot>` we can read / mutate); the
+    /// alternative — panicking the whole runtime on every call —
+    /// is worse for the user.
+    ///
+    /// All command-site code MUST go through this helper rather
+    /// than `state.pilots.lock().unwrap()` directly. The latter
+    /// pattern is the one that propagated panic across the
+    /// codebase before this fix.
+    pub fn pilots_lock(&self) -> MutexGuard<'_, Vec<Pilot>> {
+        self.pilots.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// Acquire the config lock, recovering from poisoning. Same
+    /// rationale as [`pilots_lock`].
+    pub fn config_lock(&self) -> MutexGuard<'_, BifrostConfig> {
+        self.config.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
     /// Build the initial state from disk. Called once during the Tauri
     /// `setup` hook in [`crate::run`].
     pub fn new(app: &AppHandle) -> Result<Self> {
@@ -55,12 +80,12 @@ impl AppState {
     /// they can mutate the clone freely and call [`save_config`] to
     /// persist.
     pub fn config(&self) -> BifrostConfig {
-        self.config.lock().unwrap().clone()
+        self.config_lock().clone()
     }
 
     /// Replace the in-memory config and write it to disk.
     pub fn save_config(&self, new: BifrostConfig) -> Result<()> {
-        *self.config.lock().unwrap() = new.clone();
+        *self.config_lock() = new.clone();
         new.save(&self.config_path)
     }
 
@@ -68,7 +93,7 @@ impl AppState {
     /// are written as-is; on next load they're reset to Stopped since
     /// we can't trust live state across restarts.
     pub fn save_pilots(&self) -> Result<()> {
-        let pilots = self.pilots.lock().unwrap();
+        let pilots = self.pilots_lock();
         save_pilots(&self.pilots_path, &pilots)
     }
 
@@ -76,7 +101,7 @@ impl AppState {
     /// [`stop_pilot`](crate::commands::lifecycle) to flip a single
     /// pilot's status without touching anything else.
     pub fn set_pilot_status(&self, id: &str, status: PilotStatus) {
-        let mut pilots = self.pilots.lock().unwrap();
+        let mut pilots = self.pilots_lock();
         if let Some(p) = pilots.iter_mut().find(|p| p.id == id) {
             p.status = status;
         }
@@ -86,12 +111,44 @@ impl AppState {
 /// Read `pilots.json`. Returns an empty Vec when the file doesn't
 /// exist yet. Resets all pilots to Stopped on load — runtime state
 /// never survives a restart since the sandboxes/processes are gone.
+///
+/// On parse failure (corrupted JSON, version skew), renames the
+/// corrupt file to `<path>.corrupt-<unix>.json` and returns an
+/// empty pilot list. Mirrors `BifrostConfig::load_or_default`'s
+/// fallback shape — better to start with an empty roster the user
+/// can rebuild from the still-existing browser-profile dirs and
+/// Sandboxie boxes than to refuse to launch with an opaque error.
 fn load_pilots(path: &Path) -> Result<Vec<Pilot>> {
     if !path.exists() {
         return Ok(Vec::new());
     }
-    let raw = std::fs::read_to_string(path)?;
-    let mut pilots: Vec<Pilot> = serde_json::from_str(&raw)?;
+    let raw = match std::fs::read_to_string(path) {
+        Ok(s) => s,
+        Err(e) => {
+            tracing::warn!(
+                "pilots: read failed at {}: {e} - falling back to empty roster",
+                path.display()
+            );
+            return Ok(Vec::new());
+        }
+    };
+    let mut pilots: Vec<Pilot> = match serde_json::from_str(&raw) {
+        Ok(p) => p,
+        Err(e) => {
+            let ts = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            let backup = path.with_extension(format!("corrupt-{ts}.json"));
+            tracing::warn!(
+                "pilots: parse failed at {}: {e} - moved to {} and reset to empty",
+                path.display(),
+                backup.display()
+            );
+            let _ = std::fs::rename(path, &backup);
+            return Ok(Vec::new());
+        }
+    };
     for p in pilots.iter_mut() {
         p.status = PilotStatus::Stopped;
     }

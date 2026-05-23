@@ -106,12 +106,10 @@ const MAX_FAVICON_BYTES: u64 = 256 * 1024;
 /// raw bytes on a 2xx, Err otherwise. Used twice by `fetch_cached`
 /// (Google first, direct fallback second).
 ///
-/// Body is read in a length-checked loop so an attacker-controlled
-/// host can't drown the process with an unbounded response. If the
-/// response either advertises `Content-Length > MAX_FAVICON_BYTES`
-/// or actually streams past the cap, we error rather than continue
-/// reading — the cap is enforced even when `Content-Length` is
-/// missing or lies.
+/// Body cap enforced via the shared `http::download_capped` helper
+/// (same code path used by the Brave / EVE Vault / Sandboxie ZIP
+/// downloads). An attacker-controlled favicon host can't drown the
+/// process with an unbounded response.
 async fn try_fetch(url: &str) -> Result<Vec<u8>> {
     let resp = http::client()
         .get(url)
@@ -122,37 +120,7 @@ async fn try_fetch(url: &str) -> Result<Vec<u8>> {
     if !resp.status().is_success() {
         return Err(BifrostError::Other(format!("HTTP {}", resp.status())));
     }
-
-    // Up-front rejection when the server announces an oversized
-    // body — saves the stream loop work below.
-    if let Some(len) = resp.content_length() {
-        if len > MAX_FAVICON_BYTES {
-            return Err(BifrostError::Other(format!(
-                "favicon body too large: {} bytes (cap {})",
-                len, MAX_FAVICON_BYTES
-            )));
-        }
-    }
-
-    // Stream-and-tally so a lying / absent Content-Length can't get
-    // past the cap either. Reads chunks via `Response::chunk` and
-    // accumulates into a Vec, bailing the moment we cross the cap.
-    let mut buf: Vec<u8> = Vec::new();
-    let mut resp = resp;
-    while let Some(chunk) = resp
-        .chunk()
-        .await
-        .map_err(|e| BifrostError::Other(format!("body read: {e}")))?
-    {
-        if (buf.len() + chunk.len()) as u64 > MAX_FAVICON_BYTES {
-            return Err(BifrostError::Other(format!(
-                "favicon body exceeded {} bytes mid-stream",
-                MAX_FAVICON_BYTES
-            )));
-        }
-        buf.extend_from_slice(&chunk);
-    }
-    Ok(buf)
+    http::download_capped(resp, MAX_FAVICON_BYTES).await
 }
 
 /// Ensure the favicon for `url` is cached locally. Returns the cache

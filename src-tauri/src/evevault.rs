@@ -206,13 +206,17 @@ pub async fn install(app_data: &Path, release: &ReleaseInfo) -> Result<()> {
         None
     };
 
-    // 2. Download the ZIP.
-    let zip_bytes = client
+    // 2. Download the ZIP with a 50 MiB cap — EVE Vault releases
+    // are small (~5 MB). 50 MiB gives 10× growth headroom while
+    // rejecting an attacker-controlled or compromised upstream
+    // that tries to feed us unbounded data.
+    const EVEVAULT_ZIP_CAP: u64 = 50 * 1024 * 1024;
+    let resp = client
         .get(&release.zip_url)
         .send()
         .await
-        .map_err(|e| BifrostError::Other(format!("zip download failed: {e}")))?
-        .bytes()
+        .map_err(|e| BifrostError::Other(format!("zip download failed: {e}")))?;
+    let zip_bytes = crate::http::download_capped(resp, EVEVAULT_ZIP_CAP)
         .await
         .map_err(|e| BifrostError::Other(format!("zip body read failed: {e}")))?;
 
@@ -236,7 +240,7 @@ pub async fn install(app_data: &Path, release: &ReleaseInfo) -> Result<()> {
     }
     std::fs::create_dir_all(&target)?;
 
-    let mut archive = zip::ZipArchive::new(Cursor::new(zip_bytes.as_ref()))
+    let mut archive = zip::ZipArchive::new(Cursor::new(&zip_bytes[..]))
         .map_err(|e| BifrostError::Other(format!("zip parse failed: {e}")))?;
 
     for i in 0..archive.len() {

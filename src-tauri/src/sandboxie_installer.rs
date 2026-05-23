@@ -741,13 +741,17 @@ pub async fn install(app_data: &Path, release: &SandboxieRelease) -> Result<()> 
         // Sandboxie installer is ~12 MB. 300 s timeout is overkill
         // but matches the previous behaviour; shared client reuses
         // the GitHub CDN connection from the latest-release fetch.
-        let exe_bytes = http::client()
+        // 50 MiB cap leaves 4× headroom while bounding the worst
+        // case — `http::download_capped` enforces it both via
+        // Content-Length and via streaming-tally.
+        const SANDBOXIE_EXE_CAP: u64 = 50 * 1024 * 1024;
+        let resp = http::client()
             .get(&release.exe_url)
             .timeout(std::time::Duration::from_secs(300))
             .send()
             .await
-            .map_err(|e| BifrostError::Other(format!("sandboxie installer download failed: {e}")))?
-            .bytes()
+            .map_err(|e| BifrostError::Other(format!("sandboxie installer download failed: {e}")))?;
+        let exe_bytes = http::download_capped(resp, SANDBOXIE_EXE_CAP)
             .await
             .map_err(|e| {
                 BifrostError::Other(format!("sandboxie installer body read failed: {e}"))

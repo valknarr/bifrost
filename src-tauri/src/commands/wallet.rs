@@ -34,7 +34,7 @@ pub async fn set_pilot_wallet(
     // Clearing case: empty input wipes both fields.
     if trimmed.is_empty() {
         let updated = {
-            let mut pilots = state.pilots.lock().unwrap();
+            let mut pilots = state.pilots_lock();
             let p = pilots
                 .iter_mut()
                 .find(|p| p.id == id)
@@ -58,7 +58,7 @@ pub async fn set_pilot_wallet(
     // Persist the address before the network call so it survives even
     // if the RPC is unreachable.
     {
-        let mut pilots = state.pilots.lock().unwrap();
+        let mut pilots = state.pilots_lock();
         let p = pilots
             .iter_mut()
             .find(|p| p.id == id)
@@ -69,7 +69,7 @@ pub async fn set_pilot_wallet(
 
     // Best-effort balance fetches for both coins. Fan out concurrently
     // via `tokio::join` so the two RPC calls overlap (was sequential —
-    // ~2× latency for no good reason). `join` collects both results
+    // ~2Ã— latency for no good reason). `join` collects both results
     // even if one fails, so a single-coin failure leaves the other
     // populated; matches the previous sequential behaviour.
     let sui = SuiClient::new();
@@ -103,7 +103,7 @@ pub async fn set_pilot_wallet(
     };
 
     let updated = {
-        let mut pilots = state.pilots.lock().unwrap();
+        let mut pilots = state.pilots_lock();
         let p = pilots
             .iter_mut()
             .find(|p| p.id == id)
@@ -154,7 +154,7 @@ type BalanceResult = (
 /// Called by [`super::lifecycle::reconcile_pilots`].
 pub async fn refresh_balances(state: &State<'_, AppState>) -> bool {
     let targets: Vec<(String, String)> = {
-        let pilots = state.pilots.lock().unwrap();
+        let pilots = state.pilots_lock();
         pilots
             .iter()
             .filter_map(|p| {
@@ -200,7 +200,7 @@ pub async fn refresh_balances(state: &State<'_, AppState>) -> bool {
 
     let now = now_unix_ms();
     let mut anything_changed = false;
-    let mut pilots = state.pilots.lock().unwrap();
+    let mut pilots = state.pilots_lock();
     for (id, sui_res, eve_res) in results {
         if let Some(p) = pilots.iter_mut().find(|p| p.id == id) {
             let mut any_success = false;

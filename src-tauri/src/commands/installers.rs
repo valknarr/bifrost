@@ -36,9 +36,19 @@ pub async fn get_evevault_status(
 
 /// Download + verify + extract the latest EVE Vault release into
 /// Bifrost's app-data dir. Replaces any existing install in place.
+///
+/// Routes the release lookup through the shared `release_cache`
+/// (same key as `evevault::status`) so an Install click after a
+/// rate-limit returns the cached "rate-limit reached" friendly
+/// error rather than burning more GitHub quota on every retry.
 #[tauri::command]
 pub async fn install_evevault(state: State<'_, AppState>) -> Result<()> {
-    let release = evevault::fetch_latest_release().await?;
+    let release = crate::release_cache::fetch_with_cache(
+        "evevault",
+        false,
+        evevault::fetch_latest_release,
+    )
+    .await?;
     evevault::install(&state.app_data_dir, &release).await
 }
 
@@ -65,9 +75,17 @@ pub async fn get_chromium_status(
 
 /// Download + extract the latest Brave portable build into Bifrost's
 /// app-data dir. Replaces any existing install in place. ~180 MB.
+///
+/// Routes the release lookup through the shared `release_cache` —
+/// same rationale as `install_evevault`.
 #[tauri::command]
 pub async fn install_chromium(state: State<'_, AppState>) -> Result<()> {
-    let release = chromium::fetch_latest_release().await?;
+    let release = crate::release_cache::fetch_with_cache(
+        "chromium",
+        false,
+        chromium::fetch_latest_release,
+    )
+    .await?;
     chromium::install(&state.app_data_dir, &release).await
 }
 

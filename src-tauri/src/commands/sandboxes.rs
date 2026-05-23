@@ -45,7 +45,7 @@ pub fn list_sandboxes(state: State<'_, AppState>) -> Result<Vec<ini::DiscoveredB
     }
 
     let all = ini::list_user_boxes()?;
-    let pilots = state.pilots.lock().unwrap();
+    let pilots = state.pilots_lock();
     let managed: std::collections::HashSet<String> = pilots
         .iter()
         .map(|p| p.sandbox.to_ascii_lowercase())
@@ -84,7 +84,7 @@ pub fn adopt_sandbox(
 
     let cfg = state.config();
     let pilot = {
-        let mut pilots = state.pilots.lock().unwrap();
+        let mut pilots = state.pilots_lock();
         if pilots
             .iter()
             .any(|p| p.sandbox.eq_ignore_ascii_case(&box_name))
@@ -132,7 +132,7 @@ pub fn adopt_sandbox(
 #[tauri::command]
 pub async fn delete_sandbox(state: State<'_, AppState>, box_name: String) -> Result<()> {
     {
-        let pilots = state.pilots.lock().unwrap();
+        let pilots = state.pilots_lock();
         if pilots
             .iter()
             .any(|p| p.sandbox.eq_ignore_ascii_case(&box_name))

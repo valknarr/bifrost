@@ -184,14 +184,52 @@ impl BifrostConfig {
     }
 
     /// Load config from the app's local data dir, falling back to defaults
-    /// if the file is missing or unreadable.
+    /// if the file is missing OR corrupt.
+    ///
+    /// On a serde parse failure (corrupted JSON, partial write that
+    /// somehow slipped past the atomic-write guard, version skew with
+    /// an incompatible future schema), we:
+    ///
+    /// 1. Rename the corrupt file to `<path>.corrupt-<unix>` so the
+    ///    user can inspect / restore it manually, and so a subsequent
+    ///    save doesn't overwrite the evidence.
+    /// 2. Return `defaults()` so the app still launches and the user
+    ///    can re-configure rather than staring at an opaque startup
+    ///    error they can't diagnose without devtools.
+    ///
+    /// This mirrors the same "graceful fallback" shape we'd want on
+    /// `pilots.json` (see `state::load_pilots`).
     pub fn load_or_default(path: &PathBuf) -> Result<Self> {
         if !path.exists() {
             return Ok(Self::defaults());
         }
-        let raw = std::fs::read_to_string(path)?;
-        let parsed = serde_json::from_str::<Self>(&raw)?;
-        Ok(parsed)
+        let raw = match std::fs::read_to_string(path) {
+            Ok(s) => s,
+            Err(e) => {
+                tracing::warn!(
+                    "config: read failed at {}: {e} - falling back to defaults",
+                    path.display()
+                );
+                return Ok(Self::defaults());
+            }
+        };
+        match serde_json::from_str::<Self>(&raw) {
+            Ok(parsed) => Ok(parsed),
+            Err(e) => {
+                let ts = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+                let backup = path.with_extension(format!("corrupt-{ts}.json"));
+                tracing::warn!(
+                    "config: parse failed at {}: {e} - moved to {} and reset to defaults",
+                    path.display(),
+                    backup.display()
+                );
+                let _ = std::fs::rename(path, &backup);
+                Ok(Self::defaults())
+            }
+        }
     }
 
     pub fn save(&self, path: &PathBuf) -> Result<()> {
