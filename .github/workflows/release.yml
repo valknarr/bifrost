@@ -67,7 +67,13 @@ jobs:
           fi
 
       - name: Build + draft release
-        uses: tauri-apps/tauri-action@v0
+        # SHA-pinned to the v0 tag commit (2025-10-15). The release
+        # workflow has `contents: write` + the updater signing
+        # secrets in scope, so a tag-takeover on tauri-apps/tauri-
+        # action could silently swap a malicious build into our
+        # signed release. Dependabot updates this pin when the
+        # action ships a new tag.
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Updater signing — see docs/RELEASING.md for one-time

@@ -2,17 +2,22 @@
 
 [![CI](https://github.com/valknarr/bifrost/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/valknarr/bifrost/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/valknarr/bifrost?include_prereleases&label=latest&sort=semver)](https://github.com/valknarr/bifrost/releases/latest)
 
-**An open-source multi-pilot session manager for EVE Frontier.**
+**Multi-pilot session manager for EVE Frontier.**
+
+![Pilot roster — three pilots, one launched, each with its own
+coloured frame and wallet session.](./docs/screenshots/pilots.png)
 
 One click → N isolated pilot sessions, each with its own game client,
-browser profile, and EVE Vault wallet. No keystroke broadcasting, no DLL
-injection, no TOS edge cases. Bifrost wraps CCP's officially recommended
-sandboxing tool ([Sandboxie] — Plus or Classic) behind a calm UI, and
-bundles per-pilot [Brave Browser] + [EVE Vault] so each pilot has a fully
-isolated identity out of the box.
+browser profile, and EVE Vault wallet. No keystroke broadcasting, no
+DLL injection, no TOS edge cases.
 
-> Bifrost is an unofficial community tool. It is not affiliated with or
+> **Players**: grab the latest signed `.exe` from
+> [**Releases**](https://github.com/valknarr/bifrost/releases/latest).
+> **Developers**: jump to [Quick start](#quick-start).
+>
+> Bifrost is an unofficial community tool. Not affiliated with or
 > endorsed by CCP Games. "EVE Frontier" is a trademark of CCP hf.
 
 ## Why
@@ -37,10 +42,23 @@ Bifrost replaces all of that with:
 
 ## Status
 
-Pre-alpha. Active development. The Pilots view, Sandboxie + EVE Vault
-integration, per-pilot browser sessions, and wallet balance reads from
-the Sui mainnet RPC all work today. See [`CHANGELOG.md`](./CHANGELOG.md)
+**v0.0.x — actively developed.** Daily-driver stable for the maintainer
+on Windows 11; binaries auto-update via [Tauri's signed
+updater](docs/RELEASING.md) so once you're installed you stay on the
+latest. Recommended for users comfortable with `.exe` installs from
+GitHub Releases; a one-click installer flow for non-technical users
+lands in v0.1.
+
+The Pilots view, Sandboxie + EVE Vault integration, per-pilot browser
+sessions, wallet balance reads from the Sui mainnet RPC, and the
+in-app installers (Sandboxie Plus or Classic, portable Brave, EVE
+Vault extension) all work today. See [`CHANGELOG.md`](./CHANGELOG.md)
 for what landed when.
+
+The API surface for advanced contributors (Tauri commands, store
+shapes, file formats on disk) may still shift between point
+releases; no breaking changes to user-visible state will land
+without a major bump.
 
 ## Prerequisites
 

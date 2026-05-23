@@ -115,7 +115,7 @@ Each PR should:
 
 Bifrost follows [Semantic Versioning](https://semver.org/). Pre-1.0 we
 treat **any** behaviour change as worth a minor bump. Releases are
-tagged `v0.0.X` from `master` and built into a single signed `.exe`
+tagged `v0.0.X` from `main` and built into a single signed `.exe`
 via `pnpm tauri build`, published to GitHub Releases.
 
 ## Security disclosures

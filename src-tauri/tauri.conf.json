@@ -49,7 +49,8 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "PUBKEY_PLACEHOLDER_SEE_DOCS_RELEASING",
+      "_comment_pubkey": "Replace this placeholder with a real minisign public key BEFORE cutting v0.0.1. Generate with `pnpm tauri signer generate -w ~/.bifrost-updater.key`; full setup steps in docs/RELEASING.md. Builds + dev mode work with the placeholder (the JS updater store skips the check in dev), but a release built with this value will produce installs that can never auto-update.",
+      "pubkey": "PUBKEY_PLACEHOLDER_SEE_DOCS_RELEASING_MD_BEFORE_FIRST_RELEASE",
       "endpoints": [
         "https://github.com/valknarr/bifrost/releases/latest/download/latest.json"
       ],

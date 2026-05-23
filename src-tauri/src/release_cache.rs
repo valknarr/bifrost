@@ -230,7 +230,9 @@ fn is_cacheable_failure(msg: &str) -> bool {
 /// SKIP a test (transport problem — not our fault) vs FAIL it (the
 /// matcher genuinely doesn't work against current upstream). Lives
 /// here next to the other error-classifiers so the heuristic stays
-/// consistent across the codebase.
+/// consistent across the codebase. Test-only — `#[cfg(test)]` gates
+/// it out of release builds where nothing calls it.
+#[cfg(test)]
 pub fn looks_like_transport_failure(msg: &str) -> bool {
     let lower = msg.to_ascii_lowercase();
     lower.contains("timed out")
