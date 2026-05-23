@@ -66,7 +66,7 @@ class VaultStore {
 export const vaultStore = new VaultStore();
 
 /**
- * The wallet integration is "ready" — meaning Bridge can actually
+ * The wallet integration is "ready" — meaning Bifrost can actually
  * launch a per-pilot browser with the EVE Vault extension preloaded —
  * only when BOTH the portable browser and the extension itself are
  * installed. Component code reads this instead of any single flag so

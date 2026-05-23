@@ -4,9 +4,9 @@
 //
 // Sandboxie-Plus differs in one important way: it can't be portable
 // (kernel driver). The store still exposes `detected` to distinguish
-// "binary is on disk somewhere" from "Bridge installed a specific tag",
+// "binary is on disk somewhere" from "Bifrost installed a specific tag",
 // because users who installed Sandboxie themselves should still see
-// "Detected" even without a Bridge-tracked version.
+// "Detected" even without a Bifrost-tracked version.
 
 import { api } from "../tauri";
 import { formatBackendError } from "../error";
@@ -28,7 +28,7 @@ class SandboxieStore {
 
   /** Install Sandboxie. Defaults to the Plus variant (the recommended
    *  modern UI); pass "classic" to install the legacy MFC build. Only
-   *  one variant can be installed at a time — Bridge does NOT switch
+   *  one variant can be installed at a time — Bifrost does NOT switch
    *  variants automatically (uninstall first, then install the other). */
   async install(variant: SandboxieVariant = "plus") {
     this.busy = true;

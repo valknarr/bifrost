@@ -15,7 +15,7 @@
   let creating = $state(false);
 
   /** How often to silently re-check pilot status. Catches drift from
-   *  outside-Bridge events (game crashed, user launched a sandbox via
+   *  outside-Bifrost events (game crashed, user launched a sandbox via
    *  the legacy .bat, etc.) without making the user click a Sync
    *  button. Cheap — one `Start.exe /pids:<box>` shellout per pilot. */
   const RECONCILE_INTERVAL_MS = 30_000;
@@ -41,7 +41,7 @@
     // Background drift-correction. Lifecycle actions (Start / Stop /
     // Archive / Adopt) already trigger a refresh via the store's
     // `run()` wrapper, so this only catches state that changes outside
-    // Bridge's own actions.
+    // Bifrost's own actions.
     const tick = setInterval(
       () => pilotStore.reconcile(),
       RECONCILE_INTERVAL_MS,
@@ -141,7 +141,7 @@
           <div class="flex items-baseline gap-3">
             <h2 class="section-label">Discovered</h2>
             <span class="text-[10px] tracking-[0.2em] text-[var(--color-text-dim)] uppercase">
-              Sandboxes not yet under Bridge control
+              Sandboxes not yet under Bifrost control
             </span>
           </div>
           <span class="mono text-[10px] text-[var(--color-text-dim)]">

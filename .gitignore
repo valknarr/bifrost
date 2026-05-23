@@ -15,7 +15,7 @@ src-tauri/WixTools/
 # Tauri generated assets (per-build, machine-specific)
 src-tauri/gen/
 
-# NOTE: Cargo.lock is intentionally NOT ignored. Bridge is an application
+# NOTE: Cargo.lock is intentionally NOT ignored. Bifrost is an application
 # (not a library), so we commit it so contributors and CI build against
 # the same dep graph. See:
 # https://doc.rust-lang.org/cargo/faq.html#why-have-cargolock-in-version-control

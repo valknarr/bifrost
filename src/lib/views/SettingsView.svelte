@@ -297,7 +297,7 @@
               <p
                 class="text-[10px] leading-snug text-[var(--color-text-muted)]"
               >
-                Bridge installs Sandboxie-Plus by default. Sandboxie
+                Bifrost installs Sandboxie-Plus by default. Sandboxie
                 Classic is also supported — same kernel driver, lighter
                 UI. Only one variant can be installed at a time; to
                 switch, uninstall first then install the other.
@@ -323,7 +323,7 @@
                 class="flex items-center justify-between gap-3 border-l border-[var(--color-danger)]/40 pl-3"
               >
                 <span class="text-[10px] text-[var(--color-text-muted)] leading-snug">
-                  The official game launcher. Bridge will launch it inside
+                  The official game launcher. Bifrost will launch it inside
                   each pilot's sandbox.
                 </span>
                 <button
@@ -339,7 +339,7 @@
         </div>
       </div>
 
-      <!-- EVE Vault integration — no explicit on/off toggle. Bridge
+      <!-- EVE Vault integration — no explicit on/off toggle. Bifrost
            considers the integration "active" whenever both Brave and
            the EVE Vault extension are installed; the two install rows
            below are the only controls needed. -->
@@ -591,9 +591,9 @@
           </div>
 
           <p class="text-[10px] tracking-[0.04em] text-[var(--color-text-dim)] leading-relaxed">
-            Bridge downloads the official EVE Vault Chromium extension from
+            Bifrost downloads the official EVE Vault Chromium extension from
             <span class="mono">github.com/evefrontier/evevault</span>
-            (verified by SHA-256) and stores it under Bridge's app-data.
+            (verified by SHA-256) and stores it under Bifrost's app-data.
             Each pilot's "Apps" buttons open ecosystem sites in a
             standalone Chromium window with EVE Vault preloaded as that
             pilot's identity.
@@ -603,7 +603,7 @@
             the first browser launch shows a Chromium window with EVE
             Vault pinned to the toolbar. Click the wallet icon → sign in
             via FusionAuth → derives the Sui address via zkLogin.
-            Bridge can't automate this step (it requires your credentials)
+            Bifrost can't automate this step (it requires your credentials)
             but only happens once per pilot — the profile remembers from
             then on.
           </p>
@@ -670,7 +670,7 @@
           <p
             class="text-[10px] leading-snug text-[var(--color-text-muted)]"
           >
-            Bridge is a desktop app and can't rely on browser zoom.
+            Bifrost is a desktop app and can't rely on browser zoom.
             These presets call Tauri's <span class="mono">setZoom()</span>
             on the underlying webview so every pixel — text, padding,
             icons, the background drift — scales together. Pick what

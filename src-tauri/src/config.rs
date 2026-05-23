@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use crate::error::Result;
 
 /// One ecosystem app the user can launch into a pilot's browser session.
-/// "Built-in" sites ship with Bridge and can't be removed; they can be
+/// "Built-in" sites ship with Bifrost and can't be removed; they can be
 /// hidden (`disabled = true`) so they stop appearing in the per-pilot
 /// Apps row without losing the canonical URL. User-added sites are
 /// fully removable and don't surface the disable toggle.
@@ -17,7 +17,7 @@ pub struct CompanionSite {
     pub icon: String,
     /// Absolute URL the site loads at.
     pub url: String,
-    /// True for sites that ship with Bridge.
+    /// True for sites that ship with Bifrost.
     #[serde(default)]
     pub builtin: bool,
     /// True when the user has hidden this site. Hidden sites are kept
@@ -27,7 +27,7 @@ pub struct CompanionSite {
     pub disabled: bool,
 }
 
-/// Default ecosystem sites bundled with Bridge. Order matters — this is
+/// Default ecosystem sites bundled with Bifrost. Order matters — this is
 /// the order they render in.
 pub fn default_companion_sites() -> Vec<CompanionSite> {
     vec![
@@ -69,12 +69,12 @@ pub fn default_companion_sites() -> Vec<CompanionSite> {
     ]
 }
 
-/// Persisted Bridge settings. Mirrors the TS `BridgeConfig` type.
+/// Persisted Bifrost settings. Mirrors the TS `BridgeConfig` type.
 ///
 /// Note: pre-v0.0.2 configs may contain a `chromeExe` field that points
 /// at a host-installed Chromium browser, and pre-v0.0.3 configs may
 /// contain `enableWalletIntegration`. Both are deliberately unused now —
-/// Bridge manages its own portable Chromium, and the EVE Vault
+/// Bifrost manages its own portable Chromium, and the EVE Vault
 /// integration is automatically active whenever both Brave and the EVE
 /// Vault extension are installed (no explicit toggle needed). Serde's
 /// default unknown-field-ignore handles old configs transparently.
@@ -86,7 +86,7 @@ pub struct BridgeConfig {
     pub pilots_dir: String,
     pub launch_all_on_start: bool,
     /// Ordered list of ecosystem apps the user can launch into a pilot's
-    /// browser. Bridge ships with a set of built-ins (see
+    /// browser. Bifrost ships with a set of built-ins (see
     /// `default_companion_sites()`); users can append / remove their own.
     #[serde(default = "default_companion_sites")]
     pub companion_sites: Vec<CompanionSite>,
@@ -178,9 +178,9 @@ fn detect_frontier_exe() -> Option<String> {
 
 fn default_pilots_dir() -> String {
     dirs::data_local_dir()
-        .map(|d| d.join("Bridge").join("pilots"))
+        .map(|d| d.join("Bifrost").join("pilots"))
         .map(|p| p.to_string_lossy().into_owned())
-        .unwrap_or_else(|| String::from(r"C:\BridgePilots"))
+        .unwrap_or_else(|| String::from(r"C:\BifrostPilots"))
 }
 
 #[cfg(test)]
@@ -252,14 +252,14 @@ mod tests {
     /// matching `#[serde(default)]` or with the wrong case, this
     /// test surfaces it before users lose data.
     #[test]
-    fn bridge_config_roundtrips_through_disk() {
+    fn bifrost_config_roundtrips_through_disk() {
         let tmp = TempDir::new().expect("tempdir");
         let path = tmp.path().join("config.json");
 
         let original = BridgeConfig {
             sandboxie_path: Some(r"C:\Program Files\Sandboxie-Plus".into()),
             frontier_exe: Some(r"C:\Games\EVE Frontier\EVE Frontier.exe".into()),
-            pilots_dir: r"C:\BridgePilots".into(),
+            pilots_dir: r"C:\BifrostPilots".into(),
             launch_all_on_start: true,
             companion_sites: default_companion_sites(),
             ui_zoom: 1.15,
@@ -275,7 +275,7 @@ mod tests {
     }
 
     /// Loading from a missing path returns the defaults instead of
-    /// erroring out. This is the first-launch path — Bridge must not
+    /// erroring out. This is the first-launch path — Bifrost must not
     /// crash on a fresh machine.
     #[test]
     fn load_or_default_returns_defaults_for_missing_file() {
@@ -302,7 +302,7 @@ mod tests {
         let legacy = r#"{
             "sandboxiePath": "C:\\Program Files\\Sandboxie-Plus",
             "frontierExe": null,
-            "pilotsDir": "C:\\BridgePilots",
+            "pilotsDir": "C:\\BifrostPilots",
             "launchAllOnStart": false,
             "enableWalletIntegration": true,
             "chromeExe": "C:\\Old\\Chrome\\chrome.exe",
@@ -354,7 +354,7 @@ mod tests {
         let legacy = r#"{
             "sandboxiePath": null,
             "frontierExe": null,
-            "pilotsDir": "C:\\BridgePilots",
+            "pilotsDir": "C:\\BifrostPilots",
             "launchAllOnStart": false,
             "companionSites": []
         }"#;

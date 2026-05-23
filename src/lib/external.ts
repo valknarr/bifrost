@@ -1,6 +1,6 @@
 // Tiny wrapper around the Tauri shell plugin's `open()` so callers
 // don't repeat the import dance. We only ever open vetted, hardcoded
-// product URLs from Bridge's own UI (e.g. the official Sandboxie-Plus
+// product URLs from Bifrost's own UI (e.g. the official Sandboxie-Plus
 // releases page) — never URLs sourced from untrusted content.
 //
 // `shell:allow-open` is granted in capabilities/default.json.

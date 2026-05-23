@@ -11,7 +11,7 @@ export interface Pilot {
   /** Sandboxie box name, e.g. "Frontier1" */
   sandbox: string;
   /** Per-pilot Chromium `--user-data-dir`. Browser-agnostic; today
-   *  Bridge bundles Brave but the dir layout is standard Chromium. */
+   *  Bifrost bundles Brave but the dir layout is standard Chromium. */
   browserProfileDir: string;
   /** Optional Sui wallet address once known (read-only display) */
   walletAddress: string | null;
@@ -27,7 +27,7 @@ export interface Pilot {
   /** Archived pilots are hidden from the Managed list and shown under
    *  Archived. Their sandboxes are preserved and can be restored. */
   archived: boolean;
-  /** True once Bridge has successfully launched the game in this pilot's
+  /** True once Bifrost has successfully launched the game in this pilot's
    *  sandbox at least once. Used to suppress the first-launch hint ribbon. */
   launchedAtLeastOnce: boolean;
 }
@@ -38,7 +38,7 @@ export interface CompanionSite {
   /** 1–2 char monogram for the icon tile. */
   icon: string;
   url: string;
-  /** True for sites bundled with Bridge (cannot be removed, but can be
+  /** True for sites bundled with Bifrost (cannot be removed, but can be
    *  disabled). */
   builtin: boolean;
   /** True when the user has hidden this site from the per-pilot Apps
@@ -94,12 +94,12 @@ export type SandboxieVariant = "plus" | "classic";
 /** Sandboxie installer state. Differs from ChromiumStatus in that
  *  Sandboxie can't be made portable (kernel driver), so we additionally
  *  track whether the binary is `detected` on disk (regardless of whether
- *  Bridge installed it or the user did manually), and which variant is
+ *  Bifrost installed it or the user did manually), and which variant is
  *  on disk (Plus vs Classic). */
 export interface SandboxieInstallerStatus {
   /** Variant currently detected on disk. Null if nothing's installed. */
   installedVariant: SandboxieVariant | null;
-  /** Tag Bridge last installed via the in-app installer. Null if the
+  /** Tag Bifrost last installed via the in-app installer. Null if the
    *  user installed externally or not at all. */
   installedVersion: string | null;
   /** True when Sandboxie binaries are present on the host, regardless
@@ -120,7 +120,7 @@ export interface AppStatus {
   frontierFound: boolean;
 }
 
-/** A Sandboxie box that exists on disk but isn't yet managed by Bridge. */
+/** A Sandboxie box that exists on disk but isn't yet managed by Bifrost. */
 export interface DiscoveredBox {
   name: string;
   configLevel: string | null;

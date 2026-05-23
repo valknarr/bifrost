@@ -58,7 +58,7 @@
         <span
           class="text-[11px] tracking-[0.32em] uppercase text-[var(--color-text)]"
         >
-          Bridge
+          Bifrost
         </span>
       </div>
       <nav class="flex items-stretch">

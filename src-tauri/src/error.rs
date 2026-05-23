@@ -1,6 +1,6 @@
 use serde::{Serialize, Serializer};
 
-/// Unified error type for Bridge. Serialises as a plain string for the
+/// Unified error type for Bifrost. Serialises as a plain string for the
 /// frontend so `invoke()` errors are easy to display.
 #[derive(Debug, thiserror::Error)]
 pub enum BridgeError {

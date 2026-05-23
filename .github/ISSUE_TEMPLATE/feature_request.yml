@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Before filing, please skim [CONTRIBUTING.md](https://github.com/valknarr/bifrost/blob/main/CONTRIBUTING.md)
-        for the kinds of changes Bridge will and won't accept (in particular:
+        for the kinds of changes Bifrost will and won't accept (in particular:
         no DLL injection, no input multiplexing, no host-browser integrations,
         no telemetry).
 

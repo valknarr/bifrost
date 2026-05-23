@@ -93,7 +93,7 @@ mod tests {
     fn version_marker_roundtrips() {
         let tmp = TempDir::new().expect("tempdir");
         std::fs::create_dir_all(install_dir(tmp.path())).expect("install dir");
-        std::fs::write(install_dir(tmp.path()).join(".bridge-version"), "v1.90.124")
+        std::fs::write(install_dir(tmp.path()).join(".bifrost-version"), "v1.90.124")
             .expect("marker");
 
         assert_eq!(
@@ -109,7 +109,7 @@ mod tests {
     fn empty_marker_file_reads_as_none() {
         let tmp = TempDir::new().expect("tempdir");
         std::fs::create_dir_all(install_dir(tmp.path())).expect("install dir");
-        std::fs::write(install_dir(tmp.path()).join(".bridge-version"), "").expect("empty marker");
+        std::fs::write(install_dir(tmp.path()).join(".bifrost-version"), "").expect("empty marker");
         assert!(read_installed_version(tmp.path()).is_none());
     }
 
@@ -119,7 +119,7 @@ mod tests {
     fn marker_whitespace_is_trimmed() {
         let tmp = TempDir::new().expect("tempdir");
         std::fs::create_dir_all(install_dir(tmp.path())).expect("install dir");
-        std::fs::write(install_dir(tmp.path()).join(".bridge-version"), "  v1.0\n")
+        std::fs::write(install_dir(tmp.path()).join(".bifrost-version"), "  v1.0\n")
             .expect("marker");
         assert_eq!(read_installed_version(tmp.path()).as_deref(), Some("v1.0"));
     }
@@ -132,7 +132,7 @@ mod tests {
     fn uninstall_flips_marker_to_none() {
         let tmp = TempDir::new().expect("tempdir");
         std::fs::create_dir_all(install_dir(tmp.path())).expect("install dir");
-        std::fs::write(install_dir(tmp.path()).join(".bridge-version"), "v1.0").expect("marker");
+        std::fs::write(install_dir(tmp.path()).join(".bifrost-version"), "v1.0").expect("marker");
         assert_eq!(read_installed_version(tmp.path()).as_deref(), Some("v1.0"));
 
         uninstall(tmp.path()).expect("uninstall");
@@ -236,11 +236,11 @@ pub fn uninstall(app_data: &Path) -> Result<()> {
 }
 
 fn version_marker(app_data: &Path) -> PathBuf {
-    install_dir(app_data).join(".bridge-version")
+    install_dir(app_data).join(".bifrost-version")
 }
 
-/// Read the tag Bridge last installed (the contents of the
-/// `.bridge-version` marker file in [`install_dir`]). Returns `None`
+/// Read the tag Bifrost last installed (the contents of the
+/// `.bifrost-version` marker file in [`install_dir`]). Returns `None`
 /// when nothing is installed.
 pub fn read_installed_version(app_data: &Path) -> Option<String> {
     let txt = std::fs::read_to_string(version_marker(app_data)).ok()?;
@@ -252,7 +252,7 @@ pub fn read_installed_version(app_data: &Path) -> Option<String> {
     }
 }
 
-/// Locate the browser executable inside the install directory. Bridge
+/// Locate the browser executable inside the install directory. Bifrost
 /// currently bundles Brave (`brave.exe`) but we keep `chrome.exe` as a
 /// fallback so a future swap to vanilla Chromium / Chrome wouldn't
 /// require touching this file. We check both names at the root and
@@ -328,7 +328,7 @@ pub async fn status(app_data: &Path, force_refresh: bool) -> ChromiumStatus {
 }
 
 /// Download and extract the given Brave release into [`install_dir`],
-/// replacing any existing install in place. Writes a `.bridge-version`
+/// replacing any existing install in place. Writes a `.bifrost-version`
 /// marker on success so subsequent [`read_installed_version`] calls
 /// can report the tag.
 pub async fn install(app_data: &Path, release: &ChromiumRelease) -> Result<()> {

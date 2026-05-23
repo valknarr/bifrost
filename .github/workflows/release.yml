@@ -6,7 +6,7 @@
 # bundled artifacts and click Publish — that's deliberate so a
 # mistakenly-pushed tag doesn't blast a half-baked build out to users.
 #
-# Bridge is Windows-only (Sandboxie is a Windows kernel driver), so
+# Bifrost is Windows-only (Sandboxie is a Windows kernel driver), so
 # this workflow only builds for `windows-latest`.
 name: Release
 
@@ -72,12 +72,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ steps.tag.outputs.tag }}
-          releaseName: "Bridge ${{ steps.tag.outputs.tag }}"
+          releaseName: "Bifrost ${{ steps.tag.outputs.tag }}"
           releaseBody: |
             See [`CHANGELOG.md`](./CHANGELOG.md) for the full list of
             changes.
 
-            **Install:** download `Bridge_*_x64-setup.exe`, run, accept
+            **Install:** download `Bifrost_*_x64-setup.exe`, run, accept
             the one Windows UAC prompt for the bundled Sandboxie
             install if you don't already have it.
           releaseDraft: true

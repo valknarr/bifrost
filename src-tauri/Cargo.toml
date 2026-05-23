@@ -1,8 +1,8 @@
 [package]
-name = "bridge"
+name = "bifrost"
 version = "0.0.1"
 description = "Multi-pilot session manager for EVE Frontier — per-pilot sandboxed game client + browser + wallet, behind a single calm UI."
-authors = ["Bridge contributors"]
+authors = ["Bifrost contributors"]
 license = "MIT"
 edition = "2021"
 rust-version = "1.77"
@@ -14,7 +14,7 @@ categories = ["games", "gui"]
 readme = "../README.md"
 
 [lib]
-name = "bridge_lib"
+name = "bifrost_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

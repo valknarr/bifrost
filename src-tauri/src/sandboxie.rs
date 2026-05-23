@@ -75,7 +75,7 @@ impl Sandboxie {
         self.set(box_name, "AutoRecover", "n").await?;
         self.set(box_name, "BlockNetworkFiles", "y").await?;
 
-        // Visual hints — Bridge draws its own UI so we keep Sandboxie's
+        // Visual hints — Bifrost draws its own UI so we keep Sandboxie's
         // window decorations off. Sandboxie's standard-isolation tree
         // icon stays yellow regardless of BorderColor (that's a
         // product decision in Sandboxie-Plus, not something we can
@@ -113,7 +113,7 @@ impl Sandboxie {
         // NOTE: the legacy .bat workflow also runs `Start.exe /box:N reg add
         // HKLM\...\ComputerName` to give each box a distinct ComputerName.
         // We deliberately don't do that here:
-        //   1. Bridge has no console (GUI subsystem), so launching reg.exe
+        //   1. Bifrost has no console (GUI subsystem), so launching reg.exe
         //      inside the sandbox via Start.exe /wait fails with
         //      0x40010004 (process-terminated-abnormally) due to absent
         //      stdio handles.
@@ -194,7 +194,7 @@ impl Sandboxie {
 
     /// Names of every user-defined box that currently has at least one
     /// process running inside it. Built off `Sandboxie.ini` so it covers
-    /// boxes Bridge doesn't manage too (third-party / discovered boxes
+    /// boxes Bifrost doesn't manage too (third-party / discovered boxes
     /// still hold the kernel driver open).
     ///
     /// Used by the uninstall pre-flight — the Inno uninstaller can't
@@ -324,7 +324,7 @@ async fn process_names_for(pids: &[u32]) -> std::collections::HashMap<u32, Strin
 #[cfg(test)]
 mod tests {
     //! `Sandboxie::at(path)` is the gating predicate used wherever
-    //! Bridge needs to ask "is Sandboxie actually usable right now?"
+    //! Bifrost needs to ask "is Sandboxie actually usable right now?"
     //! — including `commands::sandboxes::list_sandboxes`, which
     //! short-circuits to empty when the engine isn't installed (so
     //! stale boxes left behind by Inno's "preserve user data"

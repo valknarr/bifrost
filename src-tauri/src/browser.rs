@@ -1,8 +1,8 @@
 //! Per-pilot browser launcher.
 //!
-//! Bridge ships its own portable Chromium (Ungoogled Chromium) and uses
+//! Bifrost ships its own portable Chromium (Ungoogled Chromium) and uses
 //! it exclusively for per-pilot wallet sessions. Host-installed browsers
-//! are deliberately ignored so every Bridge install behaves identically
+//! are deliberately ignored so every Bifrost install behaves identically
 //! and the user's day-to-day Chrome / Edge profile is never touched.
 //!
 //! - `--user-data-dir=<path>` for a fully isolated profile (cookies,
@@ -113,7 +113,7 @@ fn cmdline_holds_profile(cmdline_lower: &str, profile_lower: &str) -> bool {
 /// alongside EVE Vault on every browser launch so the user can tell at
 /// a glance which pilot owns each Chromium window — Airikr's wallet
 /// windows have an orange frame, Tal'Ra's are green, etc., matching
-/// the pilot card accent in Bridge itself.
+/// the pilot card accent in Bifrost itself.
 ///
 /// Returns the path to the unpacked extension directory; pass it via
 /// `--load-extension` alongside any other extensions.
@@ -129,9 +129,9 @@ pub fn ensure_pilot_theme(
 
     let manifest = serde_json::json!({
         "manifest_version": 3,
-        "name": format!("Bridge — {pilot_name}"),
+        "name": format!("Bifrost — {pilot_name}"),
         "version": "1.0.0",
-        "description": "Per-pilot Chromium frame colour for visual identification (set by Bridge).",
+        "description": "Per-pilot Chromium frame colour for visual identification (set by Bifrost).",
         "theme": {
             "colors": {
                 "frame": rgb,
@@ -244,7 +244,7 @@ pub fn prepare_profile(profile_dir: &Path) -> Result<()> {
 /// Engine-level features to disable via `--disable-features` on every
 /// launch. Joined with commas. These are belt-and-braces alongside the
 /// per-profile `Preferences` we write in [`prepare_profile`]: this list
-/// applies even to profiles created by older Bridge versions, before
+/// applies even to profiles created by older Bifrost versions, before
 /// Brave reads any user prefs.
 ///
 /// Documentation for each Brave feature flag is sparse — names lifted
@@ -429,13 +429,13 @@ impl BrowserLauncher {
 
         // Fire-and-forget: the Brave window's lifetime is owned by
         // the user (they close it when they're done), not by
-        // Bridge. We explicitly opt OUT of killing the child on
+        // Bifrost. We explicitly opt OUT of killing the child on
         // drop so the browser keeps running after this future
         // resolves. The `Child` handle is dropped immediately on
         // the next line — that just means we stop watching it
         // from Rust; the OS process continues independently.
         //
-        // When Bridge actually needs to terminate a pilot's browser
+        // When Bifrost actually needs to terminate a pilot's browser
         // (during `delete_pilot`), it uses
         // `kill_browsers_for_profile` above, which finds the right
         // process by command-line and runs `taskkill`.
@@ -564,7 +564,7 @@ mod tests {
     }
 
     /// Cascading: bootstrap + pin extension + read back. Covers the
-    /// real flow Bridge runs on every pilot's second launch (first
+    /// real flow Bifrost runs on every pilot's second launch (first
     /// launch creates Preferences without an `extensions` key,
     /// second launch's `ensure_extension_pinned` has to create it
     /// then write the pin).
@@ -598,15 +598,15 @@ mod tests {
 
     #[test]
     fn cmdline_holds_profile_exact_match_with_equals() {
-        let cmd = r#""c:\bridge\brave.exe" --user-data-dir=c:\bridge\pilots\airikr\browser --no-first-run"#.to_lowercase();
-        let profile = r"c:\bridge\pilots\airikr\browser".to_lowercase();
+        let cmd = r#""c:\bifrost\brave.exe" --user-data-dir=c:\bifrost\pilots\airikr\browser --no-first-run"#.to_lowercase();
+        let profile = r"c:\bifrost\pilots\airikr\browser".to_lowercase();
         assert!(cmdline_holds_profile(&cmd, &profile));
     }
 
     #[test]
     fn cmdline_holds_profile_quoted_path() {
-        let cmd = r#""c:\bridge\brave.exe" --user-data-dir="c:\bridge\pilots\airikr\browser" --foo"#.to_lowercase();
-        let profile = r"c:\bridge\pilots\airikr\browser".to_lowercase();
+        let cmd = r#""c:\bifrost\brave.exe" --user-data-dir="c:\bifrost\pilots\airikr\browser" --foo"#.to_lowercase();
+        let profile = r"c:\bifrost\pilots\airikr\browser".to_lowercase();
         assert!(cmdline_holds_profile(&cmd, &profile));
     }
 
@@ -616,9 +616,9 @@ mod tests {
         // (which the old naive contains() check would match) but the
         // resolved `--user-data-dir` value isn't equal to airikr's
         // profile path. Must NOT match.
-        let cmd = r#""c:\bridge\brave.exe" --user-data-dir=c:\bridge\pilots\airikr-2\browser"#
+        let cmd = r#""c:\bifrost\brave.exe" --user-data-dir=c:\bifrost\pilots\airikr-2\browser"#
             .to_lowercase();
-        let profile = r"c:\bridge\pilots\airikr\browser".to_lowercase();
+        let profile = r"c:\bifrost\pilots\airikr\browser".to_lowercase();
         assert!(!cmdline_holds_profile(&cmd, &profile));
     }
 
@@ -626,15 +626,15 @@ mod tests {
     fn cmdline_holds_profile_handles_trailing_separator() {
         // Profile path with trailing slash should still match a
         // command line that wrote it without one (or vice versa).
-        let cmd = r#"brave.exe --user-data-dir=c:\bridge\pilots\airikr\browser"#.to_lowercase();
-        let profile_with_slash = r"c:\bridge\pilots\airikr\browser\".to_lowercase();
+        let cmd = r#"brave.exe --user-data-dir=c:\bifrost\pilots\airikr\browser"#.to_lowercase();
+        let profile_with_slash = r"c:\bifrost\pilots\airikr\browser\".to_lowercase();
         assert!(cmdline_holds_profile(&cmd, &profile_with_slash));
     }
 
     #[test]
     fn cmdline_holds_profile_misses_when_token_absent() {
-        let cmd = "notepad.exe c:\\bridge\\pilots\\airikr\\browser".to_lowercase();
-        let profile = r"c:\bridge\pilots\airikr\browser".to_lowercase();
+        let cmd = "notepad.exe c:\\bifrost\\pilots\\airikr\\browser".to_lowercase();
+        let profile = r"c:\bifrost\pilots\airikr\browser".to_lowercase();
         assert!(
             !cmdline_holds_profile(&cmd, &profile),
             "the path appearing as a positional arg shouldn't count"

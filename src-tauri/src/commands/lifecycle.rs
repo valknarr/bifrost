@@ -1,5 +1,5 @@
 //! Pilot session lifecycle: start the game in its sandbox, stop it,
-//! and reconcile Bridge's in-memory view with Sandboxie's actual
+//! and reconcile Bifrost's in-memory view with Sandboxie's actual
 //! runtime state.
 
 use tauri::State;
@@ -98,9 +98,9 @@ pub async fn stop_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
     Ok(())
 }
 
-/// Reconcile Bridge's view with Sandboxie's actual runtime state. For
+/// Reconcile Bifrost's view with Sandboxie's actual runtime state. For
 /// each pilot we ask Sandboxie whether the box has the game executable
-/// running and update status accordingly. This makes Bridge correct
+/// running and update status accordingly. This makes Bifrost correct
 /// even when sessions started outside of it (legacy .bat workflow,
 /// manual SandMan launches, orphaned processes from a stop that
 /// errored). Also opportunistically re-fetches on-chain balances since

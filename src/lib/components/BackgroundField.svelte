@@ -232,7 +232,7 @@
     /** Reference dimension galaxies are sized against, in CSS px. Fixed
      *  rather than viewport-relative — the user reads the field as a
      *  real backdrop (a window onto the universe), so resizing the
-     *  Bridge window shouldn't rescale the galaxies. A wider window
+     *  Bifrost window shouldn't rescale the galaxies. A wider window
      *  reveals more empty space around them; a narrower one crops the
      *  outer halos. 1100 fits comfortably on most laptop screens and
      *  leaves a generous halo on larger monitors. */
@@ -242,7 +242,7 @@
       // Three galaxies — sized in absolute pixels (REF_DIM) rather
       // than as fractions of the viewport. Centres are anchored to
       // the viewport centre but offset by fixed amounts, so resizing
-      // the Bridge window doesn't rescale the galaxies — it just
+      // the Bifrost window doesn't rescale the galaxies — it just
       // changes how much black space sits around them. Rotation
       // speeds differ slightly so the merged field never resolves to
       // a single static pattern.

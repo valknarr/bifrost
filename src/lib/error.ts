@@ -1,4 +1,4 @@
-// Backend-error normalisation. Bridge's Tauri commands serialise
+// Backend-error normalisation. Bifrost's Tauri commands serialise
 // `BridgeError` as a plain string for the frontend (see `error.rs`),
 // but JS's `invoke()` then wraps that string into a thrown value
 // that stringifies as "Error: <message>". The "Error: " prefix is

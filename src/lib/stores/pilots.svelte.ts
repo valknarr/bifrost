@@ -56,7 +56,7 @@ class PilotStore {
     this.run(() => api.adoptSandbox(boxName, displayName));
 
   /** Permanently delete an unmanaged Sandboxie box (one that's in the
-   *  Discovered list, not associated with a Bridge pilot). Re-runs the
+   *  Discovered list, not associated with a Bifrost pilot). Re-runs the
    *  full reconcile afterwards so the box disappears from the
    *  Discovered grid on success. */
   async deleteSandbox(boxName: string) {
@@ -69,7 +69,7 @@ class PilotStore {
     }
   }
 
-  /** Permanently delete a Bridge-managed pilot (sandbox + record).
+  /** Permanently delete a Bifrost-managed pilot (sandbox + record).
    *  Bypasses `run()` deliberately: optimistic local removal of the
    *  pilot before a full reconcile so the card disappears
    *  immediately, even if the subsequent listPilots refetch takes a

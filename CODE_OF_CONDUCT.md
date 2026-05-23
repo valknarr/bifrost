@@ -1,6 +1,6 @@
 # Code of Conduct
 
-Bridge is a small open-source project. We expect everyone interacting
+Bifrost is a small open-source project. We expect everyone interacting
 with it — contributors, reviewers, issue reporters, discussion
 participants — to behave like reasonable adults.
 
@@ -10,7 +10,7 @@ participants — to behave like reasonable adults.
   angles. Ask before accusing.
 - **Debate the work, not the contributor.** Critique code, designs,
   and proposals — not the person who wrote them.
-- **Stay on topic.** Bridge issues are for Bridge. Off-topic threads
+- **Stay on topic.** Bifrost issues are for Bifrost. Off-topic threads
   drift, attract noise, and bury the actual signal.
 - **Be patient with newcomers.** The first PR is the hardest one to
   send. If someone's missing context, give it to them.
@@ -40,9 +40,9 @@ discreetly.
 
 ## Scope
 
-These expectations apply anywhere Bridge contributors interact in their
-Bridge-related capacity — this repo's issues / PRs / discussions, any
-linked chat channels, and at events where Bridge is being presented.
+These expectations apply anywhere Bifrost contributors interact in their
+Bifrost-related capacity — this repo's issues / PRs / discussions, any
+linked chat channels, and at events where Bifrost is being presented.
 
 ## Acknowledgement
 

@@ -16,7 +16,7 @@
 //! - [`wallet`] — `set_pilot_wallet`, plus the shared
 //!   `refresh_balances` helper
 //! - [`sandboxes`] — discovery + adopt + delete for Sandboxie boxes
-//!   that exist outside Bridge's managed set
+//!   that exist outside Bifrost's managed set
 //! - [`installers`] — `install_*` / `uninstall_*` / `get_*_status` for
 //!   Sandboxie-Plus, Brave, and the EVE Vault extension
 //! - [`companion_sites`] — add / remove / disable companion sites

@@ -135,7 +135,7 @@ pub async fn fetch_release_json(repo: &str) -> Result<serde_json::Value> {
 pub fn friendly_fetch_error(raw: &str) -> String {
     let lower = raw.to_ascii_lowercase();
     if lower.contains("403") {
-        "GitHub rate-limit reached (60 requests/hour per IP). Bridge \
+        "GitHub rate-limit reached (60 requests/hour per IP). Bifrost \
          caches results for 30 min — try Check for updates later."
             .to_string()
     } else if lower.contains("timed out") || lower.contains("timeout") {

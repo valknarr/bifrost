@@ -3,8 +3,8 @@
 //! Why this exists in Rust rather than as a frontend `<img>` to a
 //! third-party service:
 //!
-//!   - The shared [`crate::http::client`] sends a `bridge/0.0.1`
-//!     User-Agent, so the favicon-service operator (Google) sees Bridge
+//!   - The shared [`crate::http::client`] sends a `bifrost/0.0.1`
+//!     User-Agent, so the favicon-service operator (Google) sees Bifrost
 //!     as a distinct caller in their logs rather than anonymous Edge
 //!     WebView2 traffic.
 //!   - Caching: favicons rarely change. We keep them under
@@ -122,7 +122,7 @@ async fn fetch_cached(app_data: &Path, url: &str, force: bool) -> Result<PathBuf
     }
 
     let google_url = format!(
-        "https://www.google.com/s2/favicons?domain={host}&sz={FAVICON_SIZE}&app=bridge&v={ver}",
+        "https://www.google.com/s2/favicons?domain={host}&sz={FAVICON_SIZE}&app=bifrost&v={ver}",
         ver = env!("CARGO_PKG_VERSION"),
     );
     let direct_url = format!("https://{host}/favicon.ico");

@@ -1,6 +1,6 @@
 //! Process-wide app state managed by Tauri.
 //!
-//! Bridge persists two things to disk: the [`BridgeConfig`] (user
+//! Bifrost persists two things to disk: the [`BridgeConfig`] (user
 //! settings, last-known Sandboxie path, companion sites) and the list
 //! of [`Pilot`] records. Both live behind their own `Mutex` so command
 //! handlers can hold a lock briefly, snapshot what they need, and drop

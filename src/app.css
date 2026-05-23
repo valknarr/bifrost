@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* ---------- Bridge design tokens ----------
+/* ---------- Bifrost design tokens ----------
  * Tuned against EVE Frontier's in-game UI and launcher reference shots.
  * Deliberately uses the game's grammar (red-orange primary, yellow focus,
  * mono everywhere) without infringing on CCP brand assets directly.

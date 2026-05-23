@@ -1,5 +1,5 @@
 //! Commands operating on Sandboxie boxes that are NOT (yet) managed
-//! by Bridge — discovery, adopt-into-pilot, and "this box is junk,
+//! by Bifrost — discovery, adopt-into-pilot, and "this box is junk,
 //! delete it" cleanup. Lifecycle of *managed* pilots lives in
 //! [`super::lifecycle`].
 
@@ -14,7 +14,7 @@ use crate::pilot::Pilot;
 use crate::sandboxie::Sandboxie;
 use crate::state::AppState;
 
-/// Return the path Bridge would auto-detect Sandboxie-Plus at, without
+/// Return the path Bifrost would auto-detect Sandboxie-Plus at, without
 /// modifying any state. Used by the Settings panel to surface the
 /// resolved path even before it's persisted into the config.
 #[tauri::command]
@@ -22,8 +22,8 @@ pub async fn detect_sandboxie() -> Result<Option<String>> {
     Ok(BridgeConfig::defaults().sandboxie_path)
 }
 
-/// Enumerate boxes that exist in `Sandboxie.ini` but Bridge does not
-/// yet manage. Bridge-managed pilots are filtered out so the frontend
+/// Enumerate boxes that exist in `Sandboxie.ini` but Bifrost does not
+/// yet manage. Bifrost-managed pilots are filtered out so the frontend
 /// can show a "Discovered" section distinct from the Managed list.
 ///
 /// Returns an empty list when Sandboxie isn't usable on this host —
@@ -56,7 +56,7 @@ pub fn list_sandboxes(state: State<'_, AppState>) -> Result<Vec<ini::DiscoveredB
         .collect())
 }
 
-/// Promote a discovered Sandboxie box into a Bridge-managed pilot.
+/// Promote a discovered Sandboxie box into a Bifrost-managed pilot.
 /// Does not modify the box itself — only adds a `Pilot` record
 /// pointing at it.
 #[tauri::command]

@@ -32,13 +32,13 @@
         ok: sandboxieOk,
         label: "Sandboxie",
         detail:
-          "Required to run per-pilot game clients in isolation. Bridge can install Plus or Classic for you.",
+          "Required to run per-pilot game clients in isolation. Bifrost can install Plus or Classic for you.",
       },
       {
         ok: frontierOk,
         label: "EVE Frontier client",
         detail:
-          "The official game launcher. Install it once, then Bridge will run it inside each pilot's sandbox.",
+          "The official game launcher. Install it once, then Bifrost will run it inside each pilot's sandbox.",
       },
     ].filter((r) => !r.ok),
   );
@@ -81,7 +81,7 @@
           <span
             class="text-[10px] tracking-[0.05em] text-[var(--color-text-muted)]"
           >
-            Bridge can't launch pilots until {missing.length === 1
+            Bifrost can't launch pilots until {missing.length === 1
               ? "this component is"
               : "these components are"} installed.
           </span>

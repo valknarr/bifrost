@@ -22,7 +22,7 @@ pub struct Pilot {
     /// Sandboxie box name, e.g. "Frontier1".
     pub sandbox: String,
     /// Per-pilot Chromium `--user-data-dir`. Browser-agnostic; today
-    /// Bridge bundles Brave but the directory format is the standard
+    /// Bifrost bundles Brave but the directory format is the standard
     /// Chromium profile layout.
     ///
     /// `serde(alias)` keeps pilots.json files written by pre-v0.1
@@ -45,14 +45,14 @@ pub struct Pilot {
     /// Archived section. Sandbox contents are preserved. Restorable.
     #[serde(default)]
     pub archived: bool,
-    /// Flips to true the first time Bridge successfully spawns the game in
+    /// Flips to true the first time Bifrost successfully spawns the game in
     /// this pilot's sandbox. Drives the "first launch will inherit your
     /// default-launcher account" hint ribbon in the UI.
     #[serde(default)]
     pub launched_at_least_once: bool,
 }
 
-/// The fixed palette Bridge cycles pilots through. Each pilot keeps its
+/// The fixed palette Bifrost cycles pilots through. Each pilot keeps its
 /// own accent in `Pilot.accent` so the user can override via the UI.
 pub const PALETTE: &[&str] = &[
     "#F39034", // accent orange
@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn pilot_roundtrips_through_json_lossless() {
         let mut pilot = Pilot::new("Airikr Tuoma", &[]);
-        pilot.sandbox = "BridgeABCDEF12".into();
+        pilot.sandbox = "BifrostABCDEF12".into();
         pilot.browser_profile_dir = "C:/x/y/z".into();
         pilot.wallet_address = Some("0x1234".into());
         pilot.wallet_balance = Some("1.234".into());

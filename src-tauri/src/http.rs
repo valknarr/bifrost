@@ -12,7 +12,7 @@
 //! Before this module existed, every `release_cache::fetch_release_json`
 //! call + every `*::install()` download + every `SuiClient::new()`
 //! built a fresh `Client` and threw it away on return — which meant
-//! Bridge paid a full TLS handshake to GitHub on every Settings-panel
+//! Bifrost paid a full TLS handshake to GitHub on every Settings-panel
 //! mount, three times back-to-back. Now they all share the pool.
 //!
 //! ## Timeout strategy
@@ -28,7 +28,7 @@ use std::time::Duration;
 
 use once_cell::sync::Lazy;
 
-/// Identifying User-Agent for every outbound request Bridge makes.
+/// Identifying User-Agent for every outbound request Bifrost makes.
 /// GitHub rejects requests without a UA; a recognisable identifier
 /// also helps service operators (GitHub's abuse-detection,
 /// favicon-service logs, Sui RPC) treat us as a well-behaved client.
@@ -36,7 +36,7 @@ use once_cell::sync::Lazy;
 /// Built via `concat!` so the version segment stays in lockstep with
 /// `Cargo.toml` automatically on every bump — no maintenance burden.
 pub const USER_AGENT: &str = concat!(
-    "bridge/",
+    "bifrost/",
     env!("CARGO_PKG_VERSION"),
     " (+https://github.com/valknarr/bifrost) rust-reqwest"
 );
@@ -54,7 +54,7 @@ static SHARED_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
     reqwest::Client::builder()
         .user_agent(USER_AGENT)
         .timeout(DEFAULT_TIMEOUT)
-        // Bridge talks to ~3 hosts steady-state (GitHub API, GitHub
+        // Bifrost talks to ~3 hosts steady-state (GitHub API, GitHub
         // releases CDN, Sui mainnet RPC). A pool of 4 idle conns per
         // host is enough headroom for the occasional parallel fetch
         // without holding onto sockets we'll never reuse.
@@ -100,7 +100,7 @@ mod tests {
     /// stale once before the audit caught them.
     #[test]
     fn user_agent_is_set_and_recognisable() {
-        assert!(USER_AGENT.starts_with("bridge/"));
+        assert!(USER_AGENT.starts_with("bifrost/"));
         assert!(USER_AGENT.contains("rust-reqwest"));
         // The repo URL must match Cargo.toml's `repository` field;
         // GitHub's abuse-detection uses it to identify legitimate

@@ -35,7 +35,7 @@ pub async fn get_evevault_status(
 }
 
 /// Download + verify + extract the latest EVE Vault release into
-/// Bridge's app-data dir. Replaces any existing install in place.
+/// Bifrost's app-data dir. Replaces any existing install in place.
 #[tauri::command]
 pub async fn install_evevault(state: State<'_, AppState>) -> Result<()> {
     let release = evevault::fetch_latest_release().await?;
@@ -63,7 +63,7 @@ pub async fn get_chromium_status(
     Ok(chromium::status(&state.app_data_dir, force_refresh.unwrap_or(false)).await)
 }
 
-/// Download + extract the latest Brave portable build into Bridge's
+/// Download + extract the latest Brave portable build into Bifrost's
 /// app-data dir. Replaces any existing install in place. ~180 MB.
 #[tauri::command]
 pub async fn install_chromium(state: State<'_, AppState>) -> Result<()> {
@@ -85,7 +85,7 @@ pub async fn uninstall_chromium(state: State<'_, AppState>) -> Result<()> {
 
 /// Combined status for the in-app Sandboxie installer. Pairs the
 /// existing host detection (`get_status`) with the latest-release
-/// lookup and the tag Bridge last installed, so the UI can show
+/// lookup and the tag Bifrost last installed, so the UI can show
 /// Install / Update / Reinstall actions in parity with the other two
 /// components. The variant on disk (Plus vs Classic) is derived from
 /// the install path so the UI can label the row accurately.
@@ -183,7 +183,7 @@ pub async fn uninstall_sandboxie(state: State<'_, AppState>) -> Result<()> {
     sandboxie_installer::uninstall(&state.app_data_dir, root.as_deref()).await?;
 
     // Forget the path so subsequent `get_status` calls correctly
-    // report Sandboxie as missing without restarting Bridge.
+    // report Sandboxie as missing without restarting Bifrost.
     let mut cfg = state.config();
     cfg.sandboxie_path = None;
     state.save_config(cfg)?;

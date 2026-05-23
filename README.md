@@ -1,4 +1,4 @@
-# Bridge
+# Bifrost
 
 [![CI](https://github.com/valknarr/bifrost/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/valknarr/bifrost/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
@@ -7,12 +7,12 @@
 
 One click → N isolated pilot sessions, each with its own game client,
 browser profile, and EVE Vault wallet. No keystroke broadcasting, no DLL
-injection, no TOS edge cases. Bridge wraps CCP's officially recommended
+injection, no TOS edge cases. Bifrost wraps CCP's officially recommended
 sandboxing tool ([Sandboxie] — Plus or Classic) behind a calm UI, and
 bundles per-pilot [Brave Browser] + [EVE Vault] so each pilot has a fully
 isolated identity out of the box.
 
-> Bridge is an unofficial community tool. It is not affiliated with or
+> Bifrost is an unofficial community tool. It is not affiliated with or
 > endorsed by CCP Games. "EVE Frontier" is a trademark of CCP hf.
 
 ## Why
@@ -24,7 +24,7 @@ that hand-craft Sandboxie configs, but the user experience is rough and
 easy to get wrong (orphaned sandboxes, mixed wallet sessions, "which
 pilot is that?").
 
-Bridge replaces all of that with:
+Bifrost replaces all of that with:
 
 - **One UI** that shows pilots, not sandboxes.
 - **One installer** that brings its own portable Brave + EVE Vault, so
@@ -51,7 +51,7 @@ for what landed when.
   development with C++" workload.
 - **WebView2 Runtime** (already on Windows 11).
 
-Sandboxie does **not** need to be pre-installed — Bridge offers to
+Sandboxie does **not** need to be pre-installed — Bifrost offers to
 install it (Plus or Classic) from the Settings panel via the official
 installer, with one Windows UAC prompt.
 
@@ -126,23 +126,23 @@ Output lands in `src-tauri/target/release/bundle/`.
 ## Design principles
 
 1. **Official APIs only.** No DLL injection, no input multiplexing, no
-   reverse-engineered protocols. Bridge drives only what CCP and the
+   reverse-engineered protocols. Bifrost drives only what CCP and the
    Sandboxie project have publicly documented.
 2. **Single portable binary.** One `.exe` from GitHub Releases. The
-   only hard dependency is Sandboxie-Plus, which Bridge installs
+   only hard dependency is Sandboxie-Plus, which Bifrost installs
    silently on first run.
 3. **The user never sees Sandboxie.** Sandboxie is plumbing. Pilots,
    sessions, wallets — that's what the UI shows.
 4. **Per-pilot bundling.** Each pilot session is one unit: game client
    + Brave profile + EVE Vault. Switching pilots switches identity
    wholesale, not piecemeal.
-5. **No telemetry.** Bridge is a local app. The only network calls are
+5. **No telemetry.** Bifrost is a local app. The only network calls are
    to GitHub Releases (for component updates) and the Sui mainnet RPC
    (for wallet balances).
 
 ## Design tokens
 
-See `src/app.css`. Bridge uses an EVE-Frontier-adjacent palette but
+See `src/app.css`. Bifrost uses an EVE-Frontier-adjacent palette but
 deliberately distinct from CCP's brand colours.
 
 | Token | Value | Use |
@@ -167,7 +167,7 @@ monospace). Inter is loaded as a fallback for any non-mono surface.
 
 ## Linting
 
-Bridge holds a zero-warning baseline. CI enforces all of these on
+Bifrost holds a zero-warning baseline. CI enforces all of these on
 every push:
 
 ```sh
@@ -182,19 +182,19 @@ pnpm check
 
 ## Acknowledgements
 
-Bridge stands on the shoulders of several open-source projects:
+Bifrost stands on the shoulders of several open-source projects:
 
 - **[Sandboxie][Sandboxie]** — the kernel-level sandboxing engine that
-  makes per-pilot isolation possible. Bridge supports both the modern
+  makes per-pilot isolation possible. Bifrost supports both the modern
   Plus build (default) and the Classic LTS build, calling Sandboxie's
   CLI tools (`SbieIni.exe`, `Start.exe`) and shipping the official
   silent installer; we don't link `SbieDll.dll`.
-- **[Brave Browser][Brave Browser]** — the Chromium fork Bridge bundles
+- **[Brave Browser][Brave Browser]** — the Chromium fork Bifrost bundles
   as its portable per-pilot browser. We picked Brave specifically
   because it ships with the full Google-identity plumbing that
   FusionAuth's OAuth flow (used by EVE Vault) needs.
 - **[EVE Vault][EVE Vault]** — the official Chromium wallet extension
-  Bridge side-loads into each pilot's profile.
+  Bifrost side-loads into each pilot's profile.
 - **[Tauri](https://tauri.app/)** — the desktop runtime.
 - **[Svelte](https://svelte.dev/)** — the frontend framework.
 
@@ -207,17 +207,17 @@ Things that work today but have a sharp edge worth knowing about.
 Listed for transparency rather than tracked for fix unless someone
 hits one in practice.
 
-- **EVE Vault download verification is best-effort.** Bridge fetches
+- **EVE Vault download verification is best-effort.** Bifrost fetches
   the official extension from `github.com/evefrontier/evevault` and
   verifies its SHA-256 against the upstream `checksums.txt` when
   that sidecar is present. If a future EVE Vault release ships
-  without `checksums.txt`, Bridge logs a warning and installs the
+  without `checksums.txt`, Bifrost logs a warning and installs the
   zip anyway — but doesn't yet surface "unverified" in the UI.
   See `src-tauri/src/evevault.rs::install`. Mitigation: GitHub
   serves the release artifact over TLS; the substitution surface
   is essentially "GitHub itself."
 - **`delete_pilot` is not atomic across the save + filesystem-wipe
-  boundary.** Bridge removes the pilot from `pilots.json` and saves
+  boundary.** Bifrost removes the pilot from `pilots.json` and saves
   the config *before* wiping the per-pilot directory under
   `<app-data>/pilots/<id>/`. A crash in that ~1 second window
   leaves an orphaned ~200 MB browser profile the UI can't see
@@ -225,10 +225,10 @@ hits one in practice.
   `<app-data>` manually. Reproducing requires a power-cycle at
   exactly the wrong moment.
 - **`Sandboxie::version()` always returns the variant + tag from
-  the Bridge-written marker, not the actual installed binary.** If
+  the Bifrost-written marker, not the actual installed binary.** If
   the user updates Sandboxie via its own auto-updater rather than
-  through Bridge's Settings panel, the version line in the
-  Detection row may lag until they trigger an update through Bridge
+  through Bifrost's Settings panel, the version line in the
+  Detection row may lag until they trigger an update through Bifrost
   itself.
 
 ## Roadmap / Pre-1.0 TODO
@@ -252,7 +252,7 @@ issue once the repo is public.
 
 **Release pipeline**
 
-- [ ] **Authenticode-sign the NSIS installer** (Bridge installs a
+- [ ] **Authenticode-sign the NSIS installer** (Bifrost installs a
       kernel driver — an unsigned installer + UAC is a poor first
       impression). Gate on a `WINDOWS_CERT_PFX` repo secret so the
       step no-ops until a code-signing cert is available. Until

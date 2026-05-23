@@ -17,7 +17,7 @@
  */
 export const ZOOM_PRESETS = {
   compact: { value: 0.9, label: "Compact", description: "Denser layout, more info per screen" },
-  default: { value: 1.0, label: "Default", description: "Bridge's reference design" },
+  default: { value: 1.0, label: "Default", description: "Bifrost's reference design" },
   comfortable: { value: 1.15, label: "Comfortable", description: "Bigger text, easier on the eyes" },
 } as const;
 

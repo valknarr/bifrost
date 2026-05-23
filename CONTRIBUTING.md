@@ -1,6 +1,6 @@
-# Contributing to Bridge
+# Contributing to Bifrost
 
-Thanks for considering a contribution. Bridge is small and intentionally
+Thanks for considering a contribution. Bifrost is small and intentionally
 focused — a clear, friendly multi-pilot session manager for EVE Frontier
 that respects the game's official APIs. Patches that hold that line are
 welcome.
@@ -28,7 +28,7 @@ a cold machine. Subsequent runs are fast.
 
 ## What we'd love help with
 
-- **Bug reports** with reproducible steps. Bridge has a small surface
+- **Bug reports** with reproducible steps. Bifrost has a small surface
   but Sandboxie's runtime behaviour can be subtle; concrete traces are
   gold.
 - **EVE-Frontier-specific** quality-of-life features: per-pilot session
@@ -36,19 +36,19 @@ a cold machine. Subsequent runs are fast.
 - **Polishing existing flows** — first-launch hints, error messages
   that tell the user what to do next, accessibility (keyboard
   navigation, screen-reader labels).
-- **Cross-version Sandboxie testing** — Bridge has been built against
+- **Cross-version Sandboxie testing** — Bifrost has been built against
   Sandboxie-Plus 1.15+; older versions may have surfaced INI keys
-  Bridge writes but doesn't.
+  Bifrost writes but doesn't.
 
 ## What we won't merge
 
 - **Anything that bypasses CCP's TOS.** No DLL injection, no input
-  multiplexing, no reverse-engineered protocols. Bridge drives only
+  multiplexing, no reverse-engineered protocols. Bifrost drives only
   what CCP and Sandboxie have publicly documented.
-- **Host-browser integrations.** Bridge ships its own portable Chromium
+- **Host-browser integrations.** Bifrost ships its own portable Chromium
   for per-pilot isolation; touching the user's day-to-day Chrome /
   Edge / Firefox profile is out of scope.
-- **Telemetry or analytics.** Bridge is a local app; it should stay
+- **Telemetry or analytics.** Bifrost is a local app; it should stay
   local. The only network calls are to GitHub Releases for updates and
   to Sui mainnet RPC for wallet balances.
 - **Bundled third-party trademarks or brand assets** (CCP, EVE
@@ -101,7 +101,7 @@ Each PR should:
 
 ### Versioning + release process
 
-Bridge follows [Semantic Versioning](https://semver.org/). Pre-1.0 we
+Bifrost follows [Semantic Versioning](https://semver.org/). Pre-1.0 we
 treat **any** behaviour change as worth a minor bump. Releases are
 tagged `v0.0.X` from `master` and built into a single signed `.exe`
 via `pnpm tauri build`, published to GitHub Releases.

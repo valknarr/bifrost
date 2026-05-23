@@ -18,7 +18,7 @@ pub fn list_pilots(state: State<'_, AppState>) -> Result<Vec<Pilot>> {
 }
 
 /// Create a new managed pilot. Eagerly provisions the Sandboxie box so
-/// Bridge's view of the world matches Sandboxie's. Provisioning
+/// Bifrost's view of the world matches Sandboxie's. Provisioning
 /// failure is non-fatal — the pilot record is saved either way, and
 /// the next Launch click retries.
 #[tauri::command]
@@ -62,10 +62,10 @@ pub async fn create_pilot(state: State<'_, AppState>, name: String) -> Result<Pi
     Ok(pilot)
 }
 
-/// Generate a unique Sandboxie box name. Format: `Bridge<8 hex>` —
+/// Generate a unique Sandboxie box name. Format: `Bifrost<8 hex>` —
 /// alphanumeric only (Sandboxie's name constraint), short enough to
 /// fit in the UI without truncation, and prefixed so a quick glance at
-/// Sandboxie-Plus's own UI tells the user which boxes Bridge owns.
+/// Sandboxie-Plus's own UI tells the user which boxes Bifrost owns.
 fn generate_sandbox_name(pilots: &[Pilot]) -> String {
     use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -83,7 +83,7 @@ fn generate_sandbox_name(pilots: &[Pilot]) -> String {
             .unwrap_or(0);
         let seq = COUNTER.fetch_add(1, Ordering::Relaxed);
         let n = ts.wrapping_mul(0x9E3779B97F4A7C15).wrapping_add(seq);
-        let candidate = format!("Bridge{:08X}", (n & 0xFFFF_FFFF) as u32);
+        let candidate = format!("Bifrost{:08X}", (n & 0xFFFF_FFFF) as u32);
         if !taken.contains(&candidate.to_ascii_lowercase()) {
             return candidate;
         }
@@ -161,7 +161,7 @@ pub fn restore_pilot(state: State<'_, AppState>, id: String) -> Result<()> {
 
 /// Change a pilot's accent colour. Used by the pen-icon picker on the
 /// portrait. Accepts any 6-digit hex string with the `#` prefix. The
-/// new colour drives the Bridge UI immediately and the per-pilot
+/// new colour drives the Bifrost UI immediately and the per-pilot
 /// Chromium theme extension on next browser launch.
 #[tauri::command]
 pub fn set_pilot_accent(state: State<'_, AppState>, id: String, accent: String) -> Result<()> {
@@ -196,7 +196,7 @@ pub fn get_accent_palette() -> Vec<String> {
 }
 
 /// Permanently delete a pilot record AND clean up everything it owns:
-/// the Sandboxie box config + data directory, and Bridge's per-pilot
+/// the Sandboxie box config + data directory, and Bifrost's per-pilot
 /// browser/profile/theme files. Only allowed when the pilot is
 /// archived, forcing a two-step removal so accidental clicks can't
 /// nuke a running pilot.
@@ -228,7 +228,7 @@ pub async fn delete_pilot(state: State<'_, AppState>, id: String) -> Result<()> 
         }
     }
 
-    // Per-pilot Bridge files (browser profile, generated theme
+    // Per-pilot Bifrost files (browser profile, generated theme
     // extension). Brave can hold file handles into the profile dir
     // even after the visible window is closed, so terminate any
     // matching browser process for this profile first then retry the

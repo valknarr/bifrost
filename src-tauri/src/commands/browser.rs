@@ -6,7 +6,7 @@
 //!
 //! Two entry points:
 //! - [`open_pilot_browser`] — the plain "Wallet" button on each pilot
-//!   card. Opens the EVE Vault popup URL directly if Bridge already
+//!   card. Opens the EVE Vault popup URL directly if Bifrost already
 //!   knows the extension's Chromium-assigned ID; otherwise a blank
 //!   new tab.
 //! - [`open_pilot_app`] — the per-pilot Apps row. Opens a specific
@@ -54,7 +54,7 @@ async fn open_pilot_browser_impl(
     url: Option<String>,
 ) -> Result<()> {
     let cfg = state.config();
-    // Bridge owns its Chromium. No host-browser fallback — keeps the
+    // Bifrost owns its Chromium. No host-browser fallback — keeps the
     // experience identical across all users' machines and avoids ever
     // touching their day-to-day browser profile.
     let browser_exe_path = chromium::chrome_exe_path(&state.app_data_dir).ok_or_else(|| {

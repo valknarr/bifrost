@@ -3,7 +3,7 @@
 //! Sandboxie's config file is plain text with `[BoxName]` section headers and
 //! `Key=Value` lines (one per line). Templates and globals (`[GlobalSettings]`,
 //! `[Template_Foo]`) are mixed in with user boxes. We don't need full INI
-//! parsing — just an enumeration of user-defined boxes so Bridge can show
+//! parsing — just an enumeration of user-defined boxes so Bifrost can show
 //! them in the "Discovered" section.
 
 use std::path::{Path, PathBuf};

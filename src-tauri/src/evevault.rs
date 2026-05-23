@@ -1,11 +1,11 @@
 //! EVE Vault Chromium extension downloader & installer.
 //!
-//! Bridge can optionally manage a local copy of the [EVE Vault] extension
+//! Bifrost can optionally manage a local copy of the [EVE Vault] extension
 //! so users don't have to clone & build it themselves. We fetch
 //! pre-built release artifacts from the official `evefrontier/evevault`
 //! GitHub Releases, verify the SHA-256 against the published
 //! `checksums.txt`, and extract the ZIP into a per-installation
-//! directory under Bridge's app-data.
+//! directory under Bifrost's app-data.
 //!
 //! [EVE Vault]: https://github.com/evefrontier/evevault
 
@@ -102,7 +102,7 @@ pub fn uninstall(app_data: &Path) -> Result<()> {
 
 /// File we write after a successful install so we can read back the version.
 fn version_marker(app_data: &Path) -> PathBuf {
-    install_dir(app_data).join(".bridge-version")
+    install_dir(app_data).join(".bifrost-version")
 }
 
 /// Read the installed version, if any. Best-effort; returns None on any error.
@@ -181,7 +181,7 @@ pub fn popup_filename(app_data: &Path) -> Option<String> {
 
 /// Download the extension ZIP, verify SHA-256 against
 /// `checksums.txt` when published, and extract into [`install_dir`]
-/// (wiping any previous install). Writes a `.bridge-version` marker
+/// (wiping any previous install). Writes a `.bifrost-version` marker
 /// on success.
 pub async fn install(app_data: &Path, release: &ReleaseInfo) -> Result<()> {
     // EVE Vault is a few-MB download — the shared client's 120 s
@@ -299,7 +299,7 @@ mod tests {
     fn version_marker_roundtrips() {
         let tmp = TempDir::new().expect("tempdir");
         std::fs::create_dir_all(install_dir(tmp.path())).expect("install dir");
-        std::fs::write(install_dir(tmp.path()).join(".bridge-version"), "v0.0.9").expect("marker");
+        std::fs::write(install_dir(tmp.path()).join(".bifrost-version"), "v0.0.9").expect("marker");
 
         assert_eq!(
             read_installed_version(tmp.path()).as_deref(),
@@ -311,7 +311,7 @@ mod tests {
     fn empty_marker_file_reads_as_none() {
         let tmp = TempDir::new().expect("tempdir");
         std::fs::create_dir_all(install_dir(tmp.path())).expect("install dir");
-        std::fs::write(install_dir(tmp.path()).join(".bridge-version"), "").expect("empty marker");
+        std::fs::write(install_dir(tmp.path()).join(".bifrost-version"), "").expect("empty marker");
         assert!(read_installed_version(tmp.path()).is_none());
     }
 
@@ -322,7 +322,7 @@ mod tests {
     fn uninstall_clears_install_dir() {
         let tmp = TempDir::new().expect("tempdir");
         std::fs::create_dir_all(install_dir(tmp.path())).expect("install dir");
-        std::fs::write(install_dir(tmp.path()).join(".bridge-version"), "v0.0.9").expect("marker");
+        std::fs::write(install_dir(tmp.path()).join(".bifrost-version"), "v0.0.9").expect("marker");
         std::fs::write(
             install_dir(tmp.path()).join("manifest.json"),
             r#"{"name":"EVE Vault"}"#,

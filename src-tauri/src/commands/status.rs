@@ -13,7 +13,7 @@ use crate::state::AppState;
 /// Pilots view's "Setup required" banner; both decide what's missing
 /// from these booleans.
 ///
-/// The Bridge-tracked installed version (and which Sandboxie variant)
+/// The Bifrost-tracked installed version (and which Sandboxie variant)
 /// lives on the per-installer status structs (`SandboxieInstallerStatus`
 /// etc.) — this struct stays focused on "is the binary even there?".
 #[derive(Debug, Serialize)]

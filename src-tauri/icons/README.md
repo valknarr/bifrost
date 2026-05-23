@@ -3,13 +3,13 @@
 Generated from `source.svg` — a first-pass brand mark: orange (`#E54B1A`)
 bracketed `B` on the brand black (`#04060A`), matching the in-app
 header. "Real" brand artwork is a v0.2 task; this set at least means
-Bridge doesn't ship with the Tauri default logo.
+Bifrost doesn't ship with the Tauri default logo.
 
 ## Regenerate the full set
 
 The Tauri CLI takes a 1024×1024 PNG and produces every required size
 (`32x32.png`, `128x128.png`, `128x128@2x.png`, `icon.ico`,
-`icon.icns`, plus the Android / iOS sets if Bridge ever ships there).
+`icon.icns`, plus the Android / iOS sets if Bifrost ever ships there).
 
 ```sh
 # 1. Rasterise source.svg → source.png at 1024×1024

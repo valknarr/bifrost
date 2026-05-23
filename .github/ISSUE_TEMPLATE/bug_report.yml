@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in Bridge is broken or behaving unexpectedly.
+description: Something in Bifrost is broken or behaving unexpectedly.
 labels: [bug]
 body:
   - type: markdown
@@ -13,9 +13,9 @@ body:
         for the private channel.
 
   - type: input
-    id: bridge-version
+    id: bifrost-version
     attributes:
-      label: Bridge version
+      label: Bifrost version
       description: From the bottom-right of the app, the title bar, or `Cargo.toml`.
       placeholder: "v0.0.1"
     validations:
@@ -61,7 +61,7 @@ body:
       label: How to reproduce
       description: Numbered steps that another user could follow on a clean install.
       placeholder: |
-        1. Install Bridge from a fresh ZIP
+        1. Install Bifrost from a fresh ZIP
         2. Click "Install Sandboxie-Plus"
         3. ...
     validations:
@@ -72,7 +72,7 @@ body:
     attributes:
       label: Relevant logs / screenshots
       description: |
-        Bridge logs to stdout. If you ran from `pnpm tauri dev`, paste the
+        Bifrost logs to stdout. If you ran from `pnpm tauri dev`, paste the
         last 30 lines from your terminal. Screenshots of the UI when the
         bug occurs are also welcome.
       render: shell

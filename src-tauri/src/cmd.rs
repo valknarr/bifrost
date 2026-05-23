@@ -1,6 +1,6 @@
 //! Shared helpers for shelling out to external commands.
 //!
-//! Bridge invokes several CLI tools (Sandboxie's `SbieIni.exe` /
+//! Bifrost invokes several CLI tools (Sandboxie's `SbieIni.exe` /
 //! `Start.exe`, the Sandboxie installer's silent flags, the Inno-Setup
 //! uninstaller, PowerShell for elevation). Three patterns recur across
 //! all of them:
@@ -25,7 +25,7 @@ use tokio::process::Command;
 use crate::error::{BridgeError, Result};
 
 /// Windows process-creation flag that hides the console window we'd
-/// otherwise inherit when spawning a CLI tool from Bridge's
+/// otherwise inherit when spawning a CLI tool from Bifrost's
 /// GUI-subsystem process. See:
 /// <https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags>
 #[cfg(windows)]

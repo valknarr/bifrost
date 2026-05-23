@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Bridge will be documented in this file.
+All notable changes to Bifrost will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -12,16 +12,16 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - **Pilot roster** — designate, launch, archive, restore, and delete EVE
   Frontier pilots. Each pilot is backed by a Sandboxie box and a Brave
   profile that survive across sessions. Boxes the user already has on
-  disk surface in a "Discovered" section and can be adopted into Bridge
+  disk surface in a "Discovered" section and can be adopted into Bifrost
   with one click.
 - **In-app installers** for the three managed dependencies:
   - **Sandboxie** (Plus or Classic). Plus is the modern Qt UI and
-    Bridge's recommended default; Classic is the legacy MFC build on
+    Bifrost's recommended default; Classic is the legacy MFC build on
     long-term support. Only one variant can be installed at a time
-    (they share the kernel driver). Bridge writes the variant + version
-    it installed to a `.bridge-installed-version` marker so Settings
+    (they share the kernel driver). Bifrost writes the variant + version
+    it installed to a `.bifrost-installed-version` marker so Settings
     can report "up to date" / "update available" accurately.
-  - **Portable Brave** (~180 MB). Bundled per-process so Bridge doesn't
+  - **Portable Brave** (~180 MB). Bundled per-process so Bifrost doesn't
     fight a user's day-to-day browser. Quieted via
     `--disable-features` flags plus matching `Preferences` JSON keys —
     no Brave Rewards, no native crypto wallet popup, no Brave Talk /
@@ -38,9 +38,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   manager. Each pilot's card has an Apps row that opens these sites
   using the pilot's wallet identity. Built-ins can be hidden but not
   removed; custom sites can be added and removed at will.
-- **Sui mainnet wallet readout** — Bridge reads SUI + EVE token
+- **Sui mainnet wallet readout** — Bifrost reads SUI + EVE token
   balances for each pilot's wallet via the public `suix_getBalance`
-  JSON-RPC endpoint. Read-only — Bridge never signs or submits a
+  JSON-RPC endpoint. Read-only — Bifrost never signs or submits a
   transaction.
 - **Setup banner + dual-state HUD** — the Pilots view warns when host
   dependencies are missing (Sandboxie not installed, EVE Frontier
@@ -66,10 +66,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 ### Safety
 
 - Strictly read-only against the EVE Frontier game client and its
-  network protocol. Bridge orchestrates *around* the launcher via
+  network protocol. Bifrost orchestrates *around* the launcher via
   Sandboxie isolation; it does not inject into, hook, or proxy
   Frontier itself.
-- Wallets are never auto-funded or signed-into by Bridge. The browser
+- Wallets are never auto-funded or signed-into by Bifrost. The browser
   is launched, the extension is present — the user signs in.
 - Sandboxie uninstall is gated by a pre-flight check that refuses to
   proceed if any sandbox has live processes (Inno-Setup can't tear

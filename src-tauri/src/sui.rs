@@ -1,7 +1,7 @@
 //! Minimal Sui RPC client.
 //!
 //! We talk to the public Sui mainnet JSON-RPC endpoint to read on-chain
-//! state for a pilot's wallet address. Reads only — Bridge never signs or
+//! state for a pilot's wallet address. Reads only — Bifrost never signs or
 //! submits transactions. Strictly aligned with the "official APIs only"
 //! posture: this endpoint is publicly documented and requires no auth.
 //!

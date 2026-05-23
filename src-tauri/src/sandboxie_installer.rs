@@ -1,6 +1,6 @@
 //! Sandboxie installer (Plus + Classic).
 //!
-//! Sandboxie is the only Bridge dependency that **can't** be made
+//! Sandboxie is the only Bifrost dependency that **can't** be made
 //! portable: it ships a kernel driver (`SbieDrv.sys`) and a service
 //! (`SbieSvc.exe`), both of which must live under
 //! `C:\Program Files\Sandboxie-Plus\` or `C:\Program Files\Sandboxie\`.
@@ -24,10 +24,10 @@
 //!   3. Run it via PowerShell `Start-Process -Verb RunAs -Wait` with
 //!      `/verysilent /suppressmsgboxes /norestart` so the install is
 //!      headless once the user clicks "Yes" on the UAC prompt.
-//!   4. After the installer exits, drop a `.bridge-installed-version`
+//!   4. After the installer exits, drop a `.bifrost-installed-version`
 //!      marker (JSON: `{"version": "...", "variant": "plus|classic"}`)
 //!      so Settings can show "v1.16.7 · up to date" / "update
-//!      available" and remembers which variant Bridge installed.
+//!      available" and remembers which variant Bifrost installed.
 //!
 //! We deliberately don't attempt SHA-256 verification because
 //! Sandboxie releases don't publish per-asset checksums consistently.
@@ -52,7 +52,7 @@ const REPO: &str = "sandboxie-plus/Sandboxie";
 /// reboot prompt).
 const INNO_SILENT_ARGS: &[&str] = &["/verysilent", "/suppressmsgboxes", "/norestart"];
 
-/// Which Sandboxie variant Bridge is operating on. Both share the
+/// Which Sandboxie variant Bifrost is operating on. Both share the
 /// same kernel driver + CLI surface, but ship under different names
 /// and install paths.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -358,9 +358,9 @@ mod tests {
 
     // ---- version-marker round-trip ----------------------------------
     //
-    // Sandboxie is special — Bridge tracks the version *we installed*
+    // Sandboxie is special — Bifrost tracks the version *we installed*
     // separately from "is it detected on disk?", because users can
-    // install Sandboxie themselves and Bridge then has no marker. The
+    // install Sandboxie themselves and Bifrost then has no marker. The
     // `status()` function combines both. These tests pin the marker
     // half of that contract.
 
@@ -390,16 +390,16 @@ mod tests {
         assert_eq!(variant, SandboxieVariant::Classic);
     }
 
-    /// Legacy markers (Bridge pre-Classic-support) were plain text
+    /// Legacy markers (Bifrost pre-Classic-support) were plain text
     /// holding just the version tag. They must still load, defaulting
-    /// to variant=Plus since that was the only thing Bridge could
+    /// to variant=Plus since that was the only thing Bifrost could
     /// install back then.
     #[test]
     fn version_marker_reads_legacy_plain_text_as_plus() {
         let tmp = TempDir::new().expect("tempdir");
         std::fs::create_dir_all(installer_dir(tmp.path())).expect("dir");
         std::fs::write(
-            installer_dir(tmp.path()).join(".bridge-installed-version"),
+            installer_dir(tmp.path()).join(".bifrost-installed-version"),
             "1.16.7",
         )
         .expect("legacy marker");
@@ -417,7 +417,7 @@ mod tests {
         let tmp = TempDir::new().expect("tempdir");
         std::fs::create_dir_all(installer_dir(tmp.path())).expect("dir");
         std::fs::write(
-            installer_dir(tmp.path()).join(".bridge-installed-version"),
+            installer_dir(tmp.path()).join(".bifrost-installed-version"),
             "",
         )
         .expect("empty marker");
@@ -426,9 +426,9 @@ mod tests {
 
     /// Cascading: `status()` combines on-disk detection (the
     /// `detected_variant` arg from the host probe) with the
-    /// Bridge-written marker. The "external install" case — detected
+    /// Bifrost-written marker. The "external install" case — detected
     /// but no marker — must surface as `installed_version = None`
-    /// rather than claiming Bridge installed something it didn't.
+    /// rather than claiming Bifrost installed something it didn't.
     /// Also covers `update_available = false` for the external case
     /// (we can't say one way or the other if we don't know what's
     /// installed).
@@ -441,7 +441,7 @@ mod tests {
         assert_eq!(s.installed_variant, Some(SandboxieVariant::Plus));
         assert!(
             s.installed_version.is_none(),
-            "no marker → no Bridge-tracked version"
+            "no marker → no Bifrost-tracked version"
         );
         assert!(
             !s.update_available,
@@ -485,8 +485,8 @@ pub struct SandboxieRelease {
 
 /// Live status the Settings panel renders for the Sandboxie row.
 /// Combines on-disk detection (`detected` + `installed_variant`) with
-/// the Bridge-tracked version (`installed_version`, only set when
-/// Bridge ran the installer itself) and the latest-known upstream
+/// the Bifrost-tracked version (`installed_version`, only set when
+/// Bifrost ran the installer itself) and the latest-known upstream
 /// tags for *both* variants — the UI shows the install button for
 /// whichever variant the user picks.
 #[derive(Debug, Clone, Serialize)]
@@ -495,7 +495,7 @@ pub struct SandboxieInstallerStatus {
     /// Variant currently detected on disk, if any. Only one can be
     /// installed at a time (they share the kernel driver).
     pub installed_variant: Option<SandboxieVariant>,
-    /// Tag Bridge last installed via this module. `None` if Bridge
+    /// Tag Bifrost last installed via this module. `None` if Bifrost
     /// didn't install it (external install) or nothing is installed.
     pub installed_version: Option<String>,
     /// True when *something* is detected on disk (host probe).
@@ -596,11 +596,11 @@ fn downloads_dir(app_data: &Path) -> PathBuf {
 }
 
 fn version_marker(app_data: &Path) -> PathBuf {
-    installer_dir(app_data).join(".bridge-installed-version")
+    installer_dir(app_data).join(".bifrost-installed-version")
 }
 
 /// On-disk marker payload. Stored as JSON so we can extend without
-/// further migrations; pre-Classic-support Bridge wrote plain text
+/// further migrations; pre-Classic-support Bifrost wrote plain text
 /// instead, which [`read_installed_marker`] still tolerates.
 #[derive(Debug, Serialize, Deserialize)]
 struct MarkerPayload {
@@ -619,12 +619,12 @@ fn write_marker(app_data: &Path, version: &str, variant: SandboxieVariant) -> Re
     Ok(())
 }
 
-/// Read the tag + variant Bridge last installed (the contents of the
-/// `.bridge-installed-version` marker). Returns `None` when the user
+/// Read the tag + variant Bifrost last installed (the contents of the
+/// `.bifrost-installed-version` marker). Returns `None` when the user
 /// installed Sandboxie out-of-band, or never installed at all.
 ///
 /// Backward-compat: if the marker is plain text (pre-Classic-support
-/// markers Bridge wrote before this module learned about variants),
+/// markers Bifrost wrote before this module learned about variants),
 /// it's interpreted as a version string with variant=Plus.
 pub fn read_installed_marker(app_data: &Path) -> Option<(String, SandboxieVariant)> {
     let txt = std::fs::read_to_string(version_marker(app_data)).ok()?;
@@ -637,7 +637,7 @@ pub fn read_installed_marker(app_data: &Path) -> Option<(String, SandboxieVarian
         return Some((payload.version, payload.variant));
     }
 
-    // Legacy plain-text marker — Bridge only knew about Plus then.
+    // Legacy plain-text marker — Bifrost only knew about Plus then.
     Some((trimmed.to_string(), SandboxieVariant::Plus))
 }
 
@@ -793,8 +793,8 @@ pub async fn install(app_data: &Path, release: &SandboxieRelease) -> Result<()> 
 /// Both Plus and Classic ship this same uninstaller, so one code path
 /// covers both.
 ///
-/// Best-effort: if no uninstaller is found we still scrub Bridge's own
-/// version marker so the UI doesn't claim a Bridge-installed version
+/// Best-effort: if no uninstaller is found we still scrub Bifrost's own
+/// version marker so the UI doesn't claim a Bifrost-installed version
 /// when the user removes Sandboxie out-of-band.
 pub async fn uninstall(app_data: &Path, sandboxie_root: Option<&Path>) -> Result<()> {
     if let Some(root) = sandboxie_root {
@@ -807,14 +807,14 @@ pub async fn uninstall(app_data: &Path, sandboxie_root: Option<&Path>) -> Result
             run_elevated_silent(&uninstaller, INNO_SILENT_ARGS, "Sandboxie uninstaller").await?;
         } else {
             tracing::warn!(
-                "sandboxie-installer: no uninstaller at {} — scrubbing Bridge marker only",
+                "sandboxie-installer: no uninstaller at {} — scrubbing Bifrost marker only",
                 uninstaller.display()
             );
         }
     }
 
     // Always clear our own version marker — keeps the UI honest even if
-    // the user removed Sandboxie via Windows Settings while Bridge was
+    // the user removed Sandboxie via Windows Settings while Bifrost was
     // closed.
     let marker = version_marker(app_data);
     if marker.exists() {
@@ -826,11 +826,11 @@ pub async fn uninstall(app_data: &Path, sandboxie_root: Option<&Path>) -> Result
 /// Silence Sandboxie's "Program Compatibility" wizard.
 ///
 /// Without this, the first time SbieSvc spins up after install — which
-/// for Bridge users is right when they click "Add pilot" — Sandboxie
+/// for Bifrost users is right when they click "Add pilot" — Sandboxie
 /// scans the host for installed apps with known compat templates
 /// (Office licensing, Edge, Windows Live, etc.) and prompts the user
 /// to apply them globally. The dialog is harmless but it shatters
-/// Bridge's "you never have to look at Sandboxie's UI" promise.
+/// Bifrost's "you never have to look at Sandboxie's UI" promise.
 ///
 /// We set `AutoRunSoftCompat=n` in Sandboxie's global config, which is
 /// the engine-level switch the wizard checks before running. Same

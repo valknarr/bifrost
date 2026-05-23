@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Bridge",
+  "productName": "Bifrost",
   "version": "0.0.1",
-  "identifier": "app.bridge.frontier",
+  "identifier": "io.github.valknarr.bifrost",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://127.0.0.1:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Bridge",
+        "title": "Bifrost",
         "width": 960,
         "height": 900,
         "minWidth": 960,
@@ -39,8 +39,8 @@
     ],
     "category": "Utility",
     "shortDescription": "Multi-pilot session manager for EVE Frontier",
-    "longDescription": "Bridge orchestrates isolated EVE Frontier game clients + per-pilot Brave Browser profiles + EVE Vault wallets for multi-pilot play. Uses Sandboxie (Plus or Classic) under the hood. Strictly official-APIs-only.",
-    "copyright": "© 2026 Bridge contributors. MIT licensed.",
+    "longDescription": "Bifrost orchestrates isolated EVE Frontier game clients + per-pilot Brave Browser profiles + EVE Vault wallets for multi-pilot play. Uses Sandboxie (Plus or Classic) under the hood. Strictly official-APIs-only.",
+    "copyright": "© 2026 Bifrost contributors. MIT licensed.",
     "windows": {
       "nsis": {
         "displayLanguageSelector": false
