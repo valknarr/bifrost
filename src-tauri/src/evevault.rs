@@ -410,4 +410,58 @@ mod tests {
     fn hex_encode_pads_single_digit_bytes() {
         assert_eq!(hex_encode(&[0x00, 0x01, 0x0f, 0xff]), "00010fff");
     }
+
+    /// Live: EVE Vault's most recent release MUST still contain
+    /// the `eve-vault-chrome.zip` asset we hard-code. If upstream
+    /// renames the artifact (e.g. `eve-vault-chrome-mv3.zip` or
+    /// `evevault-chrome.zip` — both plausible refactors), Bifrost's
+    /// install path silently breaks. Catches the drift before a
+    /// user reports it.
+    ///
+    /// Skips on transport / rate-limit failure (same shape as the
+    /// Brave contract test). Hard-fails if the asset is genuinely
+    /// missing from the latest release.
+    #[tokio::test]
+    async fn live_evevault_latest_release_has_expected_asset() {
+        if std::env::var("BIFROST_SKIP_UPSTREAM_TESTS").is_ok() {
+            eprintln!("upstream-contract test: skipped (BIFROST_SKIP_UPSTREAM_TESTS set)");
+            return;
+        }
+        match release_cache::fetch_release_json(REPO).await {
+            Ok(body) => {
+                let tag = body["tag_name"].as_str().unwrap_or("");
+                assert!(
+                    tag.starts_with('v'),
+                    "EVE Vault tag should start with 'v', got {tag:?}"
+                );
+                let assets = body["assets"]
+                    .as_array()
+                    .expect("release JSON has assets array");
+                let zip_found = assets
+                    .iter()
+                    .any(|a| a["name"].as_str() == Some(ASSET_NAME));
+                assert!(
+                    zip_found,
+                    "EVE Vault matcher contract broken — latest release {tag} of \
+                     {REPO} has no asset named {ASSET_NAME:?}. Upstream may have \
+                     renamed the artifact. Listed asset names: {:?}",
+                    assets
+                        .iter()
+                        .map(|a| a["name"].as_str().unwrap_or(""))
+                        .collect::<Vec<_>>()
+                );
+                eprintln!("upstream-contract: EVE Vault OK — tag={tag} asset={ASSET_NAME}");
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                if crate::release_cache::looks_like_transport_failure(&msg) {
+                    eprintln!(
+                        "upstream-contract test: skipped (transport / rate-limit): {msg}"
+                    );
+                    return;
+                }
+                panic!("EVE Vault latest-release fetch failed unexpectedly: {msg}");
+            }
+        }
+    }
 }

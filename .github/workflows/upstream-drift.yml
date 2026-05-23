@@ -1,0 +1,121 @@
+name: Upstream drift check
+
+# Daily probe of the GitHub Releases we depend on (Brave portable,
+# EVE Vault, Sandboxie-Plus). Runs the live-contract test suite that
+# asserts our asset matchers still find SOMETHING in each upstream's
+# most-recent releases. Catches the class of upstream change that
+# triggered the v1.90.125 Brave incident (asset rename + prerelease
+# shift) BEFORE a user reports it.
+#
+# This is a SEPARATE workflow from CI on purpose:
+# - CI runs on every push and must stay fast / hermetic
+# - Drift check runs once a day and is allowed to be flaky / slow
+# - Drift check failure opens / updates an issue with the diagnostic,
+#   so you see the problem the next time you open GitHub
+#
+# The same tests run inside the regular `cargo test` too — they
+# gracefully skip on network / rate-limit failure. This cron is the
+# fail-loud counterpart.
+
+on:
+  schedule:
+    # 06:00 UTC daily — early enough that drift introduced overnight
+    # surfaces before the European working day. Bifrost has no
+    # uptime SLA, so the exact hour doesn't matter much.
+    - cron: "0 6 * * *"
+  # Allow manual trigger from the Actions tab for ad-hoc checks
+  # (e.g. after a known Brave release).
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # `issues: write` so the job can open a tracking issue when a
+  # drift breaks the matcher. The token still can't push code.
+  issues: write
+
+# Don't run two drift checks at once — if a previous run is hanging
+# we'd rather inherit its result than double up.
+concurrency:
+  group: upstream-drift
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Probe upstream release feeds
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: src-tauri
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry + build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # `GITHUB_TOKEN` lifts the GitHub API limit from 60 req/hr
+      # (unauth) to 5000 req/hr. The live tests only fire 3 GETs
+      # per run, but the token also makes failures less ambiguous
+      # — if a test fails here, it's truly an upstream-format
+      # issue, not rate-limiting.
+      - name: Run live upstream-contract tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cargo test --test-threads=1 -- --nocapture live_brave_matcher_finds_a_portable_zip_in_recent_releases live_evevault_latest_release_has_expected_asset live_sandboxie_latest_release_has_both_variants
+
+      # If any of the live tests fail, open / update an issue with
+      # the diagnostic. The `find-existing` step de-dupes — we
+      # don't want a new issue every day for the same drift.
+      - name: Open issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "Upstream release-format drift detected";
+            const body = [
+              "The daily upstream-drift workflow failed.",
+              "",
+              "One or more upstream sources (Brave / EVE Vault / Sandboxie)",
+              "may have changed their release naming, channel mix, or asset",
+              "structure in a way our matchers don't tolerate.",
+              "",
+              `**Failed run:** ${context.payload.repository.html_url}/actions/runs/${context.runId}`,
+              "",
+              "Check the run logs for which test failed and the listed",
+              "asset names; update the relevant `is_portable_zip` /",
+              "`ASSET_NAME` / `matches_variant_asset` constant.",
+              "",
+              "_This issue was opened automatically by",
+              "`.github/workflows/upstream-drift.yml`. It will be updated,",
+              "not duplicated, if the drift persists._",
+            ].join("\n");
+
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "upstream-drift",
+            });
+
+            if (existing.length > 0) {
+              // Update the existing tracking issue with a new comment.
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing[0].number,
+                body: `Drift still present as of ${new Date().toISOString()} — see run ${context.runId}.`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ["upstream-drift", "bug"],
+              });
+            }

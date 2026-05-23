@@ -221,6 +221,30 @@ fn is_cacheable_failure(msg: &str) -> bool {
     is_rate_limit_error(msg) || is_upstream_stable_error(msg)
 }
 
+/// True if the error message looks like the network is unreachable
+/// — DNS failure, connection refused, request timeout, etc. — vs
+/// a structural problem (release missing an asset, parsing failure,
+/// bad response).
+///
+/// Used by the upstream-contract test suite to decide whether to
+/// SKIP a test (transport problem — not our fault) vs FAIL it (the
+/// matcher genuinely doesn't work against current upstream). Lives
+/// here next to the other error-classifiers so the heuristic stays
+/// consistent across the codebase.
+pub fn looks_like_transport_failure(msg: &str) -> bool {
+    let lower = msg.to_ascii_lowercase();
+    lower.contains("timed out")
+        || lower.contains("timeout")
+        || lower.contains("dns")
+        || lower.contains("connection refused")
+        || lower.contains("connection reset")
+        || lower.contains("name resolution")
+        || lower.contains("request failed")
+        // GitHub-API-level transport: throttling counts as "skip,
+        // not our fault" because retrying immediately wouldn't help.
+        || is_rate_limit_error(msg)
+}
+
 // -------------------------------------------------------------------------
 // Shared GitHub-fetch helpers used by chromium / evevault / sandboxie_installer.
 // Each module supplies its own asset-matcher predicate + release struct;

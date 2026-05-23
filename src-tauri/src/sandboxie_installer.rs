@@ -488,6 +488,70 @@ mod tests {
             "marker without on-disk binaries must NOT report a version"
         );
     }
+
+    // ---- upstream-contract test (live network) ----------------------
+    //
+    // Same shape as the Brave + EVE Vault live tests. Catches the
+    // case where Sandboxie-Plus renames an installer asset (e.g. if
+    // they ever ship `Sandboxie-Plus-arm64-vX.Y.exe` and we don't
+    // know about it, or if they drop the Classic build entirely).
+
+    /// Live: Sandboxie's most recent release must contain BOTH a
+    /// Plus installer AND a Classic installer that match our
+    /// per-variant matchers. If upstream drops a variant or
+    /// renames it, the Install button silently fails — this
+    /// test catches it first.
+    #[tokio::test]
+    async fn live_sandboxie_latest_release_has_both_variants() {
+        if std::env::var("BIFROST_SKIP_UPSTREAM_TESTS").is_ok() {
+            eprintln!("upstream-contract test: skipped (BIFROST_SKIP_UPSTREAM_TESTS set)");
+            return;
+        }
+        match crate::release_cache::fetch_release_json(REPO).await {
+            Ok(body) => {
+                let tag = body["tag_name"].as_str().unwrap_or("");
+                assert!(!tag.is_empty(), "Sandboxie release should have a tag");
+                let assets = body["assets"]
+                    .as_array()
+                    .expect("release JSON has assets array");
+                let asset_names: Vec<&str> = assets
+                    .iter()
+                    .map(|a| a["name"].as_str().unwrap_or(""))
+                    .collect();
+                let plus_found = asset_names
+                    .iter()
+                    .any(|n| matches_variant_asset(n, SandboxieVariant::Plus));
+                let classic_found = asset_names
+                    .iter()
+                    .any(|n| matches_variant_asset(n, SandboxieVariant::Classic));
+                assert!(
+                    plus_found,
+                    "Sandboxie-Plus matcher contract broken — latest release \
+                     {tag} of {REPO} has no Plus installer asset. Listed \
+                     names: {asset_names:?}"
+                );
+                assert!(
+                    classic_found,
+                    "Sandboxie-Classic matcher contract broken — latest \
+                     release {tag} of {REPO} has no Classic installer asset. \
+                     Listed names: {asset_names:?}"
+                );
+                eprintln!(
+                    "upstream-contract: Sandboxie OK — tag={tag} (Plus + Classic both present)"
+                );
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                if crate::release_cache::looks_like_transport_failure(&msg) {
+                    eprintln!(
+                        "upstream-contract test: skipped (transport / rate-limit): {msg}"
+                    );
+                    return;
+                }
+                panic!("Sandboxie latest-release fetch failed unexpectedly: {msg}");
+            }
+        }
+    }
 }
 
 /// Resolved metadata for the latest Sandboxie installer release on

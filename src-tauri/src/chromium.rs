@@ -90,6 +90,81 @@ mod tests {
         assert!(!is_portable_zip("brave-v1.90.124-linux-x64.zip"));
     }
 
+    // ---- upstream-contract test (live network) ----------------------
+    //
+    // The other matcher tests above use hard-coded asset names — they
+    // protect us from breaking the matcher on OUR side, but they
+    // can't catch UPSTREAM drift (Brave renaming `brave-v…` →
+    // `brave-origin-v…`, or shifting Windows builds to prereleases
+    // only). This test hits the real GitHub API and asserts that
+    // `fetch_latest_release_with_asset(brave, 30, is_portable_zip)`
+    // still finds SOMETHING in the top-30 most-recent releases.
+    //
+    // It runs every `cargo test` but skips cleanly if the network
+    // is unreachable, GitHub is rate-limiting us, or the user has
+    // set `BIFROST_SKIP_UPSTREAM_TESTS=1`. CI gets a `GITHUB_TOKEN`
+    // boost (5000 req/hr vs 60) so rate-limit skips are rare in
+    // automation. If you're seeing flakes locally and have a token
+    // handy, set `GITHUB_TOKEN=ghp_…` to escape the unauth limit.
+
+    /// Live: Brave's top-30 most-recent releases must still contain
+    /// at least one Windows-x64 portable ZIP. Catches the class of
+    /// upstream change that triggered the v1.90.125 incident
+    /// (Brave shifting Windows builds to prerelease-only +
+    /// `brave-origin-` naming) BEFORE a user reports it.
+    #[tokio::test]
+    async fn live_brave_matcher_finds_a_portable_zip_in_recent_releases() {
+        if std::env::var("BIFROST_SKIP_UPSTREAM_TESTS").is_ok() {
+            eprintln!("upstream-contract test: skipped (BIFROST_SKIP_UPSTREAM_TESTS set)");
+            return;
+        }
+        match release_cache::fetch_latest_release_with_asset(REPO, 30, is_portable_zip).await {
+            Ok(release) => {
+                let tag = release["tag_name"].as_str().unwrap_or("");
+                assert!(
+                    tag.starts_with('v'),
+                    "Brave release tag should start with 'v', got {tag:?}"
+                );
+                // Find the matching asset and sanity-check its size.
+                // A real portable ZIP is ~180 MB; if upstream
+                // somehow returns a 0-byte placeholder we want to
+                // catch that too.
+                let asset = release["assets"]
+                    .as_array()
+                    .and_then(|arr| {
+                        arr.iter()
+                            .find(|a| is_portable_zip(a["name"].as_str().unwrap_or("")))
+                    })
+                    .expect("found release should have a matching asset");
+                let name = asset["name"].as_str().unwrap_or("");
+                let size = asset["size"].as_u64().unwrap_or(0);
+                assert!(
+                    size > 50 * 1024 * 1024 && size < 500 * 1024 * 1024,
+                    "Brave portable ZIP size {size} bytes is outside the sane \
+                     50 MB..500 MB range — upstream may have shipped a stub \
+                     placeholder. asset={name} tag={tag}"
+                );
+                eprintln!("upstream-contract: Brave OK — tag={tag} asset={name} size={size}");
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                if release_cache::looks_like_transport_failure(&msg) {
+                    eprintln!(
+                        "upstream-contract test: skipped (transport / rate-limit): {msg}"
+                    );
+                    return;
+                }
+                panic!(
+                    "Brave matcher contract broken — no win32-x64 portable ZIP \
+                     in top-30 releases of {REPO}. Upstream may have renamed \
+                     the asset format (check `is_portable_zip` against current \
+                     release listing) or stopped publishing Windows portables. \
+                     Raw error: {msg}"
+                );
+            }
+        }
+    }
+
     // ---- version-marker round-trip ----------------------------------
     //
     // Cascading scenario: install completes → marker is written →

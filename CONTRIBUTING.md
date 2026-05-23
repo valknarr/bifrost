@@ -61,6 +61,18 @@ a cold machine. Subsequent runs are fast.
 
 - **Rust**: `cargo fmt` + `cargo clippy --all-targets -- -D warnings`
   + `cargo test --all-targets` must pass. CI enforces all three.
+  + Three of the tests are "live upstream contract" probes
+    (`live_brave_matcher_finds_a_portable_zip_in_recent_releases`,
+    `live_evevault_latest_release_has_expected_asset`,
+    `live_sandboxie_latest_release_has_both_variants`). They hit
+    the real GitHub Releases API. They skip gracefully on
+    network / rate-limit failure but FAIL LOUDLY on a real
+    matcher / upstream drift — that's how we catch e.g. Brave
+    renaming `brave-v…` → `brave-origin-v…` before users
+    report it. Set `BIFROST_SKIP_UPSTREAM_TESTS=1` to skip them
+    when working offline. A daily scheduled CI job
+    (`.github/workflows/upstream-drift.yml`) runs them with a
+    token and opens a tracking issue on failure.
 - **TypeScript / Svelte**: `pnpm check` (svelte-check) must pass.
 - **Comments**: explain *why*, not *what*. Prefer documenting decisions
   ("we use PowerShell here because tokio's `Command` can't elevate")
