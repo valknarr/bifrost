@@ -5,26 +5,49 @@ focused — a clear, friendly multi-rider session manager for EVE Frontier
 that respects the game's official APIs. Patches that hold that line are
 welcome.
 
-## Quick start
+> **Orienting yourself?** [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
+> has the repo layout, design principles, design tokens, and a quick
+> tour of state / persistence / network surface. Read that once before
+> opening a substantial PR.
+
+## Prerequisites
+
+- **Rust** stable (`rustup default stable`). Toolchain pinned in
+  `src-tauri/rust-toolchain.toml`.
+- **Node.js** 20+ and **pnpm** 9+ (`npm i -g pnpm`).
+- **Microsoft C++ Build Tools** or Visual Studio 2022 with the "Desktop
+  development with C++" workload.
+- **WebView2 Runtime** (already on Windows 11).
+
+Sandboxie does **not** need to be pre-installed — Bifrost offers to
+install it (Plus or Classic) from the Settings panel via the official
+installer, with one Windows UAC prompt.
+
+## Quick start — dev mode
 
 ```sh
-# 1. Install prerequisites
-#    - Rust stable           (rustup default stable)
-#    - Node.js 20+ / pnpm 9+ (npm i -g pnpm)
-#    - Microsoft C++ Build Tools (VS 2022 "Desktop development with C++")
-#    - WebView2 Runtime      (already on Windows 11)
-
-# 2. Clone + install JS deps
 git clone https://github.com/valknarr/bifrost.git
 cd bifrost
 pnpm install
-
-# 3. Run in dev mode
 pnpm tauri dev
 ```
 
 First `pnpm tauri dev` takes 5–10 minutes to compile the Rust backend on
 a cold machine. Subsequent runs are fast.
+
+## Build a release `.exe` locally
+
+```sh
+pnpm tauri build
+```
+
+Output lands in `src-tauri/target/release/bundle/nsis/`. This is the
+same command CI runs from a release tag — but without the signing
+secrets, so the resulting `.exe` cannot be used to auto-update
+existing installs (the `latest.json` will be missing its signature
+and the in-app updater will reject it). For an actual published
+release, push a `v*.*.*` tag and let CI build it; see
+[`docs/RELEASING.md`](./docs/RELEASING.md).
 
 ## What we'd love help with
 

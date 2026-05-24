@@ -13,13 +13,33 @@ One click → N isolated rider sessions, each with its own game client,
 browser profile, and EVE Vault wallet. No keystroke broadcasting, no
 DLL injection, no TOS edge cases.
 
-> **Players**: grab the latest signed `.exe` from
-> [**Releases**](https://github.com/valknarr/bifrost/releases/latest).
-> **Developers**: jump to [Quick start](#quick-start).
->
 > Bifrost is an unofficial community tool. Not affiliated with or
 > endorsed by Fenris Creations (formerly CCP Games). "EVE Frontier"
 > is a trademark of CCP ehf., doing business as Fenris Creations.
+
+## Install
+
+1. Download **`Bifrost_<version>_x64-setup.exe`** from the
+   [**latest release**](https://github.com/valknarr/bifrost/releases/latest).
+2. Run it. Windows SmartScreen will warn that the installer is
+   from an unrecognised publisher — click **More info → Run anyway**.
+   (Authenticode signing is a [pre-1.0 TODO](#roadmap--pre-10-todo);
+   the installer is minisign-signed end-to-end and the `.sig`
+   beside the `.exe` lets you verify integrity manually if you
+   prefer — see [SECURITY.md](./SECURITY.md).)
+3. On first launch, Bifrost offers to install Sandboxie (Plus or
+   Classic) silently. One Windows UAC prompt; that's the only
+   external dependency.
+
+That's it. Future updates land via an in-app banner — Bifrost polls
+GitHub Releases on cold start, verifies the next release's signature
+against the pubkey baked into the running `.exe`, and offers a
+one-click upgrade.
+
+**Want to build from source or contribute?** See
+[CONTRIBUTING.md](./CONTRIBUTING.md) for dev setup and
+[`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for repo layout and
+design notes.
 
 ## Why
 
@@ -60,166 +80,6 @@ The API surface for advanced contributors (Tauri commands, store
 shapes, file formats on disk) may still shift between point
 releases; no breaking changes to user-visible state will land
 without a major bump.
-
-## Prerequisites
-
-- **Rust** stable (`rustup default stable`). Toolchain pinned in
-  `src-tauri/rust-toolchain.toml`.
-- **Node.js** 20+ and **pnpm** 9+ (`npm i -g pnpm`).
-- **Microsoft C++ Build Tools** or Visual Studio 2022 with the "Desktop
-  development with C++" workload.
-- **WebView2 Runtime** (already on Windows 11).
-
-Sandboxie does **not** need to be pre-installed — Bifrost offers to
-install it (Plus or Classic) from the Settings panel via the official
-installer, with one Windows UAC prompt.
-
-## Quick start
-
-```sh
-git clone https://github.com/valknarr/bifrost.git
-cd bifrost
-pnpm install
-pnpm tauri dev
-```
-
-The first `pnpm tauri dev` will compile the Rust backend (5–10 min on a
-cold machine, fast after that).
-
-## Build a release `.exe`
-
-```sh
-pnpm tauri build
-```
-
-Output lands in `src-tauri/target/release/bundle/`.
-
-## Repo layout
-
-```
-.
-├── src/                            Svelte 5 frontend
-│   ├── App.svelte                  Top-level shell + nav
-│   ├── app.css                     Tailwind 4 + design tokens
-│   ├── main.ts                     Svelte mount
-│   └── lib/
-│       ├── tauri.ts                Typed wrappers around invoke()
-│       ├── types.ts                Shared TS types (mirror Rust models)
-│       ├── external.ts             Shell-plugin `open()` helper + URLs
-│       ├── components/             Reusable UI atoms
-│       ├── stores/                 Svelte 5 rune-based stores
-│       └── views/                  Top-level routes
-├── src-tauri/                      Rust backend
-│   ├── Cargo.toml
-│   ├── rust-toolchain.toml         Pinned compiler
-│   ├── tauri.conf.json
-│   ├── capabilities/               Permission grants for the frontend
-│   └── src/
-│       ├── main.rs                 Entry point
-│       ├── lib.rs                  Tauri setup + command registration
-│       ├── rider.rs                Rider model + lifecycle
-│       ├── sandboxie.rs            Wraps SbieIni.exe / Start.exe
-│       ├── sandboxie_installer.rs  Silent install/uninstall of Sandboxie (Plus + Classic)
-│       ├── browser.rs              Per-rider Brave launcher + theme extension
-│       ├── chromium.rs             Portable Brave downloader
-│       ├── evevault.rs             EVE Vault extension downloader
-│       ├── release_cache.rs        Shared GitHub-fetch helpers + 30-min cache
-│       ├── config.rs               Persisted settings
-│       ├── error.rs                BifrostError + Result alias
-│       ├── ini.rs                  Sandboxie.ini parser
-│       └── sui.rs                  Sui mainnet RPC client
-├── .github/                        CI workflow + issue templates
-├── CHANGELOG.md                    Keep-a-Changelog format
-├── CONTRIBUTING.md                 How to contribute
-├── CODE_OF_CONDUCT.md
-├── SECURITY.md                     How to report vulnerabilities
-├── LICENSE                         MIT
-├── package.json                    Frontend deps
-├── pnpm-lock.yaml
-├── svelte.config.js
-├── tsconfig.json
-├── vite.config.ts
-└── README.md                       You are here
-```
-
-## Design principles
-
-1. **Official APIs only.** No DLL injection, no input multiplexing, no
-   reverse-engineered protocols. Bifrost drives only what Fenris
-   Creations and the Sandboxie project have publicly documented.
-2. **Single portable binary.** One `.exe` from GitHub Releases. The
-   only hard dependency is Sandboxie-Plus, which Bifrost installs
-   silently on first run.
-3. **The user never sees Sandboxie.** Sandboxie is plumbing. Riders,
-   sessions, wallets — that's what the UI shows.
-4. **Per-rider bundling.** Each rider session is one unit: game client
-   + Brave profile + EVE Vault. Switching riders switches identity
-   wholesale, not piecemeal.
-5. **No telemetry.** Bifrost is a local app. The only network calls are
-   to GitHub Releases (for component updates) and the Sui mainnet RPC
-   (for wallet balances).
-
-## Design tokens
-
-See `src/app.css`. Bifrost uses an EVE-Frontier-adjacent palette but
-deliberately distinct from Fenris Creations' brand colours.
-
-| Token | Value | Use |
-|---|---|---|
-| `--color-bg` | `#04060a` | App background |
-| `--color-surface` | `#0b0e15` | Cards, panels |
-| `--color-elevated` | `#141822` | Hover / active surfaces |
-| `--color-border` | `#1a1f29` | 1px panel borders |
-| `--color-border-hi` | `#262d3a` | Stronger borders |
-| `--color-text` | `#eef0f5` | Primary text |
-| `--color-text-muted` | `#b2bbd0` | Secondary text |
-| `--color-text-dim` | `#7a8398` | Tertiary text |
-| `--color-accent` | `#e54b1a` | Primary actions, brand |
-| `--color-accent-hi` | `#ff6a30` | Accent hover |
-| `--color-focus` | `#f5c542` | Focused window, selected tab |
-| `--color-ok` | `#ff6332` | Running riders — brand orange (not green) |
-| `--color-warn` | `#f2c94c` | Warnings |
-| `--color-danger` | `#e2604a` | Errors, destructive |
-
-Type: JetBrains Mono everywhere (the EVE in-game UI is committed to
-monospace). Inter is loaded as a fallback for any non-mono surface.
-
-## Linting
-
-Bifrost holds a zero-warning baseline. CI enforces all of these on
-every push:
-
-```sh
-# Backend (from src-tauri/)
-cargo fmt --check
-cargo clippy --all-targets -- -D warnings
-cargo test --all-targets
-
-# Frontend (from repo root)
-pnpm check
-```
-
-## Acknowledgements
-
-Bifrost stands on the shoulders of several open-source projects:
-
-- **[Sandboxie][Sandboxie]** — the kernel-level sandboxing engine that
-  makes per-rider isolation possible. Bifrost supports both the modern
-  Plus build (default) and the Classic LTS build, calling Sandboxie's
-  CLI tools (`SbieIni.exe`, `Start.exe`) and shipping the official
-  silent installer; we don't link `SbieDll.dll`.
-- **[Brave Browser][Brave Browser]** — the Chromium fork Bifrost bundles
-  as its portable per-rider browser. We picked Brave specifically
-  because it ships with the full Google-identity plumbing that
-  FusionAuth's OAuth flow (used by EVE Vault) needs.
-- **[EVE Vault][EVE Vault]** — the official Chromium wallet extension
-  Bifrost side-loads into each rider's profile.
-- **[Tauri](https://tauri.app/)** — the desktop runtime.
-- **[Svelte](https://svelte.dev/)** — the frontend framework.
-
-Fenris Creations' EVE Frontier visual language inspired the UI
-palette and typography without using any Fenris Creations brand
-assets directly.
 
 ## Known limitations
 
@@ -305,8 +165,10 @@ Dependabot) starts on them.
 - [ ] **Add a frontend lint pass** (eslint or biome) to CI so the
       Rust-side `clippy -D warnings` rigor extends to TS/Svelte.
 - [ ] **Pin GitHub Actions by SHA**, not by major tag, in
-      `release.yml`. Major-tag pinning is fine for CI; release is
-      higher-stakes.
+      `release.yml`. `tauri-action` is already SHA-pinned; the
+      other five (`actions/checkout`, `actions/setup-node`,
+      `pnpm/action-setup`, `dtolnay/rust-toolchain`,
+      `Swatinem/rust-cache`) still ride major-tag refs.
 
 **Wallet UX**
 
@@ -315,10 +177,35 @@ Dependabot) starts on them.
       functional but unexplained. A dedicated wallet-setup state on
       the rider card would make it discoverable.
 
+## Acknowledgements
+
+Bifrost stands on the shoulders of several open-source projects:
+
+- **[Sandboxie][Sandboxie]** — the kernel-level sandboxing engine that
+  makes per-rider isolation possible. Bifrost supports both the modern
+  Plus build (default) and the Classic LTS build, calling Sandboxie's
+  CLI tools (`SbieIni.exe`, `Start.exe`) and shipping the official
+  silent installer; we don't link `SbieDll.dll`.
+- **[Brave Browser][Brave Browser]** — the Chromium fork Bifrost bundles
+  as its portable per-rider browser. We picked Brave specifically
+  because it ships with the full Google-identity plumbing that
+  FusionAuth's OAuth flow (used by EVE Vault) needs.
+- **[EVE Vault][EVE Vault]** — the official Chromium wallet extension
+  Bifrost side-loads into each rider's profile.
+- **[Tauri](https://tauri.app/)** — the desktop runtime.
+- **[Svelte](https://svelte.dev/)** — the frontend framework.
+
+Fenris Creations' EVE Frontier visual language inspired the UI
+palette and typography without using any Fenris Creations brand
+assets directly.
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for prerequisites, dev-mode
 instructions, code style, and the bar for accepted patches.
+[`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) covers the repo
+layout, design principles, and design tokens — read that first if
+you're orienting yourself before opening a PR.
 
 ## Security
 
