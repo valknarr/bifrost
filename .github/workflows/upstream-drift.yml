@@ -149,3 +149,36 @@ jobs:
                 labels: ["upstream-drift", "bug"],
               });
             }
+
+      # On a GREEN run, close any open drift-tracking issue. Without
+      # this companion to "Open issue on failure", a transient upstream
+      # blip (rate-limit, brief outage) leaves a stale issue forever
+      # even after the next day's cron passes. Closing on success
+      # makes the issue an accurate "currently broken?" signal rather
+      # than a "was ever broken?" archive.
+      - name: Close drift tracking issue on success
+        if: success()
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "upstream-drift",
+            });
+            for (const issue of existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Drift cleared as of ${new Date().toISOString()} — green run ${context.runId}. Auto-closing.`,
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: "closed",
+                state_reason: "completed",
+              });
+            }
