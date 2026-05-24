@@ -66,14 +66,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # `--test-threads=1` is a TEST-BINARY arg, not a cargo arg —
-          # so it MUST come after `--`. Putting it before makes cargo
-          # reject the run with "unexpected argument '--test-threads'
-          # found" before the test binary is even invoked. The
-          # serialised runs matter here because all three tests hit
-          # the GitHub API; a default 4-way parallel run would burn
-          # 4× the unauth-rate-limit budget per cron tick.
-          cargo test live_brave_matcher_finds_a_portable_zip_in_recent_releases live_evevault_latest_release_has_expected_asset live_sandboxie_latest_release_has_both_variants -- --nocapture --test-threads=1
+          # EVERYTHING after `--` is a TEST-BINARY arg (libtest), not
+          # a cargo arg. Two failure modes both produce the same
+          # "unexpected argument" class of error from cargo:
+          #
+          #   1. `--test-threads=1` before `--`        — cargo doesn't
+          #      know that flag (it's libtest's).
+          #   2. Multiple positional filters before `--` — cargo
+          #      accepts ONLY ONE TESTNAME positional; libtest is the
+          #      layer that supports a UNION of substring filters.
+          #
+          # So all three test-name filters AND `--test-threads=1` AND
+          # `--nocapture` go after `--`. The serialised runs matter
+          # because all three tests hit the GitHub API; default
+          # 4-way parallel would burn 4× the unauth-rate-limit
+          # budget per cron tick.
+          cargo test -- --nocapture --test-threads=1 \
+            live_brave_matcher_finds_a_portable_zip_in_recent_releases \
+            live_evevault_latest_release_has_expected_asset \
+            live_sandboxie_latest_release_has_both_variants
 
       # If any of the live tests fail, open / update an issue with
       # the diagnostic. The `find-existing` step de-dupes — we
