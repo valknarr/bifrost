@@ -42,7 +42,7 @@ jobs:
     # environment. See docs/RELEASING.md for the one-time setup.
     environment: release
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
