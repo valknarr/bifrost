@@ -73,7 +73,7 @@ jobs:
       # don't want a new issue every day for the same drift.
       - name: Open issue on failure
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const title = "Upstream release-format drift detected";
