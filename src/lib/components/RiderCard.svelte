@@ -118,40 +118,38 @@
     !rider.launchedAtLeastOnce && !isRunning && !isMissing,
   );
 
-  /** Balance staleness — drives the small label below the stats grid
-   *  that tells the user when figures were last refreshed from the
-   *  Sui RPC. Three tiers, mapped from the age of
-   *  `wallet_balance_fetched_at`:
+  /** Balance staleness warning — drives the small label below the
+   *  stats grid. Originally a three-tier "Updated just now / 2m ago /
+   *  stale" indicator, but the constant freshness chatter added
+   *  visual noise and caused minor layout jumps on every refresh
+   *  without telling the user anything actionable. Reshaped so the
+   *  label is **only shown when something is actually wrong**:
    *
-   *  * `null` (no successful fetch yet or no wallet address) — no
-   *    label shown
-   *  * < 60 s — fresh, dim "Updated just now"
-   *  * 60 s ≤ age < 5 min — "Updated 2m ago", neutral muted colour
-   *  * ≥ 5 min — "Updated 12m ago — stale", warn-yellow tint
+   *  * Returns `null` when there's no wallet, no successful fetch yet,
+   *    or the last successful fetch was less than 5 minutes ago. The
+   *    row collapses entirely — no UI element to jiggle.
+   *  * Returns `{ label }` only when ≥ 5 minutes have passed since the
+   *    last successful fetch. At that point something is meaningfully
+   *    wrong (Sui RPC rate-limiting us, network down, etc.) and the
+   *    user benefits from knowing the on-screen number is dated.
    *
    *  Recomputes every 15 s via `clockStore.now`. Without the explicit
    *  read of `clockStore.now` inside this `$derived`, the value
    *  freezes at mount time because nothing else changes in the
    *  dependency graph between refreshes. */
-  const balanceAge = $derived.by(() => {
+  const balanceWarning = $derived.by(() => {
     if (!rider.walletAddress) return null;
     const fetchedAt = rider.walletBalanceFetchedAt;
     if (fetchedAt == null) return null;
     const ageMs = clockStore.now - fetchedAt;
     if (ageMs < 0) return null; // clock skew / future timestamp — ignore
-    const ageSeconds = Math.floor(ageMs / 1000);
-    const ageMinutes = Math.floor(ageSeconds / 60);
-    if (ageSeconds < 60) {
-      return { label: "Updated just now", stale: false };
-    }
-    if (ageMinutes < 5) {
-      return { label: `Updated ${ageMinutes}m ago`, stale: false };
-    }
+    const ageMinutes = Math.floor(ageMs / 1000 / 60);
+    if (ageMinutes < 5) return null; // healthy — hide entirely
     if (ageMinutes < 60) {
-      return { label: `Updated ${ageMinutes}m ago · stale`, stale: true };
+      return { label: `Balance stale · ${ageMinutes}m old` };
     }
     const ageHours = Math.floor(ageMinutes / 60);
-    return { label: `Updated ${ageHours}h ago · stale`, stale: true };
+    return { label: `Balance stale · ${ageHours}h old` };
   });
 
   /** Confirm + permanently delete a rider whose sandbox is gone. The
@@ -369,20 +367,19 @@
         </div>
       </div>
 
-      <!-- Balance staleness. Tiny single-line stamp under the stats
-           grid. Only renders when there IS a wallet to fetch and at
-           least one successful fetch has happened — riders that
-           never had a balance fetched stay unmarked rather than
-           showing a confusing "never updated". Warn-yellow tint
-           when stale (≥ 5 min). -->
-      {#if balanceAge}
+      <!-- Balance staleness — error-only. Hidden when the figures
+           are fresh (refreshed within the last 5 min) so the row
+           doesn't constantly redraw "just now / 1m ago / 2m ago"
+           and jitter the card height. Surfaces in warn-yellow only
+           when something is actually wrong: the Sui RPC has been
+           failing or rate-limiting us for at least 5 minutes and
+           the visible balance is no longer fresh. -->
+      {#if balanceWarning}
         <div
-          class="border-t border-[var(--color-border)] px-4 py-1.5 text-[calc(9px*var(--text-scale,1))] tracking-[0.18em] uppercase {balanceAge.stale
-            ? 'text-[var(--color-warn)]'
-            : 'text-[var(--color-text-dim)]'}"
-          title="Balances refresh every 30 s when the window is in the foreground and the Sui RPC isn't rate-limiting us."
+          class="border-t border-[var(--color-border)] px-4 py-1.5 text-[calc(9px*var(--text-scale,1))] tracking-[0.18em] uppercase text-[var(--color-warn)]"
+          title="The Sui mainnet RPC hasn't refreshed this rider's balance in over 5 minutes. The figure above is from the last successful fetch — Sui may be rate-limiting us or the host is offline."
         >
-          <span class="mono">{balanceAge.label}</span>
+          <span class="mono">⚠ {balanceWarning.label}</span>
         </div>
       {/if}
 

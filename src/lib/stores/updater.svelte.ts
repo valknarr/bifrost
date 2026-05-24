@@ -43,23 +43,44 @@ class UpdaterStore {
    *  not installing. */
   progress = $state<number | null>(null);
 
+  /** True while a check is in flight. Lets the Settings → About
+   *  panel disable its manual-check button while we're polling. */
+  checking = $state(false);
+
+  /** Outcome of the most recent check, surfaced briefly by the
+   *  Settings → About panel ("Up to date" / "Update available").
+   *  Cleared when a new check starts. */
+  lastResult = $state<"up-to-date" | "available" | "error" | null>(null);
+
   /** Poll the updater endpoint for a newer signed release. No-op if
    *  already checking. Errors are stashed on `this.error` rather
    *  than thrown — the banner is opt-in UI, never a hard failure.
    *
-   *  Skipped entirely in dev builds (`import.meta.env.DEV`): the
-   *  updater plugin logs every endpoint failure at ERROR level via
-   *  its own tracing subscriber, which spammed the dev console on
-   *  every HMR reload while the first signed release was still
-   *  pending. Production builds always check. */
-  async check() {
-    if (import.meta.env.DEV) return;
+   *  The auto-check on cold start (`force = false`) is skipped in
+   *  dev builds because the updater plugin logs every endpoint
+   *  failure at ERROR level via its own tracing subscriber, which
+   *  spammed the dev console on every HMR reload while the first
+   *  signed release was still pending. Production builds always
+   *  check.
+   *
+   *  Pass `force = true` for a USER-triggered check (Settings →
+   *  About → Check for updates). That path bypasses the dev skip
+   *  because the user explicitly asked — the one-off log noise is
+   *  acceptable when they're testing the updater locally. */
+  async check(force: boolean = false) {
+    if (this.checking) return;
+    if (!force && import.meta.env.DEV) return;
+    this.checking = true;
     this.error = null;
+    this.lastResult = null;
     try {
       const { check } = await import("@tauri-apps/plugin-updater");
       const update = await check();
       if (update) {
         this.available = update;
+        this.lastResult = "available";
+      } else {
+        this.lastResult = "up-to-date";
       }
     } catch (e) {
       // Common failure modes here:
@@ -70,6 +91,9 @@ class UpdaterStore {
       const msg = e instanceof Error ? e.message : String(e);
       console.warn("updater: check failed:", msg);
       this.error = msg;
+      this.lastResult = "error";
+    } finally {
+      this.checking = false;
     }
   }
 

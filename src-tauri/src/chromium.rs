@@ -337,13 +337,58 @@ pub fn install_dir(app_data: &Path) -> PathBuf {
     app_data.join("chromium").join("current")
 }
 
+/// Best-effort count of `brave.exe` processes currently running on the
+/// host (any rider, plus the user's own Brave if they happen to use it
+/// outside Bifrost — although the portable build lives in our app-data
+/// so they shouldn't overlap).
+///
+/// Used as a pre-flight gate by `commands::installers::uninstall_chromium`:
+/// while Brave is running, `remove_dir_all` against `install_dir` fails
+/// with `os error 5 (Access denied)` because Brave holds files locked.
+/// Refusing with a clear message is friendlier than letting the OS
+/// throw a low-level I/O error.
+///
+/// Shells out to `tasklist /FI "IMAGENAME eq brave.exe"` rather than
+/// pulling in a process-listing crate — `tasklist.exe` ships with every
+/// Windows install and the sandboxie.rs module already uses the same
+/// pattern. Returns `0` on any tasklist failure (we don't have a strong
+/// "we don't know" signal we can express to the user, and conservative-
+/// refuse-on-failure would block uninstalls forever in environments
+/// where tasklist is somehow unavailable).
+pub async fn count_running_brave_processes() -> u32 {
+    use tokio::process::Command;
+    let mut cmd = Command::new("tasklist.exe");
+    cmd.args(["/FI", "IMAGENAME eq brave.exe", "/FO", "csv", "/NH"]);
+    // Suppress the brief console-window flash that any tokio Command
+    // produces on Windows when spawned from a GUI-subsystem process.
+    crate::cmd::no_window(&mut cmd);
+    let Ok(out) = cmd.output().await else {
+        return 0;
+    };
+    if !out.status.success() {
+        return 0;
+    }
+    let text = String::from_utf8_lossy(&out.stdout);
+    // tasklist with /FI + /NH prints one CSV row per match, OR a single
+    // line "INFO: No tasks are running which match the specified
+    // criteria." when nothing matches. Count rows that start with
+    // a quoted image name.
+    text.lines()
+        .filter(|line| line.starts_with("\"brave.exe\""))
+        .count() as u32
+}
+
 /// Remove the portable browser install in its entirety. Safe no-op when
 /// nothing's installed. We can do this with a plain
 /// `remove_dir_all` because the portable build doesn't drop anything
 /// outside this directory — no kernel driver, no service, no registry
-/// hooks. Callers must ensure no Brave processes are holding handles
-/// (the Settings UI does this only when no riders have a browser
-/// open).
+/// hooks.
+///
+/// Callers MUST gate this with a `count_running_brave_processes() == 0`
+/// check first — see `commands::installers::uninstall_chromium`.
+/// Without the gate, a running Brave holds files locked and the
+/// `remove_dir_all` fails partway through with `os error 5 (Access
+/// denied)`, leaving the install in an inconsistent state.
 pub fn uninstall(app_data: &Path) -> Result<()> {
     let dir = install_dir(app_data);
     if dir.exists() {

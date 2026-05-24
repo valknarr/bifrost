@@ -13,6 +13,8 @@
   import type { SandboxieVariant } from "../types";
   import { ZOOM_PRESETS, presetFor, type ZoomPreset } from "../zoom";
   import { vTag } from "../version";
+  import { appStore } from "../stores/app.svelte";
+  import { updaterStore } from "../stores/updater.svelte";
 
   let loading = $state(true);
 
@@ -738,6 +740,89 @@
       </div>
 
       <CompanionSitesSection />
+
+      <!-- About — version + manual update check + repo links.
+           Mirrors the Detection panel layout (h2 + status-right span,
+           bordered box, single-line fields) so the section feels at
+           home alongside everything else. -->
+      <div class="flex flex-col gap-3">
+        <div class="flex items-baseline justify-between">
+          <h2 class="section-label">About</h2>
+          <span class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)] tracking-[0.2em] uppercase">
+            Build identity · self-update
+          </span>
+        </div>
+        <div class="flex flex-col gap-3 border border-[var(--color-border)] bg-[var(--color-bg)] px-5 py-4">
+          <div class="field">
+            <span class="label">Bifrost</span>
+            <span class="leader"></span>
+            <span class="value mono text-[var(--color-text-muted)]">
+              v{appStore.version || "—"}
+            </span>
+          </div>
+
+          <div class="flex items-center justify-between gap-3 pt-1">
+            <span class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)]">
+              {#if updaterStore.checking}
+                Polling GitHub Releases…
+              {:else if updaterStore.available}
+                Update <span class="mono text-[var(--color-warn)]"
+                  >v{updaterStore.newVersion}</span
+                > is ready — see the banner at the top of the window.
+              {:else if updaterStore.lastResult === "up-to-date"}
+                <span class="text-[var(--color-ok)]">● You're on the latest release.</span>
+              {:else if updaterStore.lastResult === "error"}
+                <span class="text-[var(--color-warn)]">
+                  Couldn't reach the update endpoint:
+                  {updaterStore.error?.slice(0, 80) ?? "unknown"}
+                </span>
+              {:else}
+                Polls on cold start. Manual check available below.
+              {/if}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={updaterStore.checking || !!updaterStore.available}
+              onclick={() => updaterStore.check(true)}
+              title="Force a fresh poll of releases/latest/download/latest.json"
+            >
+              {#if updaterStore.checking}
+                Checking…
+              {:else}
+                ↻ Check for updates
+              {/if}
+            </Button>
+          </div>
+
+          <div class="flex gap-3 pt-1 text-[calc(10px*var(--text-scale,1))] tracking-[0.05em]">
+            <button
+              type="button"
+              class="cursor-pointer text-[var(--color-text-muted)] underline decoration-dotted decoration-[var(--color-border-hi)] underline-offset-2 hover:text-[var(--color-focus)] hover:decoration-[var(--color-focus)]"
+              onclick={() => openExternal("https://github.com/valknarr/bifrost")}
+              title="Bifrost repository on GitHub"
+            >
+              Source · GitHub ↗
+            </button>
+            <button
+              type="button"
+              class="cursor-pointer text-[var(--color-text-muted)] underline decoration-dotted decoration-[var(--color-border-hi)] underline-offset-2 hover:text-[var(--color-focus)] hover:decoration-[var(--color-focus)]"
+              onclick={() => openExternal("https://github.com/valknarr/bifrost/releases")}
+              title="All Bifrost releases + release notes"
+            >
+              Release notes ↗
+            </button>
+            <button
+              type="button"
+              class="cursor-pointer text-[var(--color-text-muted)] underline decoration-dotted decoration-[var(--color-border-hi)] underline-offset-2 hover:text-[var(--color-focus)] hover:decoration-[var(--color-focus)]"
+              onclick={() => openExternal("https://github.com/valknarr/bifrost/blob/main/CHANGELOG.md")}
+              title="Versioned changelog (Keep a Changelog format)"
+            >
+              Changelog ↗
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- Paths -->
       <div class="flex flex-col gap-3">

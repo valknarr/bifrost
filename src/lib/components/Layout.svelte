@@ -1,9 +1,18 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
+  import { onMount } from "svelte";
   import { riderStore } from "../stores/riders.svelte";
   import { routeStore, type Route } from "../stores/route.svelte";
   import { statusStore } from "../stores/status.svelte";
+  import { appStore } from "../stores/app.svelte";
   import UpdateBanner from "./UpdateBanner.svelte";
+
+  // Fetch version once at app boot for the footer label. Idempotent —
+  // the store dedupes concurrent callers, so a Settings-About refresh
+  // doesn't re-fetch.
+  onMount(() => {
+    appStore.load();
+  });
 
   interface Props {
     children: Snippet;
@@ -163,11 +172,18 @@
     class="flex items-center justify-between border-t border-[var(--color-border)] bg-[var(--color-surface)]/80 px-5 text-[calc(10px*var(--text-scale,1))] tracking-[0.2em] uppercase text-[var(--color-text-dim)]"
   >
     <div class="flex items-center gap-3">
-      <span class="text-[var(--color-text-muted)]"
-        >{routeStore.current === "riders"
-          ? "Rider Roster"
-          : "System Configuration"}</span
-      >
+      <!-- App version, fetched once at boot from tauri.conf.json.
+           Replaces the previous view-title label ("Rider Roster" /
+           "System Configuration") which duplicated the top tab nav.
+           The brand logo at the top-left already says "BIFROST", so
+           this side is just the version line. Empty for ~one IPC
+           roundtrip on cold start; the mono class keeps the
+           eventual `0.0.3` from causing a layout reflow. -->
+      {#if appStore.version}
+        <span class="mono text-[var(--color-text-muted)]"
+          >Version: {appStore.version}</span
+        >
+      {/if}
     </div>
     <div class="flex items-center gap-3">
       {#if riderStore.error}

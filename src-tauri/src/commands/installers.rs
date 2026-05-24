@@ -88,8 +88,25 @@ pub async fn install_chromium(state: State<'_, AppState>) -> Result<()> {
 /// untouched — they survive a browser reinstall so wallet sessions
 /// aren't blown away. The frontend confirms with the user before
 /// invoking this.
+///
+/// Pre-flight: refuse if any `brave.exe` is currently running. Brave
+/// holds files locked while it's running, so `remove_dir_all` against
+/// the install dir fails partway through with `os error 5
+/// (Access denied)`. A clear error message at the command boundary
+/// is much friendlier than letting the OS throw a low-level I/O
+/// error from deep inside the uninstall — and matches the
+/// "refuse uninstall while sandboxes are active" pattern we already
+/// use for Sandboxie.
 #[tauri::command]
 pub async fn uninstall_chromium(state: State<'_, AppState>) -> Result<()> {
+    let running = chromium::count_running_brave_processes().await;
+    if running > 0 {
+        return Err(crate::error::BifrostError::Other(format!(
+            "{running} Brave window(s) open — close every Brave window before \
+             uninstalling. (Brave holds its files locked while it's running, \
+             which prevents Bifrost from removing them.)"
+        )));
+    }
     chromium::uninstall(&state.app_data_dir)
 }
 

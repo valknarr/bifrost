@@ -9,6 +9,45 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 _Nothing yet._
 
+## [0.0.3] - 2026-05-24
+
+### Added
+
+- **App version in the footer** — bottom-left of the window now reads
+  `BIFROST v<version>` instead of repeating the active tab title.
+  Pulled from `tauri.conf.json` via `getVersion()` at app boot.
+- **About section in Settings** — version, manual "Check for updates"
+  button (force-polls the GitHub Releases endpoint even in dev
+  builds), and external links to the repo / release notes /
+  changelog. The manual check surfaces "● You're on the latest
+  release" briefly on a no-op poll and reuses the existing top-of-
+  window banner when an update is found.
+
+### Changed
+
+- **Balance-freshness indicator is now error-only.** Originally a
+  three-tier "Updated just now / 2m ago / stale" stamp on every
+  Rider card, the freshness label redrew every 15 s and caused
+  minor layout jitter as the text width changed. It also didn't
+  tell the user anything actionable while everything was working.
+  Now the row is hidden entirely while the balance is fresh
+  (refreshed within the last 5 min) and surfaces only when the
+  Sui RPC has been failing for at least 5 minutes, with a
+  warn-yellow "⚠ Balance stale · Xm old" label. Same staleness
+  threshold as before, much quieter UI.
+
+### Fixed
+
+- **Brave-uninstall pre-flight** — uninstalling the portable browser
+  while any `brave.exe` was running previously failed deep inside
+  `remove_dir_all` with `os error 5 (Access denied)`, leaving the
+  install half-deleted. Bifrost now counts running Brave processes
+  via `tasklist /FI "IMAGENAME eq brave.exe"` before touching the
+  filesystem and refuses with a clear "close every Brave window
+  first" message if any are alive. Mirrors the
+  "refuse uninstall while sandboxes are active" guard we already
+  use for Sandboxie.
+
 ## [0.0.2] - 2026-05-24
 
 ### Security
@@ -183,6 +222,7 @@ Release. Auto-updates via the in-app banner on subsequent launches.
   30-min in-process cache for GitHub `releases/latest` lookups so the
   Settings panel stays well under the unauthenticated rate limit.
 
-[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.2...HEAD
+[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.3...HEAD
+[0.0.3]: https://github.com/valknarr/bifrost/releases/tag/v0.0.3
 [0.0.2]: https://github.com/valknarr/bifrost/releases/tag/v0.0.2
 [0.0.1]: https://github.com/valknarr/bifrost/releases/tag/v0.0.1
