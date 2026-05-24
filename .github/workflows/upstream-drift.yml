@@ -63,6 +63,18 @@ jobs:
       # — if a test fails here, it's truly an upstream-format
       # issue, not rate-limiting.
       - name: Run live upstream-contract tests
+        # Pin the shell to bash. windows-latest defaults to
+        # PowerShell, where `\` is NOT a line-continuation
+        # character (PowerShell uses a backtick `` ` ``). Without
+        # this pin, the multi-line `cargo test \ <filters>`
+        # invocation below would split into four separate
+        # PowerShell statements: `cargo test` ran with no filter,
+        # then PowerShell tried to execute each test-name filter
+        # as a cmdlet and failed with "not recognized as a name
+        # of a cmdlet". Forcing bash (git-bash is installed on
+        # every windows-latest runner) makes `\` work as
+        # expected.
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
