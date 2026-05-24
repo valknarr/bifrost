@@ -126,12 +126,13 @@ Dependabot) starts on them.
 
 **Repo hygiene**
 
-- [ ] **Explicit Content Security Policy in `tauri.conf.json`** —
-      currently `csp: null` (see SECURITY.md "Current security posture"
-      for why). Replace with a deliberate `default-src 'self' tauri:;
-      img-src 'self' data:; …` policy once the build pipeline is stable
-      enough that locking it down won't break Tailwind / IPC at
-      release-time.
+- [x] **Explicit Content Security Policy in `tauri.conf.json`** —
+      landed in v0.0.2. `default-src 'self'; script-src 'self';
+      style-src 'self' 'unsafe-inline'; img-src 'self' data:;
+      connect-src 'self' ipc: https://ipc.localhost; …`. Closes the
+      supply-chain attack class where a compromised dep silently
+      exfiltrates Sui wallet addresses from the webview. Full policy
+      + threat model in [SECURITY.md](./SECURITY.md).
 - [x] **Branch protection on `main`** — `protect-main` ruleset
       enforces the `Rust (fmt + clippy + test)` + `Frontend
       (svelte-check)` status checks, requires up-to-date branches

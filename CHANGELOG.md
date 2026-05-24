@@ -9,6 +9,20 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 _Nothing yet._
 
+## [0.0.2] - 2026-05-24
+
+### Security
+
+- **Explicit Content Security Policy.** Bifrost's Tauri webview now
+  runs under a deliberate CSP rather than `csp: null`. The Sui
+  wallet integration makes the supply-chain attack class
+  (compromised npm or Cargo dep silently exfiltrating addresses)
+  worth closing: `connect-src 'self' ipc: https://ipc.localhost`
+  means the webview cannot reach any host other than Tauri's IPC
+  bridge, so address exfiltration via the frontend is blocked
+  even if a dep is hijacked. Full policy + threat-model rationale
+  in `SECURITY.md`.
+
 ## [0.0.1] - 2026-05-24
 
 First public release. Bifrost orchestrates per-Rider sandboxed game
@@ -169,5 +183,6 @@ Release. Auto-updates via the in-app banner on subsequent launches.
   30-min in-process cache for GitHub `releases/latest` lookups so the
   Settings panel stays well under the unauthenticated rate limit.
 
-[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/valknarr/bifrost/releases/tag/v0.0.2
 [0.0.1]: https://github.com/valknarr/bifrost/releases/tag/v0.0.1
