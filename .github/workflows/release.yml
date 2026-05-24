@@ -108,9 +108,19 @@ jobs:
             via the in-app banner.
           releaseDraft: true
           prerelease: false
-          # `--bundles` + the env-var presence above is what tells
-          # tauri-action to produce the `.sig` + `latest.json`
-          # artifacts the in-app updater consumes. Without
-          # signing-env-vars set, this just builds the .exe and the
-          # latest.json step silently no-ops.
-          args: --bundles nsis,updater
+          # `--bundles nsis` restricts to the single Windows target
+          # we ship; the `updater` artifacts are produced as a side-
+          # effect of `bundle.createUpdaterArtifacts: true` in
+          # tauri.conf.json (Tauri 2's declarative replacement for
+          # the Tauri-1 `--bundles updater` pseudo-target).
+          #
+          # Why we DON'T pass `--bundles nsis,updater`: Tauri 2's
+          # CLI interprets that combo as a request for "all
+          # available bundles plus updater artifacts" and silently
+          # also builds MSI. Two competing `.zip.sig` files then
+          # confuse tauri-action's latest.json generator with
+          # "Signature not found for the updater JSON", causing it
+          # to upload the .exe alone without the signature or the
+          # latest.json — which breaks the in-app auto-updater for
+          # every install of that release.
+          args: --bundles nsis
