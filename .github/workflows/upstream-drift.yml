@@ -66,7 +66,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cargo test --test-threads=1 -- --nocapture live_brave_matcher_finds_a_portable_zip_in_recent_releases live_evevault_latest_release_has_expected_asset live_sandboxie_latest_release_has_both_variants
+          # `--test-threads=1` is a TEST-BINARY arg, not a cargo arg —
+          # so it MUST come after `--`. Putting it before makes cargo
+          # reject the run with "unexpected argument '--test-threads'
+          # found" before the test binary is even invoked. The
+          # serialised runs matter here because all three tests hit
+          # the GitHub API; a default 4-way parallel run would burn
+          # 4× the unauth-rate-limit budget per cron tick.
+          cargo test live_brave_matcher_finds_a_portable_zip_in_recent_releases live_evevault_latest_release_has_expected_asset live_sandboxie_latest_release_has_both_variants -- --nocapture --test-threads=1
 
       # If any of the live tests fail, open / update an issue with
       # the diagnostic. The `find-existing` step de-dupes — we

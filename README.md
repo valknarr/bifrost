@@ -261,8 +261,8 @@ hits one in practice.
 ## Roadmap / Pre-1.0 TODO
 
 Tracked here rather than as Issues so contributors can see at a glance
-what's still rough. Each item links to (or will link to) a tracking
-issue once the repo is public.
+what's still rough. Items move to GitHub Issues once someone (or
+Dependabot) starts on them.
 
 **Repo hygiene**
 
@@ -272,10 +272,11 @@ issue once the repo is public.
       img-src 'self' data:; …` policy once the build pipeline is stable
       enough that locking it down won't break Tailwind / IPC at
       release-time.
-- [ ] **Branch protection on `main`** — require PR before merging,
-      require the `Rust (fmt + clippy + test)` and `Frontend
-      (svelte-check)` status checks, require linear history, block
-      force-push. Configure in GitHub Settings → Branches → Add rule.
+- [x] **Branch protection on `main`** — `protect-main` ruleset
+      enforces the `Rust (fmt + clippy + test)` + `Frontend
+      (svelte-check)` status checks, requires up-to-date branches
+      before merging, blocks force-push and deletion. Repo admins
+      can bypass for emergency self-rescue.
 
 **Release pipeline**
 
