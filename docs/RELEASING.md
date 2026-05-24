@@ -88,7 +88,21 @@ the build and emits a `latest.json` alongside the `.exe`.
    - creates a **draft** GitHub release with both artifacts attached
 6. Review the draft release at
    `https://github.com/valknarr/bifrost/releases` — verify the `.exe`
-   runs locally, then click **Publish release**.
+   runs locally, then click **Publish release**. On the publish
+   dialog, **PAY ATTENTION TO TWO TOGGLES** that GitHub defaults
+   wrong for `v0.x.x` releases:
+   - **"Set as a pre-release"** — make sure this is **UNCHECKED**.
+     GitHub often pre-checks it for sub-1.0 versions assuming
+     "initial development." Pre-release flag excludes the release
+     from the `/releases/latest` resolution, which means the
+     auto-updater's `latest/download/latest.json` URL returns
+     404 and **the in-app banner never appears for any user**.
+   - **"Set as the latest release"** — make sure this is selected
+     (the dropdown has Latest / Pre-release / None). Tauri's
+     updater polls the URL the `Latest` toggle controls.
+
+   If you find an already-published release in the wrong state,
+   fix it via `gh release edit vX.Y.Z --prerelease=false --latest`.
 7. Existing Bifrost users see the in-app banner on their next launch.
 
 ## What the user experiences
