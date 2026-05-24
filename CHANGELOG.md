@@ -7,6 +7,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [0.0.1] - 2026-05-24
+
+First public release. Bifrost orchestrates per-Rider sandboxed game
+clients, browsers, and wallets for EVE Frontier multi-Rider play.
+Source on GitHub; signed Windows installer attached to the GitHub
+Release. Auto-updates via the in-app banner on subsequent launches.
+
 ### Added
 
 - **Rider roster** — designate, launch, archive, restore, and delete EVE
@@ -160,4 +169,5 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   30-min in-process cache for GitHub `releases/latest` lookups so the
   Settings panel stays well under the unauthenticated rate limit.
 
-[Unreleased]: https://github.com/valknarr/bifrost/commits/main
+[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.1...HEAD
+[0.0.1]: https://github.com/valknarr/bifrost/releases/tag/v0.0.1

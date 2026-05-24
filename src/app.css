@@ -3,7 +3,8 @@
 /* ---------- Bifrost design tokens ----------
  * Tuned against EVE Frontier's in-game UI and launcher reference shots.
  * Deliberately uses the game's grammar (red-orange primary, yellow focus,
- * mono everywhere) without infringing on CCP brand assets directly.
+ * mono everywhere) without infringing on Fenris Creations brand
+ * assets directly. (Studio rebranded from CCP Games in May 2026.)
  */
 @theme {
   /* Tailwind v4 spacing token. Pinned to a fixed pixel value (was the

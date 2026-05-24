@@ -79,7 +79,8 @@
 
   /** Sample a colour along the white-yellow → orange → deep-red ramp
    *  by normalised radius. Matches the in-game palette and our brand
-   *  orange family without resorting to literal CCP assets. */
+   *  orange family without resorting to literal Fenris Creations
+   *  assets. */
   function colourForRadius(tNorm: number): RGB {
     if (tNorm < 0.12) {
       return { r: 255, g: 240, b: 200 }; // hot core

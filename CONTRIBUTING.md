@@ -42,18 +42,19 @@ a cold machine. Subsequent runs are fast.
 
 ## What we won't merge
 
-- **Anything that bypasses CCP's TOS.** No DLL injection, no input
-  multiplexing, no reverse-engineered protocols. Bifrost drives only
-  what CCP and Sandboxie have publicly documented.
+- **Anything that bypasses Fenris Creations' TOS.** No DLL injection,
+  no input multiplexing, no reverse-engineered protocols. Bifrost
+  drives only what Fenris Creations (formerly CCP Games) and
+  Sandboxie have publicly documented.
 - **Host-browser integrations.** Bifrost ships its own portable Chromium
   for per-rider isolation; touching the user's day-to-day Chrome /
   Edge / Firefox profile is out of scope.
 - **Telemetry or analytics.** Bifrost is a local app; it should stay
   local. The only network calls are to GitHub Releases for updates and
   to Sui mainnet RPC for wallet balances.
-- **Bundled third-party trademarks or brand assets** (CCP, EVE
-  Frontier, Sandboxie, Brave logos / icons / marks). The current EVE-
-  Frontier-adjacent palette is deliberately distinct.
+- **Bundled third-party trademarks or brand assets** (Fenris
+  Creations, EVE Frontier, Sandboxie, Brave logos / icons / marks).
+  The current EVE-Frontier-adjacent palette is deliberately distinct.
 
 ## Development conventions
 

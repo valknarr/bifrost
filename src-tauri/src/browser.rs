@@ -468,7 +468,8 @@ mod tests {
     //! no Rewards onboarding, no native wallet popup, no News feed,
     //! no Leo AI sidebar. These tests pin every preference key the
     //! Settings UI promises a rider's window won't have. If a key
-    //! drifts, the regression surfaces here before a CCP-dev demo.
+    //! drifts, the regression surfaces here before a
+    //! Fenris-Creations-dev demo.
     use super::*;
     use tempfile::TempDir;
 

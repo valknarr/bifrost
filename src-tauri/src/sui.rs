@@ -17,8 +17,9 @@ use serde::{Deserialize, Serialize};
 use crate::error::{BifrostError, Result};
 use crate::http;
 
-/// Default public mainnet RPC. EVE Frontier launched on Sui mainnet; if
-/// CCP ever switches networks we can make this configurable.
+/// Default public mainnet RPC. EVE Frontier launched on Sui mainnet;
+/// if Fenris Creations (formerly CCP Games) ever switches networks
+/// we can make this configurable.
 pub const DEFAULT_RPC: &str = "https://fullnode.mainnet.sui.io:443";
 
 /// How long to back off after detecting a rate-limit response from the

@@ -18,7 +18,8 @@ DLL injection, no TOS edge cases.
 > **Developers**: jump to [Quick start](#quick-start).
 >
 > Bifrost is an unofficial community tool. Not affiliated with or
-> endorsed by CCP Games. "EVE Frontier" is a trademark of CCP hf.
+> endorsed by Fenris Creations (formerly CCP Games). "EVE Frontier"
+> is a trademark of CCP ehf., doing business as Fenris Creations.
 
 ## Why
 
@@ -144,8 +145,8 @@ Output lands in `src-tauri/target/release/bundle/`.
 ## Design principles
 
 1. **Official APIs only.** No DLL injection, no input multiplexing, no
-   reverse-engineered protocols. Bifrost drives only what CCP and the
-   Sandboxie project have publicly documented.
+   reverse-engineered protocols. Bifrost drives only what Fenris
+   Creations and the Sandboxie project have publicly documented.
 2. **Single portable binary.** One `.exe` from GitHub Releases. The
    only hard dependency is Sandboxie-Plus, which Bifrost installs
    silently on first run.
@@ -161,7 +162,7 @@ Output lands in `src-tauri/target/release/bundle/`.
 ## Design tokens
 
 See `src/app.css`. Bifrost uses an EVE-Frontier-adjacent palette but
-deliberately distinct from CCP's brand colours.
+deliberately distinct from Fenris Creations' brand colours.
 
 | Token | Value | Use |
 |---|---|---|
@@ -216,8 +217,9 @@ Bifrost stands on the shoulders of several open-source projects:
 - **[Tauri](https://tauri.app/)** — the desktop runtime.
 - **[Svelte](https://svelte.dev/)** — the frontend framework.
 
-CCP Games' EVE Frontier visual language inspired the UI palette and
-typography without using any CCP brand assets directly.
+Fenris Creations' EVE Frontier visual language inspired the UI
+palette and typography without using any Fenris Creations brand
+assets directly.
 
 ## Known limitations
 
