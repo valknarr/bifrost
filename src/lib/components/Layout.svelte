@@ -178,7 +178,22 @@
        new signed release pending. Sits above the main content so
        it's the first thing the user sees on cold launch when an
        update is ready. Self-hides when the user clicks Later or
-       finishes the upgrade flow. -->
+       finishes the upgrade flow.
+
+       Auto-places into grid row 2 (the only row without an explicit
+       `row-start-N` pin). When the banner renders nothing
+       (`{#if available}` is false), the grid's `auto` row collapses
+       to 0 height and the layout looks identical to a no-banner state.
+
+       v0.0.4-v0.0.5 had this element accidentally removed during a
+       Layout.svelte rearrangement — the import + comment block
+       survived but the actual invocation didn't. Users on those
+       versions could detect updates (via Settings → About →
+       Check for updates) but had no banner to click — they'd see
+       "Update vX.Y.Z is ready — see the banner at the top" in the
+       About panel and find no banner. v0.0.6 restores it. -->
+  <UpdateBanner />
+
   <!-- Main content -->
   <main class="row-start-3 overflow-y-auto px-8 py-6">
     {@render children()}

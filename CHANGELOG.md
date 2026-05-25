@@ -9,6 +9,28 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 _Nothing yet._
 
+## [0.0.6] - 2026-05-25
+
+### Fixed
+
+- **`<UpdateBanner />` was missing from `Layout.svelte` since v0.0.4.**
+  A Layout.svelte rearrangement during the v0.0.4 grid-fix work
+  accidentally dropped the `<UpdateBanner />` element from the
+  markup. The import + comment block stayed, but the actual
+  invocation didn't. Net effect for v0.0.4 and v0.0.5 users:
+  - `updaterStore.check()` still fires correctly on cold start
+  - Settings → About correctly reports "Update vX.Y.Z is ready —
+    see the banner at the top of the window"
+  - But no banner exists in the DOM to click
+  Users could still cold-update by running the new `.exe` manually
+  from the Releases page; the in-app one-click flow was broken.
+  v0.0.6 restores the `<UpdateBanner />` invocation in row 2 of
+  the grid where it was always meant to be.
+
+  This is exactly the class of bug that having a UI integration
+  test would have caught — added to the v0.1.0-rc1 Vitest-expansion
+  scope.
+
 ## [0.0.5] - 2026-05-25
 
 ### Added
@@ -416,7 +438,8 @@ Release. Auto-updates via the in-app banner on subsequent launches.
   30-min in-process cache for GitHub `releases/latest` lookups so the
   Settings panel stays well under the unauthenticated rate limit.
 
-[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/valknarr/bifrost/releases/tag/v0.0.6
 [0.0.5]: https://github.com/valknarr/bifrost/releases/tag/v0.0.5
 [0.0.4]: https://github.com/valknarr/bifrost/releases/tag/v0.0.4
 [0.0.3]: https://github.com/valknarr/bifrost/releases/tag/v0.0.3
