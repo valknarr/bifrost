@@ -2,6 +2,12 @@
 
 Thank you for taking the time to make Bifrost safer.
 
+For context on what's in / out of scope before you start, read the
+one-page [threat model](./docs/THREAT_MODEL.md) — it lists the
+asset classes Bifrost protects, the attacker types we defend
+against, and the categories we explicitly DON'T (Sandboxie escapes,
+compromised host machines, etc.).
+
 ## Reporting a vulnerability
 
 **Please do not report security issues through public GitHub issues.**
@@ -118,3 +124,22 @@ Once a fix has shipped to a stable release, we publish an advisory in
 the GitHub Security Advisories tab of this repo and credit the reporter
 (with their permission). For high-severity issues we coordinate a
 joint-disclosure timeline with the reporter.
+
+## Updater signing pubkey
+
+Bifrost's auto-updater verifies every release's `latest.json`
+against the same minisign pubkey, baked into each released `.exe`.
+Pinning the value here so users performing manual `minisign -V`
+verification of a downloaded `.exe.sig` have a copy-paste source
+they can trust independent of the in-repo `tauri.conf.json` (and
+so any divergence from the value below is itself a flag worth
+investigating).
+
+```
+RWQ1g8tbmraBl9hZ/bCA9rq16z2p9V8SGFsJdVrVxxYL4/vy8c72Mxs/
+```
+
+Tracked since v0.0.1. If this key ever rotates, the rotation
+procedure + the old pubkey + the new pubkey are documented in
+`docs/RELEASING.md` and announced in the CHANGELOG of the release
+that introduces the new key.

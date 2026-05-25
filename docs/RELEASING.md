@@ -105,6 +105,37 @@ the build and emits a `latest.json` alongside the `.exe`.
    fix it via `gh release edit vX.Y.Z --prerelease=false --latest`.
 7. Existing Bifrost users see the in-app banner on their next launch.
 
+## Release artifacts
+
+Each release ships four files attached to the GitHub Release:
+
+- `Bifrost_<ver>_x64-setup.exe` — the NSIS installer users download
+- `Bifrost_<ver>_x64-setup.exe.sig` — standalone minisign signature
+  of the `.exe`, verifiable with the
+  [`minisign`](https://jedisct1.github.io/minisign/) CLI using the
+  pubkey embedded in `tauri.conf.json::plugins.updater.pubkey`
+  (also pinned at the bottom of [SECURITY.md](../SECURITY.md) for
+  copy-paste).
+- `latest.json` — auto-updater manifest. Contains version, download
+  URL, and an embedded minisign signature over the `.exe`. The
+  in-app updater verifies this automatically against the pubkey
+  baked into the running binary.
+- `SHA256SUMS.txt` — `<hash>  <filename>` per the GNU coreutils
+  format. For users who'd rather verify integrity without a minisign
+  install:
+  ```powershell
+  # Windows
+  Get-FileHash Bifrost_<ver>_x64-setup.exe -Algorithm SHA256
+  ```
+  ```sh
+  # Linux / macOS
+  sha256sum -c SHA256SUMS.txt
+  ```
+  Until Authenticode signing lands (the v0.1.0-rc2 blocker), these
+  two paths (`minisign` of the `.exe` AND the SHA256 line) are the
+  manual-verification options. See `docs/THREAT_MODEL.md` for what
+  this defence actually protects against.
+
 ## What the user experiences
 
 - Bifrost polls `https://github.com/valknarr/bifrost/releases/latest/download/latest.json`

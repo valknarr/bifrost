@@ -217,6 +217,10 @@ you're orienting yourself before opening a PR.
 
 Please do not report security vulnerabilities through public GitHub
 issues. See [SECURITY.md](./SECURITY.md) for the private channel.
+For a one-page overview of what Bifrost protects, what it doesn't,
+and which attacker classes are explicitly in / out of scope, read
+[`docs/THREAT_MODEL.md`](./docs/THREAT_MODEL.md) — useful before
+trusting Bifrost with a wallet-bearing rider.
 
 ## Licence
 

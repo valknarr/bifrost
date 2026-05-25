@@ -9,6 +9,55 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 _Nothing yet._
 
+## [0.0.8] - 2026-05-25
+
+### Added
+
+- **`docs/THREAT_MODEL.md`** — one-page security overview for
+  reviewers and security-curious users. Lists the asset classes
+  Bifrost protects (per-Rider Sui addresses, updater pubkey,
+  on-disk roster + config files, per-Rider Brave profile dirs),
+  the trust boundaries between WebView ↔ backend ↔ network, the
+  attacker types we defend against (compromised npm/Cargo dep,
+  malicious upstream Brave/EVE Vault/Sandboxie release, network
+  adversary tampering with GitHub responses, install-while-Brave-
+  running corruption), and the categories explicitly out of
+  scope (compromised host machine, Sandboxie escape, compromise
+  of the maintainer's GitHub account). Cross-linked from README's
+  Security section and from `SECURITY.md`'s preamble so a reviewer
+  lands on it naturally.
+- **`SHA256SUMS.txt` attached to every release.** New step in
+  `.github/workflows/release.yml` runs after the tauri-action
+  build, computes the SHA-256 of the produced `.exe`, writes a
+  GNU coreutils-style `<hash>  <filename>` line, and uploads to
+  the draft. Gives users a manual-verification path without
+  requiring a `minisign` install (`Get-FileHash` on Windows,
+  `sha256sum -c` on Linux/macOS). The minisign `.exe.sig` was
+  always there; this just adds the simpler hash option for
+  cautious users who don't have minisign tooling at hand.
+- **Updater signing pubkey pinned in `SECURITY.md`.** Same value
+  that lives in `tauri.conf.json::plugins.updater.pubkey`, but
+  copy-pasted into the security doc as well so a manual-verify
+  user has a source for the pubkey independent of the in-repo
+  config (any divergence is itself a flag worth investigating).
+- **`.editorconfig`** — pins UTF-8 charset, LF line endings,
+  `insert_final_newline`, `trim_trailing_whitespace`, 2-space
+  default indent + 4-space for Rust (matches rustfmt default) +
+  no-trim for Markdown (where trailing whitespace can be
+  semantic). Belt-and-braces with the existing `.gitattributes`
+  (`* text=auto eol=lf` + per-extension overrides): editorconfig
+  stops the wrong bytes from being written to disk in the first
+  place, gitattributes normalises whatever does end up there
+  before it lands in a commit. Prevents the cp1252 mojibake
+  class we hit pre-launch.
+
+### Changed
+
+- `docs/RELEASING.md` "Release artifacts" section added, listing
+  the four files attached to every release (`.exe`, `.exe.sig`,
+  `latest.json`, `SHA256SUMS.txt`) and the manual-verification
+  commands for each.
+
 ## [0.0.7] - 2026-05-25
 
 ### Added
@@ -492,7 +541,8 @@ Release. Auto-updates via the in-app banner on subsequent launches.
   30-min in-process cache for GitHub `releases/latest` lookups so the
   Settings panel stays well under the unauthenticated rate limit.
 
-[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.7...HEAD
+[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.8...HEAD
+[0.0.8]: https://github.com/valknarr/bifrost/releases/tag/v0.0.8
 [0.0.7]: https://github.com/valknarr/bifrost/releases/tag/v0.0.7
 [0.0.6]: https://github.com/valknarr/bifrost/releases/tag/v0.0.6
 [0.0.5]: https://github.com/valknarr/bifrost/releases/tag/v0.0.5

@@ -1,0 +1,39 @@
+# EditorConfig — https://editorconfig.org
+#
+# Pins the file-encoding + line-ending + indent-width defaults
+# every contributor's editor reads on file open. Prevents the
+# UTF-8-as-cp1252 mojibake class we hit during the pre-public sweep
+# (an editor on a Swedish-locale Windows machine had been saving as
+# ANSI by default, mangling em-dashes and arrow glyphs in code
+# comments).
+#
+# `.gitattributes` separately enforces LF line endings at the git
+# level (`* text=auto eol=lf` + per-extension overrides). The two
+# files reinforce each other: editorconfig stops the wrong bytes
+# from being written to disk in the first place, gitattributes
+# normalises whatever does end up there before it lands in a commit.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Rust uses rustfmt's default 4-space block indent. Matching it here
+# keeps the editor view consistent with `cargo fmt --check` output.
+[*.rs]
+indent_size = 4
+
+# Markdown trailing whitespace can be meaningful (two trailing
+# spaces = soft line break in Keep-a-Changelog style; we don't
+# currently use that but leaving the door open).
+[*.md]
+trim_trailing_whitespace = false
+
+# Makefiles and tab-significant files MUST keep tabs.
+[Makefile]
+indent_style = tab

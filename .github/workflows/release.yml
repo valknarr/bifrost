@@ -124,3 +124,45 @@ jobs:
           # latest.json — which breaks the in-app auto-updater for
           # every install of that release.
           args: --bundles nsis
+
+      # Compute SHA-256 of the .exe and attach it to the draft
+      # release. The in-app updater verifies its own signature
+      # automatically (minisign over latest.json), but users
+      # performing a FIRST manual install from the Releases page
+      # have no in-app signature path — they're downloading a
+      # `.exe` from `github.com` and trusting GitHub's TLS chain.
+      # `SHA256SUMS.txt` gives them an out-of-band verification
+      # value they can sanity-check against (`Get-FileHash` on
+      # Windows, `sha256sum` on Linux/macOS) AND that we can pin
+      # in release notes or external announcements without
+      # depending on GitHub serving the right bytes.
+      #
+      # Until Authenticode signing lands (separately tracked
+      # rc2 item), this + the minisign signature on `latest.json`
+      # are the two manual-verification paths available to a
+      # cautious user. Documented in SECURITY.md.
+      - name: Generate SHA256SUMS.txt
+        if: success()
+        shell: pwsh
+        run: |
+          $tag = '${{ steps.tag.outputs.tag }}'
+          $version = $tag.TrimStart('v')
+          $exeName = "Bifrost_${version}_x64-setup.exe"
+          $exePath = "src-tauri/target/release/bundle/nsis/$exeName"
+          if (-not (Test-Path $exePath)) {
+            Write-Error "Expected installer not found at $exePath"
+            exit 1
+          }
+          $hash = (Get-FileHash -Path $exePath -Algorithm SHA256).Hash.ToLower()
+          # GNU coreutils-style format: "<hash>  <filename>"
+          # (two spaces is what `sha256sum -c` expects to parse).
+          $line = "$hash  $exeName"
+          Set-Content -Path SHA256SUMS.txt -Value $line -Encoding utf8 -NoNewline
+          Write-Host "SHA256SUMS.txt contents:"
+          Get-Content SHA256SUMS.txt
+          # Append to the draft release. `gh release upload` will
+          # attach to the draft tauri-action just created (the
+          # tag-matching release is the draft by default).
+          gh release upload "$tag" SHA256SUMS.txt --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
