@@ -18,7 +18,13 @@
     // `baseUrl: "."` + `src/lib/*` form.
     "paths": {
       "$lib/*": ["./src/lib/*"]
-    }
+    },
+    // Node types are needed by a small number of test files that
+    // read source via `node:fs` / `node:path` for source-level
+    // regression-guard assertions (e.g. `Layout.test.ts` asserts
+    // that `<UpdateBanner />` is invoked in the markup). The
+    // runtime app code doesn't use Node APIs — Vitest does.
+    "types": ["node"]
   },
   "include": ["src/**/*.ts", "src/**/*.svelte"]
 }

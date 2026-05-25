@@ -8,7 +8,17 @@
 // deterministic `invoke` behaviour without spinning up the Tauri
 // runtime. The mock here gives them a `vi.fn()` they can configure.
 
-import { vi } from "vitest";
+import { afterEach, vi } from "vitest";
+import { cleanup } from "@testing-library/svelte";
+
+// Unmount any components mounted via `render()` between tests.
+// @testing-library/svelte's `render()` appends each instance to
+// `document.body`; without this hook, two tests in the same file
+// that both render the same component get two copies in the DOM
+// and `screen.getByRole(...)` throws "found multiple elements".
+afterEach(() => {
+  cleanup();
+});
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),

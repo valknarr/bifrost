@@ -763,12 +763,20 @@
 
           <div class="flex items-center justify-between gap-3 pt-1">
             <span class="text-[calc(10px*var(--text-scale,1))] text-[var(--color-text-dim)]">
-              {#if updaterStore.checking}
+              {#if updaterStore.installing}
+                Downloading + verifying
+                <span class="mono text-[var(--color-accent)]"
+                  >v{updaterStore.newVersion}</span
+                >…
+                {#if updaterStore.progress !== null}
+                  <span class="mono">({updaterStore.progress}%)</span>
+                {/if}
+              {:else if updaterStore.checking}
                 Polling GitHub Releases…
               {:else if updaterStore.available}
                 Update <span class="mono text-[var(--color-warn)]"
                   >v{updaterStore.newVersion}</span
-                > is ready — see the banner at the top of the window.
+                > is ready to install.
               {:else if updaterStore.lastResult === "up-to-date"}
                 <span class="text-[var(--color-ok)]">● You're on the latest release.</span>
               {:else if updaterStore.lastResult === "error"}
@@ -780,19 +788,43 @@
                 Polls on cold start. Manual check available below.
               {/if}
             </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={updaterStore.checking || !!updaterStore.available}
-              onclick={() => updaterStore.check(true)}
-              title="Force a fresh poll of releases/latest/download/latest.json"
-            >
-              {#if updaterStore.checking}
-                Checking…
-              {:else}
-                ↻ Check for updates
-              {/if}
-            </Button>
+            <!-- Three button states. The "Restart and update" path
+                 was added in v0.0.7 as a resilience measure: v0.0.4
+                 / v0.0.5 had the top-of-window banner accidentally
+                 dropped from the markup, and the only path to a
+                 detected update was through that banner — meaning
+                 users on those broken versions had no in-app way
+                 to act on an available update at all. Having the
+                 action available from the About panel too means
+                 if any future layout regression hides the banner,
+                 users can still self-rescue without leaving the
+                 app. -->
+            {#if updaterStore.available && !updaterStore.installing}
+              <Button
+                variant="primary"
+                size="sm"
+                onclick={() => updaterStore.installAndRelaunch()}
+                title="Download + verify + install the pending update, then relaunch"
+              >
+                ↻ Restart and update
+              </Button>
+            {:else}
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={updaterStore.checking || updaterStore.installing}
+                onclick={() => updaterStore.check(true)}
+                title="Force a fresh poll of releases/latest/download/latest.json"
+              >
+                {#if updaterStore.installing}
+                  Updating…
+                {:else if updaterStore.checking}
+                  Checking…
+                {:else}
+                  ↻ Check for updates
+                {/if}
+              </Button>
+            {/if}
           </div>
 
           <div class="flex gap-3 pt-1 text-[calc(10px*var(--text-scale,1))] tracking-[0.05em]">

@@ -9,6 +9,60 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 _Nothing yet._
 
+## [0.0.7] - 2026-05-25
+
+### Added
+
+- **"Restart and update" button in Settings → About** as a
+  resilience escape hatch. When an update is available
+  (`updaterStore.available` is set), the About panel now offers a
+  primary-styled `↻ Restart and update` button that calls
+  `installAndRelaunch()` directly — the same action the top-of-
+  window banner exposes. The status text was also reworded from
+  "see the banner at the top of the window" (assumes the banner
+  exists) to "is ready to install" (doesn't). Motivation: if a
+  future layout regression ever hides the banner again (like the
+  v0.0.4/v0.0.5 bug), the About panel is now a working second
+  path to act on the update without leaving the app.
+- **`UpdateBanner.test.ts`** — component test for the banner.
+  Mounts UpdateBanner with `@testing-library/svelte`, seeds the
+  store with each of the four banner-rendering states (no update
+  / idle-with-update / installing / install-errored), and asserts
+  the rendered shape (alert role, version label, action buttons,
+  progress meter, error text). Pins the banner's user-visible
+  contract against component-internals refactors.
+- **`Layout.test.ts`** — source-level regression guard. Three
+  assertions: `UpdateBanner` is imported, `<UpdateBanner />` is
+  invoked somewhere in the markup, and the invocation precedes
+  `<main>` in source order (so grid auto-placement routes it into
+  row 2). This is the SPECIFIC class of test that would have
+  caught the v0.0.4/v0.0.5 regression where the import survived
+  but the invocation didn't. Source-text assertion rather than a
+  full component render because Layout takes a Snippet `children`
+  prop and drags in several stores — a focused source check
+  catches the exact regression class without the store-mocking
+  gymnastics, and is honestly named (this test pins markup-level
+  wiring, not render behaviour; render behaviour is the
+  `UpdateBanner.test.ts` job).
+- **`cleanup()` between tests** in `src/test-setup.ts`.
+  `@testing-library/svelte`'s `render()` mounts each instance into
+  `document.body` and doesn't auto-unmount on test exit; without
+  `afterEach(cleanup)`, a second test in the same file rendering
+  the same component gets "found multiple elements with role X"
+  failures. Centralised in the global setup so individual test
+  files don't have to remember.
+
+### Verification
+
+- cargo fmt --check / clippy --all-targets -- -D warnings: clean
+- cargo test --lib: 154 passed
+- pnpm test (vitest): 19 passed across 4 test files (was 11/2)
+- svelte-check: 0 errors / 0 warnings across 217 files
+- pnpm build: clean
+- Manual dev smoke: Settings → About now shows the "Restart and
+  update" button when the store reports an available update, and
+  the status text no longer references the banner.
+
 ## [0.0.6] - 2026-05-25
 
 ### Fixed
@@ -438,7 +492,8 @@ Release. Auto-updates via the in-app banner on subsequent launches.
   30-min in-process cache for GitHub `releases/latest` lookups so the
   Settings panel stays well under the unauthenticated rate limit.
 
-[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.6...HEAD
+[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.7...HEAD
+[0.0.7]: https://github.com/valknarr/bifrost/releases/tag/v0.0.7
 [0.0.6]: https://github.com/valknarr/bifrost/releases/tag/v0.0.6
 [0.0.5]: https://github.com/valknarr/bifrost/releases/tag/v0.0.5
 [0.0.4]: https://github.com/valknarr/bifrost/releases/tag/v0.0.4
