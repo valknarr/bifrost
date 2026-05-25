@@ -39,6 +39,31 @@ pub async fn start_rider(state: State<'_, AppState>, id: String) -> Result<()> {
 
     state.set_rider_status(&id, RiderStatus::Starting);
 
+    // Drop-revert guard: if `provision_frontier_box` or `launch_in_box`
+    // errors below, the rider was previously left wedged in `Starting`
+    // until `reconcile_riders` ran (≥30 s later) and flipped it back
+    // to `Stopped`. The user saw the error toast but the card was
+    // still spinning. This guard catches the error path on Drop and
+    // resets to `Stopped` synchronously so the card snaps back the
+    // moment the toast appears.
+    struct StartGuard<'a> {
+        state: &'a AppState,
+        id: &'a str,
+        committed: bool,
+    }
+    impl Drop for StartGuard<'_> {
+        fn drop(&mut self) {
+            if !self.committed {
+                self.state.set_rider_status(self.id, RiderStatus::Stopped);
+            }
+        }
+    }
+    let mut guard = StartGuard {
+        state: &state,
+        id: &id,
+        committed: false,
+    };
+
     // 1. Make sure the Sandboxie box is provisioned.
     sb.provision_frontier_box(&rider.sandbox).await?;
 
@@ -53,6 +78,10 @@ pub async fn start_rider(state: State<'_, AppState>, id: String) -> Result<()> {
         }
     }
     state.save_riders()?;
+    // Mark the guard satisfied so its Drop doesn't revert the
+    // happy-path Running status. Anything that errors above (the `?`
+    // chains) skips this line and the Drop reverts to Stopped.
+    guard.committed = true;
     Ok(())
 }
 

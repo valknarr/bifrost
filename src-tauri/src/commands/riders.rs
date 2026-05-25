@@ -268,8 +268,28 @@ pub fn get_accent_palette() -> Vec<String> {
 /// nuke a running rider.
 #[tauri::command]
 pub async fn delete_rider(state: State<'_, AppState>, id: String) -> Result<()> {
-    let (cfg, sandbox) = {
-        let mut riders = state.riders_lock();
+    // Save-before-mutate ordering: previously we mutated the in-memory
+    // Vec FIRST, then called `save_riders()` which atomically writes
+    // the new roster to disk. If the disk write failed (full disk,
+    // antivirus blocking the atomic-rename, etc.) the rider was gone
+    // from memory but still in `riders.json` on disk. Next launch
+    // resurrected a "rider" whose Sandboxie box + per-rider
+    // filesystem state had already been torn down by the rest of this
+    // function — leaving Bifrost showing a phantom card pointing at
+    // nothing.
+    //
+    // New ordering:
+    //   1. Snapshot what we need (sandbox name, config) under the lock.
+    //   2. Build the post-delete rider list (still under the lock,
+    //      cloning is cheap at the current cap).
+    //   3. Persist the new list to disk BEFORE mutating memory.
+    //   4. Only on successful disk write do we commit the mutation
+    //      to the in-memory Vec.
+    // A disk-write failure now leaves both memory and disk consistent
+    // (rider still present in both); the user sees the error and can
+    // retry.
+    let (cfg, sandbox, new_list) = {
+        let riders = state.riders_lock();
         let p = riders
             .iter()
             .find(|p| p.id == id)
@@ -280,10 +300,12 @@ pub async fn delete_rider(state: State<'_, AppState>, id: String) -> Result<()> 
             ));
         }
         let sandbox = p.sandbox.clone();
-        riders.retain(|p| p.id != id);
-        (state.config(), sandbox)
+        let new_list: Vec<_> = riders.iter().filter(|p| p.id != id).cloned().collect();
+        (state.config(), sandbox, new_list)
     };
-    state.save_riders()?;
+    // Persist FIRST. If this errors, memory still has the rider —
+    // consistent state, user sees the error, can retry.
+    state.replace_riders_and_save(new_list)?;
 
     // Sandboxie box: remove config + wipe data directory.
     if let Some(sb_path) = cfg.sandboxie_path.as_deref() {
@@ -316,7 +338,14 @@ pub async fn delete_rider(state: State<'_, AppState>, id: String) -> Result<()> 
         let mut last_err: Option<std::io::Error> = None;
         for &delay_ms in HANDLE_RELEASE_DELAYS_MS {
             tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
-            match std::fs::remove_dir_all(&rider_dir) {
+            // `tokio::fs::remove_dir_all` instead of `std::fs::*` —
+            // the per-rider tree can be hundreds of MB (full Brave
+            // profile + EVE Vault state); blocking that on a Tokio
+            // worker would stall every other in-flight command
+            // (balance refresh, status probe, reconcile tick) for
+            // up to a second per retry on a slow / AV-burdened
+            // machine.
+            match tokio::fs::remove_dir_all(&rider_dir).await {
                 Ok(_) => {
                     last_err = None;
                     break;

@@ -99,6 +99,13 @@ jobs:
       - name: svelte-check
         run: pnpm check
 
+      # Frontend unit tests (Vitest). Hits the pure-function helpers
+      # in `src/lib/` and a handful of store-mutation contracts via
+      # the Tauri IPC mock in `src/test-setup.ts`. Fast (<2 s); no
+      # need to split into its own CI job.
+      - name: vitest
+        run: pnpm test
+
       # `pnpm audit` checks the lockfile against npm's advisory DB.
       # `--prod` skips dev-only deps (vite, svelte-check, etc.) so we
       # only block on advisories that affect what we ship. Hard-fail

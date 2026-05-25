@@ -106,6 +106,27 @@ impl AppState {
         save_riders(&self.riders_path, &riders)
     }
 
+    /// Save-before-mutate roster replacement. Used by destructive
+    /// command handlers (`delete_rider`, etc.) that need the
+    /// guarantee "if the disk write fails, the in-memory state is
+    /// also unchanged." A naive `riders.retain(...); save_riders()?`
+    /// flips that ordering and can leave memory + disk inconsistent
+    /// on save failure — a phantom rider whose Sandboxie box has
+    /// already been torn down by the rest of the command.
+    ///
+    /// This helper persists `new` to disk FIRST. Only on a successful
+    /// disk write does it commit the swap into the in-memory Vec.
+    /// On disk-write failure the caller gets the error and memory
+    /// stays at the pre-call state — they can show the user the
+    /// error and offer a retry.
+    pub fn replace_riders_and_save(&self, new: Vec<Rider>) -> Result<()> {
+        // Persist to disk first.
+        save_riders(&self.riders_path, &new)?;
+        // Save succeeded — commit the swap.
+        *self.riders_lock() = new;
+        Ok(())
+    }
+
     /// Convenience helper used by [`start_rider`] /
     /// [`stop_rider`](crate::commands::lifecycle) to flip a single
     /// rider's status without touching anything else.

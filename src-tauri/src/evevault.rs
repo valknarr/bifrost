@@ -239,12 +239,20 @@ pub async fn install(app_data: &Path, release: &ReleaseInfo) -> Result<()> {
         tracing::warn!("evevault: no checksums.txt available; skipping hash verification");
     }
 
-    // 4. Wipe + recreate the target dir, then extract.
+    // 4. Stage-and-swap install. Extract into a sibling `.new`
+    // directory; only after a clean extraction do we atomically swap
+    // target → `.old`, `.new` → target, remove `.old`. Previous
+    // shape was wipe-target-first-then-extract; a mid-extract
+    // failure (zip-bomb cap, IO error, AV interference) left the
+    // user with no installed extension at all even though they had a
+    // working one before. Mirrors the same pattern used by
+    // `chromium::install`.
     let target = install_dir(app_data);
-    if target.exists() {
-        std::fs::remove_dir_all(&target)?;
+    let staging = target.with_extension("new");
+    if staging.exists() {
+        std::fs::remove_dir_all(&staging)?;
     }
-    std::fs::create_dir_all(&target)?;
+    std::fs::create_dir_all(&staging)?;
 
     let mut archive = zip::ZipArchive::new(Cursor::new(&zip_bytes[..]))
         .map_err(|e| BifrostError::Other(format!("zip parse failed: {e}")))?;
@@ -257,7 +265,7 @@ pub async fn install(app_data: &Path, release: &ReleaseInfo) -> Result<()> {
             // Reject path traversal / absolute paths.
             continue;
         };
-        let out_path = target.join(name);
+        let out_path = staging.join(name);
         if entry.is_dir() {
             std::fs::create_dir_all(&out_path)?;
             continue;
@@ -291,8 +299,36 @@ pub async fn install(app_data: &Path, release: &ReleaseInfo) -> Result<()> {
         std::fs::write(&out_path, &buf)?;
     }
 
-    // 5. Drop the version marker.
-    std::fs::write(version_marker(app_data), &release.tag)?;
+    // 4b. Atomic swap. Move the existing install (if any) to
+    // `.old`, move `.new` into place, then clean up `.old`. If the
+    // first rename fails (Brave holding extension files locked),
+    // bail; if the second rename fails, try to restore from `.old`
+    // so the user isn't left with nothing.
+    let old = target.with_extension("old");
+    if old.exists() {
+        let _ = std::fs::remove_dir_all(&old);
+    }
+    if target.exists() {
+        std::fs::rename(&target, &old)?;
+    }
+    if let Err(e) = std::fs::rename(&staging, &target) {
+        if old.exists() {
+            let _ = std::fs::rename(&old, &target);
+        }
+        return Err(BifrostError::Other(format!(
+            "evevault install swap failed: {e}"
+        )));
+    }
+    if old.exists() {
+        if let Err(e) = std::fs::remove_dir_all(&old) {
+            tracing::warn!("evevault: leftover .old cleanup failed: {e}");
+        }
+    }
+
+    // 5. Drop the version marker. Atomic (tmp + rename) so a power
+    // loss between truncate and write can't leave a zero-byte marker
+    // that `read_installed_version` reads as "external install".
+    crate::atomic_write::write_atomic(&version_marker(app_data), release.tag.as_bytes())?;
     tracing::info!(
         "evevault: installed {} into {}",
         release.tag,

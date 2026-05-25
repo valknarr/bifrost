@@ -272,11 +272,18 @@ impl Sandboxie {
             }
         }
 
-        // Wipe the data dir.
+        // Wipe the data dir. Use `tokio::fs::remove_dir_all` rather
+        // than `std::fs::remove_dir_all` — Sandboxie's per-box data
+        // tree can hold tens of thousands of files (cached Brave
+        // profile, EVE Vault wallet state, game assets), and a
+        // blocking remove inside an async fn stalls a Tokio worker
+        // for hundreds of ms. Bifrost runs reconcile + balance
+        // refresh + UI commands concurrently on the runtime; a
+        // single delete shouldn't starve them all.
         if let Ok(username) = std::env::var("USERNAME") {
             let box_root = PathBuf::from(format!(r"C:\Sandbox\{}\{}", username, box_name));
             if box_root.exists() {
-                if let Err(e) = std::fs::remove_dir_all(&box_root) {
+                if let Err(e) = tokio::fs::remove_dir_all(&box_root).await {
                     tracing::warn!("delete_box: could not wipe {}: {e}", box_root.display());
                 }
             }

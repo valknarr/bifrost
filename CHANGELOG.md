@@ -9,6 +9,81 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 _Nothing yet._
 
+## [0.0.5] - 2026-05-25
+
+### Added
+
+- **Frontend test foundation — Vitest + jsdom.** Closes the pre-1.0
+  TODO entry. New `vitest.config.ts` + `src/test-setup.ts` that
+  stubs `@tauri-apps/api/core::invoke` and `@tauri-apps/api/app::
+  getVersion` so tests don't need a real Tauri runtime. `pnpm test`
+  added as a script + a CI step in `.github/workflows/ci.yml`
+  (runs after `svelte-check`, under 2 s). Two starter test files
+  shipping with this release: `src/lib/version.test.ts` (11
+  assertions pinning `vTag()` against the `vv0.0.3` display bug
+  class) and `src/lib/error.test.ts` (5 assertions pinning
+  `formatBackendError` against the prefix-strip contract). Store
+  and component tests are deferred to v0.0.6 — wiring the
+  framework + the smallest pure-function tests is the durable
+  foundation; bigger tests slot on top without further scaffolding.
+
+### Fixed
+
+- **`delete_rider`: save-before-mutate ordering.** Previously the
+  in-memory rider Vec was mutated first, then `save_riders()`
+  wrote the new roster to disk. If the disk write failed (full
+  disk, antivirus blocking the atomic-rename, etc.) the rider was
+  gone from memory but still in `riders.json` on disk — next
+  launch resurrected a "rider" whose Sandboxie box + per-rider
+  filesystem state had already been torn down by the rest of the
+  command. Reordered: snapshot under the lock, persist the new
+  list to disk via the new `AppState::replace_riders_and_save`
+  helper, commit the in-memory swap ONLY on successful write.
+  Memory and disk now stay consistent across the save boundary.
+- **Atomic version-marker writes** in `chromium`, `evevault`, and
+  `sandboxie_installer`. The `.bifrost-version` /
+  `.bifrost-installed-version` markers were written via
+  `std::fs::write` (truncate + write); a power loss between the
+  two steps would leave a zero-byte marker that
+  `read_installed_version` then returned as `None`, with the
+  Settings UI reporting "external install / unknown version"
+  forever — no UI path back to truth. All three sites now route
+  through `atomic_write::write_atomic` (tmp + rename).
+- **Install staging — extract to `.new`, atomic swap, remove
+  `.old`** for both `chromium::install` and `evevault::install`.
+  Previous shape was `remove_dir_all(target)` + extract in place;
+  a mid-extract failure (zip-bomb cap, IO error, AV interference)
+  left the user with no install at all when they had a working one
+  before. The new shape: extract into `target.new`, then on full
+  success `rename(target → target.old); rename(target.new →
+  target); remove_dir_all(target.old)`. A failed rename triggers
+  rollback (`rename(target.old → target)`) so the user is never
+  left in a no-install state.
+- **`start_rider`: Drop-revert guard.** A failed launch
+  (`provision_frontier_box` errors, `launch_in_box` errors) left
+  the rider wedged in `Starting` until the next
+  `reconcile_riders` tick (≥30 s later) — the user saw the error
+  toast but the card kept spinning. A small `Drop`-impl guard on
+  the start path now flips the rider back to `Stopped`
+  synchronously on any error before commit, so the card snaps
+  back the moment the toast appears.
+- **Blocking `std::fs` calls in async hot paths**: `delete_rider`'s
+  retry loop and `sandboxie::delete_box`'s box-data-wipe both
+  called `std::fs::remove_dir_all` inside async functions. With a
+  large per-rider tree (~hundreds of MB: Brave profile + EVE Vault
+  state + game cache), each call could stall a Tokio worker for
+  hundreds of ms. Converted both to `tokio::fs::remove_dir_all`
+  so the runtime stays responsive to in-flight balance refreshes,
+  status probes, and reconcile ticks.
+
+### Changed
+
+- **Maintainer identity in `Cargo.toml`.** Was `"Bifrost
+  contributors"`; now `"valknarr <valknarr@pm.me>"` — matching the
+  contact address already in `CODE_OF_CONDUCT.md` and
+  `SECURITY.md`. Real-name maintainer signal is part of the v0.1.0
+  readiness work flagged in the pre-1.0 audit.
+
 ## [0.0.4] - 2026-05-25
 
 ### Fixed
@@ -341,7 +416,8 @@ Release. Auto-updates via the in-app banner on subsequent launches.
   30-min in-process cache for GitHub `releases/latest` lookups so the
   Settings panel stays well under the unauthenticated rate limit.
 
-[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.4...HEAD
+[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/valknarr/bifrost/releases/tag/v0.0.5
 [0.0.4]: https://github.com/valknarr/bifrost/releases/tag/v0.0.4
 [0.0.3]: https://github.com/valknarr/bifrost/releases/tag/v0.0.3
 [0.0.2]: https://github.com/valknarr/bifrost/releases/tag/v0.0.2

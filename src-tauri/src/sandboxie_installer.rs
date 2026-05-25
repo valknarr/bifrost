@@ -699,7 +699,15 @@ fn write_marker(app_data: &Path, version: &str, variant: SandboxieVariant) -> Re
         variant,
     };
     let json = serde_json::to_string(&payload)?;
-    std::fs::write(version_marker(app_data), json)?;
+    // Atomic write — a power loss between truncate and write would
+    // otherwise leave a zero-byte / partial marker, which
+    // `read_installed_marker` then surfaces as
+    // "external install / unknown version" with no UI path back to
+    // truth (Settings would report `update_available = false`
+    // forever because the version is unknown). Routing through
+    // `atomic_write::write_atomic` makes the write either fully
+    // visible or not at all.
+    crate::atomic_write::write_atomic(&version_marker(app_data), json.as_bytes())?;
     Ok(())
 }
 

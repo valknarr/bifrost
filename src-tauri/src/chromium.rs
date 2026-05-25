@@ -553,11 +553,27 @@ pub async fn install(app_data: &Path, release: &ChromiumRelease) -> Result<()> {
         .await
         .map_err(|e| BifrostError::Other(format!("chromium zip body read failed: {e}")))?;
 
+    // Stage-and-swap install:
+    //   1. Extract into a sibling `.new` directory (NOT the final
+    //      target). If extraction fails partway through, the old
+    //      install stays usable.
+    //   2. Only after the full archive extracts successfully do we
+    //      atomically swap: move target → `.old`, move `.new` →
+    //      target, remove `.old`.
+    //
+    // Previously the code wiped `target` first, then extracted in
+    // place. A mid-extract failure (zip-bomb cap hit, IO error, AV
+    // interference, network drop on a streaming source) left the
+    // user with no Brave install at all even though they had a
+    // working one before. This pattern mirrors the rename-on-success
+    // discipline used by `atomic_write` for small files.
     let target = install_dir(app_data);
-    if target.exists() {
-        std::fs::remove_dir_all(&target)?;
+    let staging = target.with_extension("new");
+    // Clear any leftover staging from a previous failed run.
+    if staging.exists() {
+        std::fs::remove_dir_all(&staging)?;
     }
-    std::fs::create_dir_all(&target)?;
+    std::fs::create_dir_all(&staging)?;
 
     let mut archive = zip::ZipArchive::new(std::io::Cursor::new(&zip_bytes[..]))
         .map_err(|e| BifrostError::Other(format!("chromium zip parse failed: {e}")))?;
@@ -569,7 +585,7 @@ pub async fn install(app_data: &Path, release: &ChromiumRelease) -> Result<()> {
         let Some(name) = entry.enclosed_name() else {
             continue;
         };
-        let out_path = target.join(name);
+        let out_path = staging.join(name);
         if entry.is_dir() {
             std::fs::create_dir_all(&out_path)?;
             continue;
@@ -598,7 +614,49 @@ pub async fn install(app_data: &Path, release: &ChromiumRelease) -> Result<()> {
         std::fs::write(&out_path, &buf)?;
     }
 
-    std::fs::write(version_marker(app_data), &release.tag)?;
+    // Extraction completed. Now the atomic swap — move target to
+    // `.old`, move staging into target's place, then remove `.old`.
+    // If the user's existing install was running and is holding files
+    // locked, the first rename will fail — leave the swap unfinished
+    // and bubble the error up. The pre-flight in
+    // `commands::installers::install_chromium` already refuses on
+    // running Brave, so this should normally never trigger.
+    let old = target.with_extension("old");
+    if old.exists() {
+        // Best-effort cleanup of a leftover `.old` from an
+        // interrupted previous run.
+        let _ = std::fs::remove_dir_all(&old);
+    }
+    if target.exists() {
+        std::fs::rename(&target, &old)?;
+    }
+    if let Err(e) = std::fs::rename(&staging, &target) {
+        // Swap failed mid-way. Try to put the old install back so
+        // the user isn't left with nothing.
+        if old.exists() {
+            let _ = std::fs::rename(&old, &target);
+        }
+        return Err(BifrostError::Other(format!(
+            "chromium install swap failed: {e}"
+        )));
+    }
+    // Final cleanup of the displaced old install. If this fails the
+    // install is already correct — just log.
+    if old.exists() {
+        if let Err(e) = std::fs::remove_dir_all(&old) {
+            tracing::warn!("chromium: leftover .old cleanup failed: {e}");
+        }
+    }
+
+    // Atomic write of the version marker. A non-atomic write
+    // (`std::fs::write`) opens, truncates, and writes — a power loss
+    // between truncate and finish leaves a zero-byte marker, which
+    // `read_installed_version` then returns as `None` and the
+    // Settings UI reports "external install / unknown version"
+    // forever with no path back to truth. Routing through
+    // `atomic_write::write_atomic` (tmp + rename) makes the write
+    // either fully visible or not visible at all.
+    crate::atomic_write::write_atomic(&version_marker(app_data), release.tag.as_bytes())?;
     tracing::info!(
         "chromium: installed {} into {}",
         release.tag,
