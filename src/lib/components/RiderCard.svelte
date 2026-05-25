@@ -6,6 +6,7 @@
   import { integrationReady } from "../stores/vault.svelte";
   import { configStore } from "../stores/config.svelte";
   import { clockStore, useClockTick } from "../stores/clock.svelte";
+  import { balanceWarning as computeBalanceWarning } from "../balance-warning";
   import { api } from "../tauri";
   import { confirmDestructive } from "../confirm";
   import Button from "./Button.svelte";
@@ -119,38 +120,19 @@
   );
 
   /** Balance staleness warning — drives the small label below the
-   *  stats grid. Originally a three-tier "Updated just now / 2m ago /
-   *  stale" indicator, but the constant freshness chatter added
-   *  visual noise and caused minor layout jumps on every refresh
-   *  without telling the user anything actionable. Reshaped so the
-   *  label is **only shown when something is actually wrong**:
-   *
-   *  * Returns `null` when there's no wallet, no successful fetch yet,
-   *    or the last successful fetch was less than 5 minutes ago. The
-   *    row collapses entirely — no UI element to jiggle.
-   *  * Returns `{ label }` only when ≥ 5 minutes have passed since the
-   *    last successful fetch. At that point something is meaningfully
-   *    wrong (Sui RPC rate-limiting us, network down, etc.) and the
-   *    user benefits from knowing the on-screen number is dated.
-   *
-   *  Recomputes every 15 s via `clockStore.now`. Without the explicit
-   *  read of `clockStore.now` inside this `$derived`, the value
-   *  freezes at mount time because nothing else changes in the
-   *  dependency graph between refreshes. */
-  const balanceWarning = $derived.by(() => {
-    if (!rider.walletAddress) return null;
-    const fetchedAt = rider.walletBalanceFetchedAt;
-    if (fetchedAt == null) return null;
-    const ageMs = clockStore.now - fetchedAt;
-    if (ageMs < 0) return null; // clock skew / future timestamp — ignore
-    const ageMinutes = Math.floor(ageMs / 1000 / 60);
-    if (ageMinutes < 5) return null; // healthy — hide entirely
-    if (ageMinutes < 60) {
-      return { label: `Balance stale · ${ageMinutes}m old` };
-    }
-    const ageHours = Math.floor(ageMinutes / 60);
-    return { label: `Balance stale · ${ageHours}h old` };
-  });
+   *  stats grid. The pure-function half lives in
+   *  `src/lib/balance-warning.ts` (unit-tested there); this is just
+   *  the reactive wrapper. The `clockStore.now` read inside
+   *  `$derived.by` is what makes the value re-evaluate every 15 s
+   *  — without it the result would freeze at mount because nothing
+   *  else in the dependency graph changes between refreshes. */
+  const balanceWarning = $derived.by(() =>
+    computeBalanceWarning(
+      rider.walletAddress,
+      rider.walletBalanceFetchedAt,
+      clockStore.now,
+    ),
+  );
 
   /** Confirm + permanently delete a rider whose sandbox is gone. The
    *  backend bypasses the normal "archive-first" guard for Missing

@@ -9,6 +9,76 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 _Nothing yet._
 
+## [0.0.9] - 2026-05-25
+
+### Added
+
+- **Key-rotation runbook in `docs/RELEASING.md`** — a 7-step
+  procedure for rotating the minisign updater signing key,
+  covering: (1) generating a new keypair, (2) pinning the new
+  pubkey in `tauri.conf.json`, (3) updating `SECURITY.md`, (4)
+  rotating the GitHub Environment secret used by
+  `release.yml`, (5) cutting a release signed by the new key,
+  (6) announcing the change + providing the manual-verification
+  recovery path for users on the old binary, (7) revoking and
+  destroying the old key. Documents up front why automated
+  rotation isn't possible (the pubkey is the trust anchor —
+  rotating it requires a manual "trust this new pubkey" decision
+  by the user), so the procedure is necessarily a human one.
+  Important to have written down BEFORE we ever need to do it
+  under pressure (key compromise, lost passphrase, etc.).
+- **Biome lint over the TypeScript surface**, wired into CI as a
+  required step. `biome.json` config is intentionally narrow —
+  `noExplicitAny`, `noUnusedImports` / `noUnusedVariables`,
+  `noConsole` (allowing `warn`/`error`/`info`), `useTemplate`.
+  Formatter is OFF; the editor + `.editorconfig` already handle
+  that, and a formatter fight at this stage would just churn the
+  diff. `.svelte` SFCs are excluded because Biome's Svelte
+  support still lags — `svelte-check` already covers types and
+  unused props for those. New `pnpm lint` script, fails the
+  Frontend CI job on any violation, matching the zero-warning
+  baseline we already hold for `cargo clippy -D warnings`.
+- **Vitest coverage expanded with three new test files** (~12
+  new assertions across ~28 lines of test code):
+  - **`src/lib/balance-warning.test.ts`** — boundary tests for
+    the 5-minute stale-balance threshold (the load-bearing piece
+    of v0.0.3's error-only freshness UX reshape). Pins the
+    `< 5 min → null`, `≥ 5 min → warning` seam so a future
+    refactor that flips the comparator is loud about it. Covers
+    null cases (no wallet, no fetch yet, clock-skew future
+    timestamp), the exact 5-minute seam, and the minutes-vs-
+    hours label formatter (5–59 min → `Nm old`, ≥60 min →
+    `Nh old`).
+  - **`src/lib/stores/updater.test.ts`** — state-machine tests
+    for `updaterStore.check()`. Pins the three terminal
+    `lastResult` values (`"up-to-date"` / `"available"` /
+    `"error"`) so a refactor that wires the Settings → About
+    panel's text to the wrong branch can't slip past CI. Also
+    covers the "clears stale error on next entry" contract and
+    the "no-op when a check is already in flight" guard.
+  - **`src/lib/stores/riders.test.ts`** — pins two contracts on
+    `riderStore`: (1) `run()` clears `error` on every entry (the
+    same shape we fixed in chromium/vault/sandboxie installer
+    stores in v0.0.4 — pinned here so a refactor can't quietly
+    remove the `this.error = null` line); (2)
+    `deletePermanently()` removes from local state immediately
+    after the backend ack without awaiting a refresh roundtrip,
+    so the card disappears the moment the click resolves. Also
+    pins the current "does NOT roll back on backend failure"
+    behaviour so a future change is a deliberate diff.
+
+### Changed
+
+- **`balanceWarning` logic extracted to a pure helper** at
+  `src/lib/balance-warning.ts`. Was previously inlined inside
+  `RiderCard.svelte` as a `$derived.by` block. Same behaviour —
+  the Svelte component now imports the helper and wraps it in a
+  thin reactive `$derived.by` — but now it's unit-testable
+  without a component mount, which is what enabled the boundary
+  tests above. Same shape we already used for the formatter and
+  status-derivation helpers; consistent with the "Svelte
+  components are glue, not logic" pattern this project leans on.
+
 ## [0.0.8] - 2026-05-25
 
 ### Added
@@ -541,7 +611,8 @@ Release. Auto-updates via the in-app banner on subsequent launches.
   30-min in-process cache for GitHub `releases/latest` lookups so the
   Settings panel stays well under the unauthenticated rate limit.
 
-[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.8...HEAD
+[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.9...HEAD
+[0.0.9]: https://github.com/valknarr/bifrost/releases/tag/v0.0.9
 [0.0.8]: https://github.com/valknarr/bifrost/releases/tag/v0.0.8
 [0.0.7]: https://github.com/valknarr/bifrost/releases/tag/v0.0.7
 [0.0.6]: https://github.com/valknarr/bifrost/releases/tag/v0.0.6

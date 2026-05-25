@@ -99,6 +99,18 @@ jobs:
       - name: svelte-check
         run: pnpm check
 
+      # Biome lint over the TS surface (helpers + stores + tests).
+      # Excludes `.svelte` SFCs because Biome's Svelte support still
+      # lags — svelte-check already catches type / unused-prop issues
+      # in those. The config (`biome.json`) is intentionally narrow:
+      # no-explicit-any, no-unused-imports, no-console (allow warn/
+      # error/info), useTemplate. Style/formatting is OFF — that's
+      # the editor's job, and a formatter fight at this stage of the
+      # project would just churn the diff. Adding rules is easy; the
+      # CI step is the lever that makes them stick.
+      - name: biome lint
+        run: pnpm lint
+
       # Frontend unit tests (Vitest). Hits the pure-function helpers
       # in `src/lib/` and a handful of store-mutation contracts via
       # the Tauri IPC mock in `src/test-setup.ts`. Fast (<2 s); no

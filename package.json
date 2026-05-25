@@ -1,7 +1,7 @@
 {
   "name": "bifrost",
   "private": true,
-  "version": "0.0.8",
+  "version": "0.0.9",
   "type": "module",
   "description": "Multi-rider session manager for EVE Frontier",
   "scripts": {
@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "check": "svelte-check --tsconfig ./tsconfig.json",
+    "lint": "biome lint .",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -20,6 +21,7 @@
     "@tauri-apps/plugin-updater": "^2.10.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.4.15",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@tailwindcss/vite": "^4.0.0",
     "@tauri-apps/cli": "^2.0.0",

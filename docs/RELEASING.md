@@ -179,3 +179,144 @@ The response should be a JSON object with `version`, `pub_date`,
 `platforms`, and signatures. If it 404s, the workflow ran but didn't
 publish; if it's there but signatures are empty, the
 `TAURI_SIGNING_PRIVATE_KEY` secret isn't set in GitHub.
+
+---
+
+## Key rotation runbook
+
+The minisign signing private key is **the most security-sensitive
+secret in this repo.** Anyone who reads it can publish a signed
+release that every installed Bifrost will accept and auto-install
+on next launch. This section is the recovery procedure if:
+
+1. **The key file was lost** (laptop died, drive failed, you can't
+   find the backup), OR
+2. **The key was compromised** (machine breach, key leaked, a
+   collaborator gained transient access).
+
+The two cases differ in urgency — lost = inconvenient,
+compromised = drop-everything-and-fix. The steps are the same; the
+*announcement* differs.
+
+### Step 1 — Generate the new key
+
+```sh
+pnpm tauri signer generate -w ~/.bifrost-updater-NEXT.key
+```
+
+Treat the prompt-supplied passphrase the same way you treated the
+original (a password manager entry, ideally one that's NOT on the
+compromised machine if this is the compromise path).
+
+The command prints the new pubkey to stdout. **Keep both the new
+private key file AND the printed pubkey somewhere safe before
+moving on** — there's a window in the next steps where you'll
+need both.
+
+### Step 2 — Pin the new pubkey in `tauri.conf.json`
+
+Open `src-tauri/tauri.conf.json`, find
+`plugins.updater.pubkey`, and replace the value with the new
+pubkey string (base64, no comment line — same format the file
+already has).
+
+```jsonc
+"plugins": {
+  "updater": {
+    "pubkey": "RWNEW_KEY_HERE...",
+    "endpoints": [...]
+  }
+}
+```
+
+### Step 3 — Update the pinned pubkey in `SECURITY.md`
+
+Find the "Updater signing pubkey" section at the bottom of
+`SECURITY.md` and replace the base64 value. Add a small "Key
+rotation history" sub-section noting the date, the old pubkey, the
+new pubkey, and which CHANGELOG version introduces the swap.
+
+### Step 4 — Rotate the GitHub Environment secrets
+
+Repo Settings → Environments → `release`:
+
+- **Delete** the old `TAURI_SIGNING_PRIVATE_KEY` +
+  `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` secrets.
+- **Add** the new ones (contents of the new `.key` file +
+  the passphrase you set in Step 1).
+
+The environment's `v*.*.*` deployment-tag rule stays the same.
+
+### Step 5 — Cut a release with the new pubkey
+
+Bump version per the normal per-release flow (recommended:
+go straight to a meaningful version bump like `0.1.0` so the
+rotation is announceable), update CHANGELOG, commit, tag, push.
+
+CI builds and signs the new release with the NEW key. Existing
+Bifrost installs (which still have the OLD pubkey baked in)
+will receive `latest.json` signed with the new key on their next
+cold-start poll — and **reject it** because the signature doesn't
+match the pubkey they have.
+
+The user-facing symptom is a logged "signature mismatch" error
+from the updater plugin. No banner appears. The app keeps working
+at the existing version; the user has no automatic path forward.
+
+### Step 6 — Announce + provide a manual recovery path
+
+Affected users (everyone on a release that predates the rotation)
+must **manually download the new .exe from the Releases page once.**
+After that re-install, their .exe has the new pubkey baked in and
+auto-updates resume.
+
+**Announcement channels in order:**
+
+1. **CHANGELOG entry** in the rotation release with a `### Security`
+   subheading describing what happened, why, and the one-time
+   manual-download recovery step. Be explicit: *"users on
+   v0.0.X-earlier must download the new .exe once; auto-updates
+   resume after that re-install."*
+2. **README's "Status" section** updated to call out the
+   one-time recovery step at the top.
+3. **GitHub Discussion pinned at the top** of the Discussions tab
+   linking to the release notes and the recovery step.
+4. **Direct outreach** if you have any Discord / EVE community
+   channels where Bifrost users are concentrated.
+
+If this was a compromise (not a loss), **publish a GitHub Security
+Advisory** in the repo's Security tab as well, with:
+
+- The time window the old key was potentially exposed.
+- Whether any malicious release was actually pushed using the old
+  key (check `gh release list` history; releases you didn't author
+  are signed with the compromised key).
+- The recovery step above.
+
+### Step 7 — Revoke + destroy the old key
+
+After the new release ships and the announcement is out, securely
+delete the old `~/.bifrost-updater.key` file from any machine it
+touched. Update any password-manager entries. If the key was on a
+backup, scrub the backup.
+
+### What the rotation costs the user
+
+- **One manual download** from the Releases page (the same UX
+  they had on first install).
+- **One install dialog** (Windows SmartScreen + UAC for the
+  Sandboxie kernel-driver step, if not already installed).
+- **No data loss.** Per-Rider browser profiles, riders.json,
+  config.json, and the favicon cache all live in app-data and
+  survive the manual re-install.
+
+### Why we can't auto-rotate
+
+Because the very thing being rotated IS the trust anchor. The new
+release would need to be signed with a key the user already trusts
+— which means either the OLD key (defeating the rotation if it's
+been compromised) or a key the user has somehow already received
+out-of-band (which would itself be a TOFU problem). Sovereign
+single-key updaters always have this manual-rotation tail; the
+alternative is multi-key / threshold systems that are
+disproportionate complexity for a project this size.

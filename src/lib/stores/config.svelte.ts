@@ -75,8 +75,7 @@ class ConfigStore {
       // diagnosis — the user can't act on this either way, but a
       // bug report with the real error is more useful than one
       // with a misleading "permission" hint.
-      this.error =
-        "Couldn't apply UI scale. " + formatBackendError(e);
+      this.error = `Couldn't apply UI scale. ${formatBackendError(e)}`;
       return;
     }
     try {
