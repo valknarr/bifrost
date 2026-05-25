@@ -19,6 +19,11 @@ class SandboxieStore {
   error = $state<string | null>(null);
 
   async refresh(force = false) {
+    // Clear any stale error from a previous install / uninstall
+    // failure on entry — once we successfully refresh the status,
+    // an old red banner from a previous click shouldn't stay
+    // pinned. Same shape as `status.svelte.ts::refresh`.
+    this.error = null;
     try {
       this.status = await api.getSandboxieInstallerStatus(force);
     } catch (e) {

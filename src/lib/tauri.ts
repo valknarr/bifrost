@@ -61,7 +61,7 @@ export const api = {
     invoke<ChromiumStatus>("get_chromium_status", { forceRefresh }),
   installChromium: () => invoke<void>("install_chromium"),
   uninstallChromium: () => invoke<void>("uninstall_chromium"),
-  uninstallEvevault: () => invoke<void>("uninstall_evevault"),
+  uninstallEveVault: () => invoke<void>("uninstall_evevault"),
   getSandboxieInstallerStatus: (forceRefresh = false) =>
     invoke<SandboxieInstallerStatus>("get_sandboxie_installer_status", {
       forceRefresh,

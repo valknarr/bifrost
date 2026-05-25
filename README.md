@@ -23,10 +23,13 @@ DLL injection, no TOS edge cases.
    [**latest release**](https://github.com/valknarr/bifrost/releases/latest).
 2. Run it. Windows SmartScreen will warn that the installer is
    from an unrecognised publisher — click **More info → Run anyway**.
-   (Authenticode signing is a [pre-1.0 TODO](#roadmap--pre-10-todo);
-   the installer is minisign-signed end-to-end and the `.sig`
-   beside the `.exe` lets you verify integrity manually if you
-   prefer — see [SECURITY.md](./SECURITY.md).)
+   (Authenticode signing is a [pre-1.0 TODO](#roadmap--pre-10-todo).
+   Every release ships a `latest.json` manifest with an embedded
+   minisign signature; the auto-updater verifies it against the
+   pubkey baked into your running binary before installing any
+   update. For first-install manual verification, see
+   [SECURITY.md](./SECURITY.md) — a `SHA256SUMS.txt` step is also
+   on the pre-1.0 roadmap.)
 3. On first launch, Bifrost offers to install Sandboxie (Plus or
    Classic) silently. One Windows UAC prompt; that's the only
    external dependency.
@@ -104,12 +107,14 @@ hits one in practice.
   anymore. No data loss — just disk slowly leaks until you nuke
   `<app-data>` manually. Reproducing requires a power-cycle at
   exactly the wrong moment.
-- **`Sandboxie::version()` always returns the variant + tag from
-  the Bifrost-written marker, not the actual installed binary.** If
-  the user updates Sandboxie via its own auto-updater rather than
-  through Bifrost's Settings panel, the version line in the
-  Detection row may lag until they trigger an update through Bifrost
-  itself.
+- **Sandboxie version detection trusts Bifrost's marker over the
+  actual installed binary.** `read_installed_marker` in
+  `sandboxie_installer.rs` returns the variant + tag Bifrost wrote
+  the last time it ran the installer, not what's currently on disk.
+  If the user updates Sandboxie via its own auto-updater rather
+  than through Bifrost's Settings panel, the version line in the
+  Detection row may lag until they trigger an update through
+  Bifrost itself.
 - **`delete_box` assumes the default Sandboxie data root
   (`C:\Sandbox\<user>\<box>\`).** If you've customised
   `FileRootPath` in Sandboxie's own settings, deleting a box via

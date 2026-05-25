@@ -9,6 +9,123 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 _Nothing yet._
 
+## [0.0.4] - 2026-05-25
+
+### Fixed
+
+- **CRITICAL: Brave installer was shipping the wrong product.** The
+  v0.0.2 / v0.0.3 asset matcher accepted both `brave-v…-win32-x64.zip`
+  (regular **Brave Browser**) and `brave-origin-v…-win32-x64.zip`
+  (which is **Brave Origin**, a separate paid Brave variant that
+  prompts for a license purchase on first launch). The original
+  matcher comment claimed `brave-origin-v…` was just an internal
+  build-chain prefix — it isn't, it's a different product. Users
+  who clicked "Update Brave" in Settings during v0.0.3 may have
+  received Brave Origin instead of Brave Browser; the wrong app
+  shows a "Welcome to Brave Origin — purchase or restore" screen.
+
+  **Cleanup recipe** if you're affected:
+  Settings → Portable Browser → **Uninstall** → **Install** again.
+  The fixed matcher will skip Brave-Origin-only releases and land
+  on the most recent regular-Brave release (currently v1.92.92).
+  Per-rider browser profiles under `<app-data>/riders/*/browser/`
+  are preserved across the reinstall.
+- **`Layout.svelte` grid template was missing the row for the
+  update banner.** Three rows declared (`48px 1fr 28px`) but four
+  grid children rendered when the auto-updater had a pending
+  release. CSS auto-placement collapsed the main content area to
+  28 px and the rider roster vanished while an update was pending.
+  Added the explicit `auto` row for the banner so it collapses to
+  0 px when no update is available and sizes naturally when one is.
+- **Stale error retention** in `chromiumStore`, `vaultStore`, and
+  `sandboxieStore` — `refresh()` didn't clear `this.error` on
+  entry, so a stale install-failure error stayed pinned in red
+  even after a subsequent successful status refresh.
+  `statusStore` did this correctly; the other three were the
+  regression.
+- **Brave install/uninstall pre-flight now distinguishes Bifrost's
+  portable Brave from the user's regular Brave install.** The
+  v0.0.3 check (added for the Brave-running uninstall error) used
+  `tasklist /FI "IMAGENAME eq brave.exe"` which counted EVERY
+  `brave.exe` on the host — including a user's daily-driver Brave
+  in `Program Files`. Result: a user with their normal Brave open
+  browsing the web couldn't install or update Bifrost's portable
+  Brave even though the two installs don't share any files.
+  Rewritten to use `Get-CimInstance Win32_Process` with the
+  `ExecutablePath` column, filtering to processes whose .exe lives
+  inside Bifrost's chromium install directory. Same shape as the
+  `kill_browsers_for_profile` pattern in `browser.rs` (which
+  filters by `--user-data-dir`).
+- **Pre-flight extended to `install_chromium`, not just
+  `uninstall_chromium`.** `install` does `remove_dir_all` +
+  extract over the same path; if a Bifrost-managed Brave was
+  running during that flow (e.g. a per-rider window from clicking
+  Apps a moment earlier, or a stale Brave Origin window from
+  v0.0.3) the wipe was partial and the extract overlaid new files
+  onto locked old ones. The resulting hybrid install launched
+  with `ERROR:scoped_file_writer.cc:17] Could not open pak file
+  for writing` and other Chromium sharing-violation noise.
+  Refusing the install with a clear "close every rider's browser
+  window first" message mirrors the same guard on `uninstall`.
+
+### Added
+
+- **Release cache is now disk-backed across restarts.** Bifrost's
+  GitHub Releases lookups (Sandboxie, Brave, EVE Vault, plus the
+  updater check) all flow through `release_cache::fetch_with_cache`
+  with a 30-min success TTL and a 5-min rate-limit-failure backoff
+  TTL. Until v0.0.4 both lived in an in-process `HashMap` that was
+  wiped on every app restart — so a development restart-flurry, or
+  a real user who closes-and-reopens the app within the same
+  half-hour, kept re-firing the same lookups and could exhaust
+  GitHub's 60 req/hr unauthenticated quota.
+
+  Cache now persists to `<app-data>/release-cache.json` (atomically
+  via the existing `atomic_write::write_atomic`) on every successful
+  fetch AND every rate-limit-failure record. On app boot,
+  `release_cache::init_disk_cache` (wired from `AppState::new`)
+  loads the file and seeds the in-memory cache with non-expired
+  entries; expired entries are dropped. Net effect for the user:
+  closing-and-reopening Bifrost within the 30-min TTL hits 0
+  GitHub calls instead of 4, and a rate-limit hit from a previous
+  session is correctly remembered for the full 5 min instead of
+  re-firing immediately. ETag/304-conditional support and an
+  optional `GITHUB_TOKEN` env var are planned for v0.0.5 / v0.1.0.
+
+### Changed
+
+- **Trademark + version disclaimers.** Several documentation
+  references no longer matched the code:
+  - `README.md` "Known limitations" referenced a non-existent
+    `Sandboxie::version()` method; rewritten to point at the
+    actual `read_installed_marker` path.
+  - `README.md` install section claimed the `.sig` "beside the
+    `.exe`" lets users verify integrity; clarified that the
+    embedded minisign signature in `latest.json` is what the
+    auto-updater uses, with `SHA256SUMS.txt` (pre-1.0 TODO)
+    being the eventual manual-verification path.
+  - `CHANGELOG.md` v0.0.1 entry claimed Sui RPC fetches use
+    `FuturesUnordered` with a max-4 concurrency cap. The actual
+    code is sequential per-rider (Sui's public mainnet RPC
+    throttles per-IP on bursts). Annotation updated to match.
+  - `src-tauri/src/favicon.rs` module-level comment said the
+    User-Agent was `bifrost/0.0.1`; it's actually built from
+    `CARGO_PKG_VERSION` at compile time. Comment now reflects.
+  - `src-tauri/src/config.rs` test comment said "Pre-v0.0.4"
+    when it should have said "Pre-v0.0.1" — the field has
+    existed since the first release.
+- **`tauri.ts` naming consistency.** `installEveVault` / camelcase
+  `EveVault` already, but `uninstallEvevault` used lowercase `v`.
+  Renamed to `uninstallEveVault` in the TS wrapper. No backend
+  rename (Rust command name `uninstall_evevault` stays — the
+  cross-boundary drift test pins the Rust name, the TS rename is
+  cosmetic on the wrapper side).
+- **JSDoc on `useClockTick`** was actively misleading — it told
+  callers to `onMount(() => useClockTick())`, but the helper
+  already calls `onMount` internally. Following the doc silently
+  broke cleanup. Doc rewritten to say "call at the top of
+  `<script>` — wires its own `onMount` and cleanup."
+
 ## [0.0.3] - 2026-05-24
 
 ### Added
@@ -197,9 +314,11 @@ Release. Auto-updates via the in-app banner on subsequent launches.
   devDependency for Vite 8's rolldown transition), Svelte plugin
   5 → 7, TypeScript 5 → 6 (tsconfig `baseUrl` removed per TS 6
   deprecation; `paths` migrated to relative form).
-- **Sui RPC fetches go concurrent** — each rider's SUI + EVE
-  balance call pair runs via `tokio::join!`; riders themselves
-  fan out via `FuturesUnordered` with a max-4 concurrency cap.
+- **Sui RPC fetches go concurrent _within_ a rider** — each rider's
+  SUI + EVE balance call pair runs via `tokio::join!`. Riders
+  themselves are iterated sequentially because Sui's public mainnet
+  RPC throttles per-IP on bursts (see the comment in
+  `commands/wallet.rs::refresh_balances`).
 - **Chromium asset matcher** broadened to accept both
   `brave-v…-win32-x64.zip` and `brave-origin-v…-win32-x64.zip`
   naming forms. The release lookup switched from `/releases/latest`
@@ -222,7 +341,8 @@ Release. Auto-updates via the in-app banner on subsequent launches.
   30-min in-process cache for GitHub `releases/latest` lookups so the
   Settings panel stays well under the unauthenticated rate limit.
 
-[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.3...HEAD
+[Unreleased]: https://github.com/valknarr/bifrost/compare/v0.0.4...HEAD
+[0.0.4]: https://github.com/valknarr/bifrost/releases/tag/v0.0.4
 [0.0.3]: https://github.com/valknarr/bifrost/releases/tag/v0.0.3
 [0.0.2]: https://github.com/valknarr/bifrost/releases/tag/v0.0.2
 [0.0.1]: https://github.com/valknarr/bifrost/releases/tag/v0.0.1

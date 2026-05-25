@@ -3,10 +3,11 @@
 //! Why this exists in Rust rather than as a frontend `<img>` to a
 //! third-party service:
 //!
-//!   - The shared [`crate::http::client`] sends a `bifrost/0.0.1`
-//!     User-Agent, so the favicon-service operator (Google) sees Bifrost
-//!     as a distinct caller in their logs rather than anonymous Edge
-//!     WebView2 traffic.
+//!   - The shared [`crate::http::client`] sends a
+//!     `bifrost/<CARGO_PKG_VERSION>` User-Agent (built at compile
+//!     time in `http.rs`), so the favicon-service operator (Google)
+//!     sees Bifrost as a distinct caller in their logs rather than
+//!     anonymous Edge WebView2 traffic.
 //!   - Caching: favicons rarely change. We keep them under
 //!     `<app-data>/favicons/<host>.png` with a 7-day TTL, so a typical
 //!     boot is pure disk reads — no network at all.

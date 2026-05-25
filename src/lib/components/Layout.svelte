@@ -48,10 +48,29 @@
   );
 </script>
 
-<div class="grid h-full grid-cols-1 grid-rows-[48px_1fr_28px]">
+<!-- Grid template: four rows top-to-bottom — fixed 48 px header,
+     an `auto`-sized row for the optional UpdateBanner (collapses
+     to 0 when there's no update available — `auto` shrinks to its
+     content, and UpdateBanner's outer `{#if available}` renders
+     NO DOM in the happy path), the `1fr` main scroll area, and a
+     fixed 28 px footer.
+
+     CRITICAL: each of header/main/footer carries an explicit
+     `row-start-N` class. Without it, CSS auto-placement shifts
+     them whenever UpdateBanner's DOM presence changes:
+       - UpdateBanner null → 3 grid children fill rows 1/2/3 →
+         footer lands in the 1fr row (huge) and the 28 px row
+         goes empty (visible gap below footer).
+       - UpdateBanner visible → 4 children fill rows 1/2/3/4 as
+         intended.
+     Earlier versions had only 3 rows declared with no row-start
+     pins, so the layout broke in BOTH cases — banner-visible
+     squashed main, banner-absent flipped which row each element
+     occupied. Explicit row-starts make the placement stable. -->
+<div class="grid h-full grid-cols-1 grid-rows-[48px_auto_1fr_28px]">
   <!-- Top bar — brand · nav · live status. Single row, no left rail. -->
   <header
-    class="flex items-stretch justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)]/80"
+    class="row-start-1 flex items-stretch justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)]/80"
   >
     <div class="flex items-stretch">
       <div
@@ -160,16 +179,14 @@
        it's the first thing the user sees on cold launch when an
        update is ready. Self-hides when the user clicks Later or
        finishes the upgrade flow. -->
-  <UpdateBanner />
-
   <!-- Main content -->
-  <main class="overflow-y-auto px-8 py-6">
+  <main class="row-start-3 overflow-y-auto px-8 py-6">
     {@render children()}
   </main>
 
   <!-- Bottom status strip — game-flavoured ticker -->
   <footer
-    class="flex items-center justify-between border-t border-[var(--color-border)] bg-[var(--color-surface)]/80 px-5 text-[calc(10px*var(--text-scale,1))] tracking-[0.2em] uppercase text-[var(--color-text-dim)]"
+    class="row-start-4 flex items-center justify-between border-t border-[var(--color-border)] bg-[var(--color-surface)]/80 px-5 text-[calc(10px*var(--text-scale,1))] tracking-[0.2em] uppercase text-[var(--color-text-dim)]"
   >
     <div class="flex items-center gap-3">
       <!-- App version, fetched once at boot from tauri.conf.json.

@@ -75,8 +75,36 @@ pub async fn get_chromium_status(
 ///
 /// Routes the release lookup through the shared `release_cache` —
 /// same rationale as `install_evevault`.
+///
+/// Pre-flight (mirrors `uninstall_chromium`): refuse if any
+/// `brave.exe` is currently running. Install does a
+/// `remove_dir_all` + extract over the same path; if Brave is
+/// running it holds files locked, the wipe is partial, and the
+/// extracted install ends up in a hybrid state that fails
+/// mysteriously on next launch (the `scoped_file_writer.cc:17`
+/// pak-file sharing-violation pattern we hit during v0.0.4 dev
+/// after upgrading away from Brave Origin while a Brave Origin
+/// window was still open).
 #[tauri::command]
 pub async fn install_chromium(state: State<'_, AppState>) -> Result<()> {
+    let running = chromium::count_running_brave_processes(&state.app_data_dir).await;
+    if running > 0 {
+        // Log the raw process count for diagnostics — Brave spawns many
+        // child processes per visible window (renderer, GPU, utility,
+        // browser, etc.), so the count doesn't map intuitively to
+        // "windows" for a user reading the error. Keep the human-facing
+        // message simple: close the rider browser windows.
+        tracing::info!(
+            "install_chromium: refused — {running} Bifrost-managed brave.exe \
+             processes still running"
+        );
+        return Err(crate::error::BifrostError::Other(
+            "Close every rider's browser window before updating Brave. \
+             Bifrost can't replace its portable Brave while a rider's \
+             window is still open."
+                .into(),
+        ));
+    }
     let release =
         crate::release_cache::fetch_with_cache("chromium", false, chromium::fetch_latest_release)
             .await?;
@@ -99,13 +127,19 @@ pub async fn install_chromium(state: State<'_, AppState>) -> Result<()> {
 /// use for Sandboxie.
 #[tauri::command]
 pub async fn uninstall_chromium(state: State<'_, AppState>) -> Result<()> {
-    let running = chromium::count_running_brave_processes().await;
+    let running = chromium::count_running_brave_processes(&state.app_data_dir).await;
     if running > 0 {
-        return Err(crate::error::BifrostError::Other(format!(
-            "{running} Brave window(s) open — close every Brave window before \
-             uninstalling. (Brave holds its files locked while it's running, \
-             which prevents Bifrost from removing them.)"
-        )));
+        // See install_chromium: count is for diagnostics, not the user.
+        tracing::info!(
+            "uninstall_chromium: refused — {running} Bifrost-managed brave.exe \
+             processes still running"
+        );
+        return Err(crate::error::BifrostError::Other(
+            "Close every rider's browser window before uninstalling Brave. \
+             Bifrost can't remove its portable Brave while a rider's window \
+             is still open."
+                .into(),
+        ));
     }
     chromium::uninstall(&state.app_data_dir)
 }

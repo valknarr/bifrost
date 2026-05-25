@@ -48,8 +48,14 @@ class ClockStore {
 
 export const clockStore = new ClockStore();
 
-/** Convenience helper for components: subscribes on mount, unsubscribes
- *  on destroy. Use inside `onMount(() => useClockTick())`. */
+/** Convenience helper for components: subscribes on mount,
+ *  unsubscribes on destroy. Call at the top of `<script>` (NOT
+ *  inside an `onMount`) — this helper wires its own `onMount` +
+ *  cleanup internally. Wrapping it in `onMount(() =>
+ *  useClockTick())` would silently break cleanup: Svelte expects
+ *  the outer arrow's return value to be a cleanup function, but
+ *  it'd receive the inner `onMount`'s registration promise and
+ *  never invoke anything on destroy. */
 export function useClockTick(): void {
   onMount(() => clockStore.subscribe());
 }

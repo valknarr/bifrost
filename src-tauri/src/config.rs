@@ -459,9 +459,13 @@ mod tests {
         assert_eq!(bytes_a, bytes_b);
     }
 
-    /// Pre-v0.0.4 configs don't carry a `uiZoom` field. They must
-    /// load at 1.0 (default zoom) instead of erroring out. This pins
-    /// the `#[serde(default)]` shim on the field.
+    /// Pre-v0.0.1 development configs (and any future field added
+    /// without a default) must continue to load without erroring.
+    /// `uiZoom` is the historical motivating case — when it was
+    /// introduced mid-development, existing on-disk configs lacked
+    /// the field. This pins the `#[serde(default)]` shim on the
+    /// field; the same pattern applies to any future additive
+    /// schema change.
     #[test]
     fn load_pre_zoom_config_defaults_to_1_0() {
         let tmp = TempDir::new().expect("tempdir");

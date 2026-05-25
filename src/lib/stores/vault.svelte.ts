@@ -25,6 +25,11 @@ class VaultStore {
   }
 
   async refresh(force = false) {
+    // Clear any stale error from a previous install / uninstall
+    // failure on entry — once we successfully refresh the status,
+    // an old red banner from a previous click shouldn't stay
+    // pinned. Same shape as `status.svelte.ts::refresh`.
+    this.error = null;
     try {
       this.status = await api.getEveVaultStatus(force);
     } catch (e) {
@@ -49,7 +54,7 @@ class VaultStore {
     this.busy = true;
     this.error = null;
     try {
-      await api.uninstallEvevault();
+      await api.uninstallEveVault();
       await this.refresh();
     } catch (e) {
       this.error = formatBackendError(e);

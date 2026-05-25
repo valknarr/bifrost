@@ -34,12 +34,14 @@
 //! 403 too, but shorter than the success TTL".
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Mutex;
-use std::time::{Duration, Instant};
+use std::sync::OnceLock;
+use std::time::{Duration, SystemTime};
 
 use once_cell::sync::Lazy;
 use serde::de::DeserializeOwned;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::future::Future;
 
 use crate::error::{BifrostError, Result};
@@ -59,12 +61,18 @@ const SUCCESS_TTL: Duration = Duration::from_secs(30 * 60);
 /// friendly error, wait a moment, click Check, get a fresh attempt.
 const FAILURE_BACKOFF_TTL: Duration = Duration::from_secs(5 * 60);
 
-/// Internal entry — we serialize to JSON so we don't have to make the
-/// cache generic over the value type. Each module passes its own key
-/// and parses the JSON back to its own release struct.
-#[derive(Clone)]
+/// Internal entry — we serialize the cached value to JSON so the cache
+/// stays type-erased (each module passes its own key + struct). We use
+/// `SystemTime` rather than `Instant` so entries are serializable to
+/// disk and survive app restarts. `SystemTime` is wall-clock
+/// (non-monotonic), so an NTP clock correction could in theory make a
+/// TTL check return the wrong answer — but the worst case is a single
+/// extra GitHub call, which the rate-limit budget can absorb.
+#[derive(Clone, Serialize, Deserialize)]
 struct Entry {
-    inserted_at: Instant,
+    /// Wall-clock time at which the entry was written. Compared
+    /// against `SystemTime::now()` for the TTL check.
+    inserted_at: SystemTime,
     payload_json: String,
 }
 
@@ -72,15 +80,146 @@ struct Entry {
 /// surface the same text the user would have seen on a fresh fetch —
 /// `friendly_fetch_error()` translates it into the actionable
 /// "wait + Check for updates" phrasing downstream.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 struct FailureEntry {
-    inserted_at: Instant,
+    inserted_at: SystemTime,
     error_msg: String,
 }
+
+/// Disk-persistable shape of the whole cache. Loaded once at app
+/// startup (`init_disk_cache`) and written after every successful
+/// cache mutation. Keys are stored as plain `String` for serde
+/// compatibility; on load they're matched against the known set
+/// (`KNOWN_KEYS`) and unrecognised entries are silently dropped —
+/// safer than honouring keys we don't expect.
+#[derive(Default, Serialize, Deserialize)]
+struct DiskCache {
+    #[serde(default)]
+    success: HashMap<String, Entry>,
+    #[serde(default)]
+    failure: HashMap<String, FailureEntry>,
+}
+
+/// Keys we'll honour when loading from disk. The cache itself uses
+/// `&'static str` keys for cheap lookup, but disk JSON is just
+/// `String` — this mapping interns the disk key back to its static
+/// ref. Unknown keys (e.g. left over from a renamed module) are
+/// dropped on load, which is the safe behaviour.
+const KNOWN_KEYS: &[&str] = &["evevault", "chromium", "sandboxie_releases_json"];
+
+fn intern_known_key(s: &str) -> Option<&'static str> {
+    KNOWN_KEYS.iter().copied().find(|k| *k == s)
+}
+
+/// Set once at app startup via `init_disk_cache`. When `Some`, every
+/// successful cache write also persists to this path so the cache
+/// survives restarts. When `None` (tests, no init), behaviour falls
+/// back to the original in-memory-only mode.
+static DISK_CACHE_PATH: OnceLock<PathBuf> = OnceLock::new();
 
 static CACHE: Lazy<Mutex<HashMap<&'static str, Entry>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 static FAILURE_CACHE: Lazy<Mutex<HashMap<&'static str, FailureEntry>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
+
+/// Wire the cache to a backing file under app-data. Called once during
+/// `AppState::new` so the path is available before any command fires
+/// a release lookup. Idempotent — the OnceLock ignores repeated sets.
+///
+/// On call, loads the existing cache file (if present) and seeds the
+/// in-memory caches with any non-expired entries. Expired entries are
+/// silently dropped — same as if we'd done a fresh in-memory fetch
+/// after the TTL elapsed.
+pub fn init_disk_cache(path: PathBuf) {
+    if DISK_CACHE_PATH.set(path.clone()).is_err() {
+        // Already initialised — tests sometimes do this. No-op.
+        return;
+    }
+    let Ok(bytes) = std::fs::read(&path) else {
+        // No cache file yet (first launch) — that's fine, we'll
+        // write one on the first successful fetch.
+        return;
+    };
+    let Ok(disk): std::result::Result<DiskCache, _> = serde_json::from_slice(&bytes) else {
+        // Corrupt cache file — log and start fresh. The next
+        // successful fetch overwrites it.
+        tracing::warn!(
+            "release_cache: failed to parse {} — starting with empty cache",
+            path.display()
+        );
+        return;
+    };
+    let now = SystemTime::now();
+    if let Ok(mut guard) = CACHE.lock() {
+        for (k, entry) in disk.success {
+            let Some(static_key) = intern_known_key(&k) else {
+                continue;
+            };
+            if !is_entry_expired(&entry, now, SUCCESS_TTL) {
+                guard.insert(static_key, entry);
+            }
+        }
+    }
+    if let Ok(mut guard) = FAILURE_CACHE.lock() {
+        for (k, entry) in disk.failure {
+            let Some(static_key) = intern_known_key(&k) else {
+                continue;
+            };
+            if !is_failure_expired(&entry, now, FAILURE_BACKOFF_TTL) {
+                guard.insert(static_key, entry);
+            }
+        }
+    }
+    tracing::info!(
+        "release_cache: loaded {} success + {} failure entries from {}",
+        CACHE.lock().map(|g| g.len()).unwrap_or(0),
+        FAILURE_CACHE.lock().map(|g| g.len()).unwrap_or(0),
+        path.display()
+    );
+}
+
+/// Write the current in-memory cache to disk. Called after every
+/// successful mutation. Atomic via `atomic_write::write_atomic` so a
+/// crash mid-write can't leave the file half-flushed (the recovery
+/// shape mirrors `state.rs`'s riders.json handling).
+fn persist_to_disk() {
+    let Some(path) = DISK_CACHE_PATH.get() else {
+        return; // not initialised — in-memory only, fine
+    };
+    let success = CACHE.lock().ok().map(|g| {
+        g.iter()
+            .map(|(k, v)| ((*k).to_string(), v.clone()))
+            .collect::<HashMap<String, Entry>>()
+    });
+    let failure = FAILURE_CACHE.lock().ok().map(|g| {
+        g.iter()
+            .map(|(k, v)| ((*k).to_string(), v.clone()))
+            .collect::<HashMap<String, FailureEntry>>()
+    });
+    let disk = DiskCache {
+        success: success.unwrap_or_default(),
+        failure: failure.unwrap_or_default(),
+    };
+    let Ok(json) = serde_json::to_string(&disk) else {
+        return;
+    };
+    if let Err(e) = crate::atomic_write::write_atomic(path, json.as_bytes()) {
+        // Disk full / permissions / AV — log and continue.
+        // In-memory cache still works for this session.
+        tracing::warn!("release_cache: persist failed ({e})");
+    }
+}
+
+fn is_entry_expired(entry: &Entry, now: SystemTime, ttl: Duration) -> bool {
+    now.duration_since(entry.inserted_at)
+        .map(|elapsed| elapsed >= ttl)
+        .unwrap_or(false) // clock skew (entry "in the future") — treat as fresh
+}
+
+fn is_failure_expired(entry: &FailureEntry, now: SystemTime, ttl: Duration) -> bool {
+    now.duration_since(entry.inserted_at)
+        .map(|elapsed| elapsed >= ttl)
+        .unwrap_or(false)
+}
 
 /// Run `fetch` only when the cache is empty / stale for `key`, or
 /// `force_refresh` is true. On success the result is written back.
@@ -136,7 +275,7 @@ where
 fn read_cached<T: DeserializeOwned>(key: &'static str) -> Option<T> {
     let guard = CACHE.lock().ok()?;
     let entry = guard.get(key)?;
-    if entry.inserted_at.elapsed() >= SUCCESS_TTL {
+    if is_entry_expired(entry, SystemTime::now(), SUCCESS_TTL) {
         return None;
     }
     serde_json::from_str(&entry.payload_json).ok()
@@ -150,17 +289,21 @@ fn write_cache<T: Serialize>(key: &'static str, value: &T) {
         guard.insert(
             key,
             Entry {
-                inserted_at: Instant::now(),
+                inserted_at: SystemTime::now(),
                 payload_json: json,
             },
         );
     }
+    // Persist the (now-updated) cache to disk so a subsequent restart
+    // re-uses this response instead of re-firing the request. Cheap:
+    // the cache file is ~10 KB and we write it atomically.
+    persist_to_disk();
 }
 
 fn read_cached_failure(key: &'static str) -> Option<String> {
     let guard = FAILURE_CACHE.lock().ok()?;
     let entry = guard.get(key)?;
-    if entry.inserted_at.elapsed() >= FAILURE_BACKOFF_TTL {
+    if is_failure_expired(entry, SystemTime::now(), FAILURE_BACKOFF_TTL) {
         return None;
     }
     Some(entry.error_msg.clone())
@@ -171,16 +314,28 @@ fn write_cached_failure(key: &'static str, msg: String) {
         guard.insert(
             key,
             FailureEntry {
-                inserted_at: Instant::now(),
+                inserted_at: SystemTime::now(),
                 error_msg: msg,
             },
         );
     }
+    // Persist failures too — without this, an app restart immediately
+    // after a rate-limit failure would re-fire the request and hit
+    // the limit again. The user's dev-iteration workflow is exactly
+    // this pattern (close the dev window, restart `pnpm tauri dev`,
+    // app boots and re-queries Brave/EVE Vault/Sandboxie → 403 again).
+    // 5-min TTL keeps the bad-state window small.
+    persist_to_disk();
 }
 
 fn clear_cached_failure(key: &'static str) {
-    if let Ok(mut guard) = FAILURE_CACHE.lock() {
-        guard.remove(key);
+    let mutated = if let Ok(mut guard) = FAILURE_CACHE.lock() {
+        guard.remove(key).is_some()
+    } else {
+        false
+    };
+    if mutated {
+        persist_to_disk();
     }
 }
 

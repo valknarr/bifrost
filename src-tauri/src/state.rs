@@ -64,6 +64,15 @@ impl AppState {
         let config_path = app_data.join("config.json");
         let riders_path = app_data.join("riders.json");
 
+        // Wire the release-cache to a backing file under app-data so
+        // cached GitHub Releases responses survive app restarts. This
+        // is what turns a dev-iteration restart-flurry from "burn 4
+        // API calls per restart and hit the 60/hr unauth rate limit
+        // after ~15 restarts" into "0 API calls per restart while
+        // entries are within their 30-min TTL". See
+        // `release_cache::init_disk_cache`.
+        crate::release_cache::init_disk_cache(app_data.join("release-cache.json"));
+
         let config = BifrostConfig::load_or_default(&config_path)?;
         let riders = load_riders(&riders_path)?;
 

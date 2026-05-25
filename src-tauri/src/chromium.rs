@@ -27,21 +27,28 @@ use crate::release_cache;
 const REPO: &str = "brave/brave-browser";
 
 /// Asset matcher — Brave publishes both portable binaries and installers
-/// in the same release; we want only the Windows x64 portable ZIP and
-/// must reject the symbols ZIP (1.4 GB of pdb files) plus the
-/// installer EXEs.
+/// in the same release; we want only the Windows x64 portable ZIP of
+/// the regular **Brave Browser** and must reject the symbols ZIP
+/// (1.4 GB of pdb files), the installer EXEs, AND the **Brave Origin**
+/// portable ZIP (different product — a paid Brave variant that prompts
+/// for a license on first launch; shipping it as "Brave" gives the
+/// user a paywalled app they can't sign into).
 ///
-/// Brave uses TWO portable-ZIP naming forms across recent releases:
-///   - `brave-v1.92.85-win32-x64.zip` (older / occasional)
-///   - `brave-origin-v1.91.159-win32-x64.zip` (post-2026 default)
+/// Naming:
+///   - `brave-v1.92.85-win32-x64.zip` — regular Brave Browser ✓ accept
+///   - `brave-origin-v1.91.159-win32-x64.zip` — Brave Origin ✗ reject
+///   - `brave-v…-win32-x64-symbols.zip` — debug symbols ✗ reject
 ///
-/// Both are valid portable builds — the `origin` prefix differentiates
-/// the Chromium-origin build chain from variant builds, but for our
-/// purposes (run-the-browser-in-a-sandbox) they're interchangeable.
-/// Accept either prefix so we don't reject the newer naming.
+/// Implementation note: `starts_with("brave-v")` matches both
+/// `brave-v…` (good) and `brave-vault-v…` / `brave-version-…` hypothetical
+/// names, but in practice Brave's release history uses exactly two
+/// prefixes — `brave-v` and `brave-origin-v` — so an explicit
+/// `!starts_with("brave-origin-v")` is the cleanest rejection.
 fn is_portable_zip(name: &str) -> bool {
-    let prefix_ok = name.starts_with("brave-v") || name.starts_with("brave-origin-v");
-    prefix_ok && name.ends_with("-win32-x64.zip") && !name.contains("symbols")
+    name.starts_with("brave-v")
+        && !name.starts_with("brave-origin-v")
+        && name.ends_with("-win32-x64.zip")
+        && !name.contains("symbols")
 }
 
 #[cfg(test)]
@@ -53,16 +60,22 @@ mod tests {
         assert!(is_portable_zip("brave-v1.90.124-win32-x64.zip"));
     }
 
-    /// Brave's post-2026 release flow emits the `brave-origin-v…`
-    /// prefix for most builds (an internal-build-chain label that
-    /// has no behavioural effect for our use case). The matcher
-    /// MUST accept this — otherwise `fetch_latest_release` finds
-    /// no asset and the Settings panel errors "release X has no
-    /// win32-x64 portable ZIP" on every check.
+    /// `brave-origin-v…` ZIPs are NOT regular Brave Browser — they're
+    /// Brave Origin, a paid Brave variant that prompts for a license
+    /// purchase on first launch. v0.0.3 shipped a matcher that
+    /// (incorrectly) accepted both prefixes based on the assumption
+    /// that "origin" was just an internal-build-chain tag; turned
+    /// out it's a separate product. A user who clicked "Update Brave"
+    /// in v0.0.3 received a paywalled app titled "Brave Origin" /
+    /// "Modigt ursprung" (sv) asking them to purchase a license.
+    /// The matcher MUST reject this prefix so the list-and-scan
+    /// helper falls through to the most recent release that DOES
+    /// carry a regular `brave-v…` portable.
     #[test]
-    fn portable_zip_matcher_accepts_brave_origin_prefix() {
-        assert!(is_portable_zip("brave-origin-v1.91.159-win32-x64.zip"));
-        assert!(is_portable_zip("brave-origin-v1.92.89-win32-x64.zip"));
+    fn portable_zip_matcher_rejects_brave_origin() {
+        assert!(!is_portable_zip("brave-origin-v1.91.159-win32-x64.zip"));
+        assert!(!is_portable_zip("brave-origin-v1.92.89-win32-x64.zip"));
+        assert!(!is_portable_zip("brave-origin-v1.92.93-win32-x64.zip"));
     }
 
     #[test]
@@ -337,30 +350,46 @@ pub fn install_dir(app_data: &Path) -> PathBuf {
     app_data.join("chromium").join("current")
 }
 
-/// Best-effort count of `brave.exe` processes currently running on the
-/// host (any rider, plus the user's own Brave if they happen to use it
-/// outside Bifrost — although the portable build lives in our app-data
-/// so they shouldn't overlap).
+/// Best-effort count of `brave.exe` processes whose **executable lives
+/// inside Bifrost's chromium install directory** — i.e., the portable
+/// Brave that Bifrost shipped, not the user's day-to-day Brave install
+/// in `Program Files`.
 ///
-/// Used as a pre-flight gate by `commands::installers::uninstall_chromium`:
-/// while Brave is running, `remove_dir_all` against `install_dir` fails
-/// with `os error 5 (Access denied)` because Brave holds files locked.
-/// Refusing with a clear message is friendlier than letting the OS
-/// throw a low-level I/O error.
+/// Used as a pre-flight gate by `commands::installers::install_chromium`
+/// and `uninstall_chromium`: while a Bifrost-managed Brave is running,
+/// `remove_dir_all` (and the wipe step inside `install`) against the
+/// install dir fails with `os error 5 (Access denied)` because Brave
+/// holds files locked. Refusing with a clear message is friendlier than
+/// letting the OS throw a low-level I/O error AND corrupting the
+/// install dir with a half-wiped + half-extracted state.
 ///
-/// Shells out to `tasklist /FI "IMAGENAME eq brave.exe"` rather than
-/// pulling in a process-listing crate — `tasklist.exe` ships with every
-/// Windows install and the sandboxie.rs module already uses the same
-/// pattern. Returns `0` on any tasklist failure (we don't have a strong
-/// "we don't know" signal we can express to the user, and conservative-
-/// refuse-on-failure would block uninstalls forever in environments
-/// where tasklist is somehow unavailable).
-pub async fn count_running_brave_processes() -> u32 {
+/// Filtering by `ExecutablePath` is important — earlier versions
+/// counted EVERY brave.exe on the host (via `tasklist /FI "IMAGENAME
+/// eq brave.exe"`), which over-triggered: a user with their normal
+/// Brave open browsing the web couldn't install or update Bifrost's
+/// portable Brave even though those two installs don't share any
+/// files. The current PowerShell + `Win32_Process.ExecutablePath`
+/// approach checks the actual exe path of each running process
+/// against our install dir, so only Bifrost-managed Braves count.
+/// This mirrors the `kill_browsers_for_profile` pattern in
+/// `browser.rs::39` (which filters by `--user-data-dir` in the
+/// command line for the same kind of "is this OUR process" question).
+///
+/// Returns `0` on any PowerShell failure or empty result. We don't
+/// have a strong "we don't know" signal we can express to the user,
+/// and conservative-refuse-on-failure would block install/uninstall
+/// forever in environments where PowerShell is somehow unavailable
+/// (extremely rare on Windows but worth not breaking).
+pub async fn count_running_brave_processes(app_data: &Path) -> u32 {
     use tokio::process::Command;
-    let mut cmd = Command::new("tasklist.exe");
-    cmd.args(["/FI", "IMAGENAME eq brave.exe", "/FO", "csv", "/NH"]);
-    // Suppress the brief console-window flash that any tokio Command
-    // produces on Windows when spawned from a GUI-subsystem process.
+    let mut cmd = Command::new("powershell.exe");
+    cmd.args([
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process -Filter \"name='brave.exe'\" | \
+         Select-Object -ExpandProperty ExecutablePath",
+    ]);
     crate::cmd::no_window(&mut cmd);
     let Ok(out) = cmd.output().await else {
         return 0;
@@ -369,12 +398,16 @@ pub async fn count_running_brave_processes() -> u32 {
         return 0;
     }
     let text = String::from_utf8_lossy(&out.stdout);
-    // tasklist with /FI + /NH prints one CSV row per match, OR a single
-    // line "INFO: No tasks are running which match the specified
-    // criteria." when nothing matches. Count rows that start with
-    // a quoted image name.
+    // Windows paths are case-insensitive; normalise both sides before
+    // comparing. The `ExecutablePath` we get back is the FULL absolute
+    // path Chromium was launched from (e.g.
+    // `C:\Users\...\io.github.valknarr.bifrost\chromium\current\...\brave.exe`),
+    // so `starts_with(install_dir)` is sufficient.
+    let install_dir_lower = install_dir(app_data).to_string_lossy().to_lowercase();
     text.lines()
-        .filter(|line| line.starts_with("\"brave.exe\""))
+        .map(|s| s.trim().to_lowercase())
+        .filter(|line| !line.is_empty())
+        .filter(|exe_path| exe_path.starts_with(&install_dir_lower))
         .count() as u32
 }
 
