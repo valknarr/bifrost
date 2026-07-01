@@ -82,7 +82,7 @@ jobs:
         # action could silently swap a malicious build into our
         # signed release. Dependabot updates this pin when the
         # action ships a new tag.
-        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Updater signing — see docs/RELEASING.md for one-time
